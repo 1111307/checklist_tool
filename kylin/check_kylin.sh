@@ -250,15 +250,28 @@ echo ""
 # ============================================================
 
 check_1_1_patch() {
-    local detail=""
+    local mtime=""
+    if [ "$PKG_MGR" = "apt" ]; then
+        mtime="$(stat -c %Y /var/lib/apt/periodic/update-success-stamp 2>/dev/null)"
+        [ -z "$mtime" ] && mtime="$(stat -c %Y /var/log/apt/history.log 2>/dev/null)"
+    else
+        mtime="$(stat -c %Y /var/lib/rpm/Packages 2>/dev/null)"
+        [ -z "$mtime" ] && mtime="$(stat -c %Y /var/log/yum.log 2>/dev/null)"
+    fi
+    local days=""
+    if [ -n "$mtime" ]; then
+        days=$(( ($(date +%s) - mtime) / 86400 ))
+    fi
     if [ "$PKG_MGR" = "apt" ]; then
         local cnt
         cnt="$(run_cmd "apt list --upgradable 2>/dev/null | grep -v '^Listing' | wc -l")"
         cnt="${cnt:-0}"
         if [ "$cnt" -gt 0 ] 2>/dev/null; then
             add_result "1.1" "系统安全" "补丁安装情况" "fail" "检测到 $cnt 个可升级的软件包（apt list --upgradable），系统补丁未安装到最新。" "第1章" "使用 apt update && apt upgrade 及时安装安全补丁。"
+        elif [ -n "$days" ] && [ "$days" -le 90 ] 2>/dev/null; then
+            add_result "1.1" "系统安全" "补丁安装情况" "pass" "apt 未发现可升级软件包，且距上次系统更新 $days 天（90天内），补丁状态较新。" "第1章" "定期检查并安装系统安全补丁。"
         else
-            add_result "1.1" "系统安全" "补丁安装情况" "pass" "apt list --upgradable 未发现可升级的软件包，或无法连接更新源（离线环境常见）。" "第1章" "定期检查并安装系统安全补丁。"
+            add_result "1.1" "系统安全" "补丁安装情况" "manual" "apt 未发现可升级软件包，但无法确认系统近期是否执行过更新（距上次更新${days:-未知}天或无法读取更新记录/离线），需人工确认补丁现状。" "第1章" "确认系统更新源可达性并核实补丁是否安装到最新。"
         fi
     else
         local out
@@ -266,8 +279,10 @@ check_1_1_patch() {
         out="${out:-0}"
         if [ "$out" -gt 0 ] 2>/dev/null; then
             add_result "1.1" "系统安全" "补丁安装情况" "fail" "yum check-update 检测到约 $out 个可更新软件包，系统补丁未安装到最新。" "第1章" "使用 yum update 及时安装安全补丁。"
+        elif [ -n "$days" ] && [ "$days" -le 90 ] 2>/dev/null; then
+            add_result "1.1" "系统安全" "补丁安装情况" "pass" "yum 未发现可更新软件包，且距上次系统更新 $days 天（90天内），补丁状态较新。" "第1章" "定期检查并安装系统安全补丁。"
         else
-            add_result "1.1" "系统安全" "补丁安装情况" "pass" "yum check-update 未发现可更新软件包，或无法连接更新源（离线环境常见）。" "第1章" "定期检查并安装系统安全补丁。"
+            add_result "1.1" "系统安全" "补丁安装情况" "manual" "yum 未发现可更新软件包，但无法确认系统近期是否执行过更新（距上次更新${days:-未知}天或无法读取更新记录/离线），需人工确认补丁现状。" "第1章" "确认系统更新源可达性并核实补丁是否安装到最新。"
         fi
     fi
 }
@@ -297,7 +312,7 @@ check_1_3_services() {
     if [ -n "$found" ]; then
         add_result "1.3" "系统安全" "高危服务/端口" "fail" "检测到以下高危服务正在运行：$found" "第1章" "停用 telnet/rsh/rlogin/tftp 等明文/高危服务，使用 SSH 替代。"
     else
-        add_result "1.3" "系统安全" "高危服务/端口" "pass" "未检测到 telnet/rsh/rlogin/tftp/rexec 等高危服务处于运行状态。" "第1章" "定期核查系统服务，禁用不必要的高危服务。"
+        add_result "1.3" "系统安全" "高危服务/端口" "manual" "未检测到 telnet/rsh/rlogin/tftp/rexec 等已知高危服务，但系统运行的服务与开放端口是否均为业务必需，需人工逐一确认。" "第1章" "核查运行服务列表与监听端口，停用并禁用非业务必需的服务。"
     fi
 }
 
@@ -350,12 +365,15 @@ check_1_5_selinux() {
 check_1_6_ssh_crypto() {
     local cfg="/etc/ssh/sshd_config"
     if [ -f "$cfg" ]; then
-        local proto weak
+        local weak strong
         weak="$(grep -Ei '^\s*Ciphers' "$cfg" | grep -Ei '3des|arcfour|rc4|blowfish|cbc')"
+        strong="$(grep -Ei '^\s*Ciphers' "$cfg" | grep -Eiv '3des|arcfour|rc4|blowfish|cbc')"
         if [ -n "$weak" ]; then
             add_result "1.6" "系统安全" "远程管理加密强度（SSH）" "fail" "sshd_config 中配置了弱加密算法：$weak" "第1章" "禁用 3DES/RC4/CBC 等弱加密套件，使用 AES-GCM/ChaCha20 等强算法。"
+        elif [ -n "$strong" ]; then
+            add_result "1.6" "系统安全" "远程管理加密强度（SSH）" "pass" "sshd_config 显式配置了加密算法且未含已知弱算法：$strong" "第1章" "定期核查 SSH 加密套件配置，避免使用弱算法。"
         else
-            add_result "1.6" "系统安全" "远程管理加密强度（SSH）" "pass" "sshd_config 未显式配置已知弱加密算法（Ciphers未设置时使用系统默认强套件）。" "第1章" "定期核查 SSH 加密套件配置，避免使用弱算法。"
+            add_result "1.6" "系统安全" "远程管理加密强度（SSH）" "manual" "sshd_config 未显式配置 Ciphers，实际加密强度取决于系统默认套件，需人工确认默认套件不含弱算法。" "第1章" "建议显式配置 Ciphers 为 AES-GCM/ChaCha20 等强算法，避免依赖默认值。"
         fi
     else
         add_result "1.6" "系统安全" "远程管理加密强度（SSH）" "na" "未检测到 sshd 配置文件，可能未安装 SSH 服务。" "第1章" "如需远程管理，安装并正确配置 OpenSSH。"
@@ -470,8 +488,10 @@ check_1_10_dbaccess() {
     listen="$(run_cmd "ss -lntp 2>/dev/null | grep -E ':3306|:5236|:54321'")"
     if echo "$listen" | grep -q '0\.0\.0\.0\|\*:'; then
         add_result "1.10" "系统安全-数据库" "数据库访问控制" "fail" "数据库端口监听在 0.0.0.0（对外暴露）：$listen" "第1章" "将数据库绑定地址改为内网/127.0.0.1，并通过防火墙限制访问来源IP。"
+    elif [ -n "$listen" ]; then
+        add_result "1.10" "系统安全-数据库" "数据库访问控制" "pass" "数据库监听的地址非公网暴露（0.0.0.0）：$listen。绑定配置：${bind:-默认}" "第1章" "持续保持数据库仅对可信来源开放访问。"
     else
-        add_result "1.10" "系统安全-数据库" "数据库访问控制" "pass" "数据库监听地址未发现对公网暴露的0.0.0.0绑定。绑定配置：${bind:-默认}" "第1章" "持续保持数据库仅对可信来源开放访问。"
+        add_result "1.10" "系统安全-数据库" "数据库访问控制" "manual" "检测到数据库服务($DB_TYPE)，但未在标准端口(3306/5236/54321)检测到监听，可能使用自定义端口，需人工确认监听地址与访问控制。" "第1章" "确认数据库实际监听端口与地址，限制其仅对可信来源开放。"
     fi
 }
 
@@ -653,7 +673,7 @@ check_2_9_riskysoftware() {
     if [ -n "$found" ]; then
         add_result "2.9" "用户安全" "高风险软件" "fail" "检测到高风险远程控制软件：$found" "第2章" "卸载TeamViewer/AnyDesk/向日葵等未经授权的远程控制软件。"
     else
-        add_result "2.9" "用户安全" "高风险软件" "pass" "未检测到常见高风险远程控制软件。" "第2章" "定期核查并卸载未经授权的高风险软件。"
+        add_result "2.9" "用户安全" "高风险软件" "manual" "未检测到已知高风险远程控制软件（teamviewer/anydesk/todesk/sunlogin），但可能存在其他名称的同类软件，需人工核查已安装软件清单。" "第2章" "核查已安装软件清单，卸载未经授权的远程控制等高危软件。"
     fi
 }
 
@@ -680,7 +700,15 @@ check_2_11_passwordpolicy() {
         local pwquality minlen
         minlen="$(grep -E 'pam_pwquality|pam_cracklib' "$pamfile" | grep -oE 'minlen=[0-9]+' | head -1)"
         if [ -n "$minlen" ]; then
-            add_result "2.11" "用户安全" "口令复杂度策略" "pass" "$pamfile 中配置了密码复杂度策略：$minlen" "第2章" "确保密码长度不少于8位，包含大小写字母、数字、特殊字符中至少3类。"
+            local minlen_num
+            minlen_num="$(echo "$minlen" | grep -oE '[0-9]+' | head -1)"
+            if [ -n "$minlen_num" ] && [ "$minlen_num" -ge 8 ] 2>/dev/null; then
+                add_result "2.11" "用户安全" "口令复杂度策略" "pass" "$pamfile 中配置了密码复杂度策略：$minlen（最小长度 $minlen_num 位，≥8）。" "第2章" "确保密码包含大小写字母、数字、特殊字符中至少3类。"
+            elif [ -n "$minlen_num" ]; then
+                add_result "2.11" "用户安全" "口令复杂度策略" "fail" "$pamfile 中 minlen=$minlen_num，密码最小长度不足8位，强度不够。" "第2章" "将 pam_pwquality 的 minlen 调整为不少于8。"
+            else
+                add_result "2.11" "用户安全" "口令复杂度策略" "manual" "$pamfile 中配置了 $minlen 但无法解析长度数值，需人工确认复杂度要求是否满足。" "第2章" "配置PAM密码复杂度策略（长度≥8、字符种类、历史）。"
+            fi
         else
             add_result "2.11" "用户安全" "口令复杂度策略" "fail" "$pamfile 中未发现 pam_pwquality/pam_cracklib 的minlen等复杂度配置。" "第2章" "在PAM中启用pam_pwquality，配置密码长度与复杂度要求。"
         fi
@@ -704,12 +732,14 @@ check_2_12_wireless() {
 }
 
 check_2_13_outboundcontrol() {
-    local out
-    out="$(run_cmd "iptables -S OUTPUT 2>/dev/null | wc -l")"
-    if [ "${out:-0}" -gt 1 ] 2>/dev/null; then
-        add_result "2.13" "用户安全" "外联控制" "pass" "检测到 iptables OUTPUT 链已配置 $out 条规则，具备外联控制能力。" "第2章" "持续核查出站规则，遵循最小化原则。"
+    local out rules drop
+    out="$(run_cmd "iptables -S OUTPUT 2>/dev/null")"
+    rules="$(echo "$out" | grep -c .)"
+    drop="$(echo "$out" | grep -Ei 'DROP|REJECT' | wc -l)"
+    if [ "${rules:-0}" -gt 1 ] 2>/dev/null && [ "${drop:-0}" -gt 0 ] 2>/dev/null; then
+        add_result "2.13" "用户安全" "外联控制" "pass" "iptables OUTPUT 链已配置 $rules 条规则，其中含 $drop 条拒绝(DROP/REJECT)规则，具备实际外联阻断能力。" "第2章" "持续核查出站规则，遵循最小化原则。"
     else
-        add_result "2.13" "用户安全" "外联控制" "manual" "iptables OUTPUT 链未发现针对性规则，请人工核实是否通过其他手段（如firewalld rich rule、上网行为管理）控制外联。" "第2章" "通过防火墙/上网行为管理限制非必要的对外连接。"
+        add_result "2.13" "用户安全" "外联控制" "manual" "iptables OUTPUT 链未发现可确认的阻断规则（DROP/REJECT），或通过其他手段（firewalld rich rule、上网行为管理）控制外联，需人工核实。" "第2章" "通过防火墙/上网行为管理限制非必要的对外连接。"
     fi
 }
 
@@ -888,7 +918,7 @@ check_4_32_domesticsoftware() {
     if [ -n "$found" ]; then
         add_result "4.32" "应用安全" "国产化软硬件适配" "pass" "操作系统本身即为国产操作系统：$KYLIN_TYPE；另检测到国产数据库/中间件相关软件包：$found。" "第4章" "持续核查关键应用软件与国产操作系统/CPU的适配兼容情况。"
     else
-        add_result "4.32" "应用安全" "国产化软硬件适配" "pass" "操作系统本身即为国产操作系统：$KYLIN_TYPE。未检测到已安装的国产数据库/中间件软件包（如业务未部署此类组件，不影响判定）。" "第4章" "持续核查关键应用软件与国产操作系统/CPU的适配兼容情况。"
+        add_result "4.32" "应用安全" "国产化软硬件适配" "manual" "操作系统本身即为国产操作系统：$KYLIN_TYPE；但未检测到已安装的国产数据库/中间件软件包，关键应用软件是否基于国产软硬件自主开发需人工核查。" "第4章" "核查关键应用软件与国产操作系统/CPU的适配兼容情况。"
     fi
 }
 

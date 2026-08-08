@@ -196,7 +196,7 @@ Sub Check_1_3_Services()
                        "在【服务(services.msc)】中停止并禁用以下服务：" & found)
     Else
         Call AddResult("1.3", "系统安全", "服务和端口裁剪", _
-                       "pass", "未发现不必要的高危服务（telnet/tftp/ftp/snmp）", "第1章 第1.3节", "")
+                       "manual", "未发现已知高危服务（telnet/tftp/ftp/snmp），但系统运行的服务与开放端口是否均为业务必需，需人工逐一确认。", "第1章 第1.3节", "核查运行服务列表与监听端口，停用并禁用非业务必需的服务。")
     End If
 End Sub
 
@@ -398,6 +398,11 @@ Sub Check_1_7_DbAccounts()
         Exit Sub
     End If
     Dim usersOut : usersOut = RunCmd("mysql -u root -e ""SELECT user FROM mysql.user;"" 2>nul")
+    If Len(Trim(usersOut)) = 0 Then
+        Call AddResult("1.7", "系统安全", "数据库冗余帐户", "manual", _
+                       "MySQL已安装，但无法查询账户列表（可能缺少登录凭据或权限不足），需人工核查。", "第1章 第1.7节", "使用有效凭据登录 MySQL，核查是否存在 test/anonymous/guest 等冗余账户。")
+        Exit Sub
+    End If
     Dim found : found = ""
     Dim risky : risky = "test anonymous guest demo"
     Dim r
@@ -413,7 +418,7 @@ Sub Check_1_7_DbAccounts()
                        "删除冗余账户：DROP USER 'test'@'localhost';")
     Else
         Call AddResult("1.7", "系统安全", "数据库冗余帐户", "pass", _
-                       "MySQL已安装，未发现冗余账户。", "第1章 第1.7节", "")
+                       "MySQL账户查询成功，未发现 test/anonymous/guest/demo 冗余账户。", "第1章 第1.7节", "")
     End If
 End Sub
 
@@ -430,9 +435,11 @@ Sub Check_1_8_DbProcedures()
     Dim procsOut : procsOut = RunCmd("mysql -u root -e ""SELECT COUNT(*) cnt FROM information_schema.routines WHERE routine_type='PROCEDURE';"" 2>nul")
     Dim lines : lines = Split(procsOut, Chr(10))
     Dim i
+    Dim gotNum : gotNum = False
     For i = 0 To UBound(lines)
         Dim ln : ln = Trim(lines(i))
         If IsNumeric(ln) Then
+            gotNum = True
             If CInt(ln) > 0 Then
                 Call AddResult("1.8", "系统安全", "数据库冗余存储过程", "fail", _
                                "发现 " & ln & " 个存储过程，请确认是否需要", "第1章 第1.8节", _
@@ -441,8 +448,13 @@ Sub Check_1_8_DbProcedures()
             End If
         End If
     Next
+    If Not gotNum Then
+        Call AddResult("1.8", "系统安全", "数据库冗余存储过程", "manual", _
+                       "MySQL已安装，但无法查询存储过程统计（可能缺少登录凭据或权限不足），需人工核查。", "第1章 第1.8节", "使用有效凭据登录 MySQL 核查存储过程。")
+        Exit Sub
+    End If
     Call AddResult("1.8", "系统安全", "数据库冗余存储过程", "pass", _
-                   "MySQL已安装，未发现冗余存储过程。", "第1章 第1.8节", "")
+                   "MySQL查询成功，未发现冗余存储过程。", "第1章 第1.8节", "")
 End Sub
 
 ' ============================================================
@@ -495,9 +507,11 @@ Sub Check_1_10_DbAccessControl()
     Dim anonOut : anonOut = RunCmd("mysql -u root -e ""SELECT COUNT(*) FROM mysql.user WHERE user='' AND (Select_priv='Y' OR Insert_priv='Y' OR Update_priv='Y');"" 2>nul")
     Dim alines : alines = Split(anonOut, Chr(10))
     Dim ai
+    Dim gotNum : gotNum = False
     For ai = 0 To UBound(alines)
         Dim av : av = Trim(alines(ai))
         If IsNumeric(av) Then
+            gotNum = True
             If CInt(av) > 0 Then
                 issues = issues & "  · 发现匿名用户拥有数据操作权限" & Chr(10)
             End If
@@ -509,6 +523,7 @@ Sub Check_1_10_DbAccessControl()
     For ei = 0 To UBound(elines)
         Dim ev : ev = Trim(elines(ei))
         If IsNumeric(ev) Then
+            gotNum = True
             If CInt(ev) > 0 Then
                 issues = issues & "  · root账户存在空密码" & Chr(10)
             End If
@@ -519,9 +534,12 @@ Sub Check_1_10_DbAccessControl()
                        issues, "第1章 第1.10节", _
                        "1. 删除匿名账户：DELETE FROM mysql.user WHERE user='';" & Chr(10) & _
                        "2. 为root设置强密码：ALTER USER 'root'@'localhost' IDENTIFIED BY '强密码';")
+    ElseIf Not gotNum Then
+        Call AddResult("1.10", "系统安全", "数据库自主访问控制功能", "manual", _
+                       "MySQL已安装，但无法查询账户状态（可能缺少登录凭据或权限不足），需人工核查。", "第1章 第1.10节", "使用有效凭据登录 MySQL，核查匿名账户与 root 空密码情况。")
     Else
         Call AddResult("1.10", "系统安全", "数据库自主访问控制功能", "pass", _
-                       "MySQL访问控制检查通过。", "第1章 第1.10节", "")
+                       "MySQL访问控制检查通过（匿名账户/root空密码检查均正常）。", "第1章 第1.10节", "")
     End If
 End Sub
 
@@ -849,8 +867,8 @@ Sub Check_1_23_DbAppSep()
                            "数据库端口" & foundPort & "访问受限。", "第1章 第1.23节", "")
         End If
     Else
-        Call AddResult("1.23", "系统安全", "数据库访问分离", "pass", _
-                       "未检测到数据库对外监听端口。", "第1章 第1.23节", "")
+        Call AddResult("1.23", "系统安全", "数据库访问分离", "manual", _
+                       "未在标准端口（3306/1433/6379）检测到数据库监听，可能使用自定义端口或数据库未以标准端口运行，需人工确认。", "第1章 第1.23节", "确认数据库实际监听端口及访问来源限制。")
     End If
 End Sub
 
@@ -917,7 +935,7 @@ Sub Check_2_5_RedundantServices()
                        "通过 services.msc 停止并禁用以下服务：" & found)
     Else
         Call AddResult("2.5", "用户安全", "冗余服务（用户端）", _
-                       "pass", "未发现 Telnet/FTP/RemoteRegistry 等高风险服务正在运行。", "第2章 第2.5节", "")
+                       "manual", "未发现 Telnet/FTP/RemoteRegistry 等已知高风险服务，但系统运行的多余服务/账户是否已清理，需人工确认。", "第2章 第2.5节", "核查开机自启服务与账户列表，清理不再使用的服务与账户。")
     End If
 End Sub
 
@@ -963,7 +981,7 @@ Sub Check_2_9_RiskySoftware()
                        "卸载未经批准的远程控制或文件传输软件：" & found)
     Else
         Call AddResult("2.9", "用户安全", "已安装软件（风险软件检查）", _
-                       "pass", "未发现 TeamViewer/向日葵/AnyDesk/VNC/FileZilla 等高风险软件。", "第2章 第2.9节", "")
+                       "manual", "未在注册表发现 TeamViewer/向日葵/AnyDesk/VNC/FileZilla 等已知高风险软件，但可能存在其他名称的同类软件或绿色版程序，需人工核查已安装软件。", "第2章 第2.9节", "核查已安装软件清单，卸载未经授权的远程控制等高危软件。")
     End If
 End Sub
 
@@ -1101,16 +1119,18 @@ Sub Check_3_1_Encryption()
         Exit Sub
     End If
     Dim bdeOut : bdeOut = RunCmd("manage-bde -status 2>nul")
-    If InStr(bdeOut, "100 %") > 0 Or InStr(bdeOut, "已加密") > 0 Then
+    Dim fullyDec : fullyDec = InStr(bdeOut, "完全解密") > 0 Or InStr(bdeOut, "Fully Decrypted") > 0
+    Dim enc100 : enc100 = InStr(bdeOut, "100 %") > 0 Or InStr(bdeOut, "100%") > 0
+    If enc100 And Not fullyDec Then
         Call AddResult("3.1", "数据安全", "涉密数据采取加密保护措施（BitLocker）", _
-                       "pass", "磁盘已全盘加密（BitLocker）。", "第3章 第3.1节", "")
-    ElseIf InStr(bdeOut, "完全解密") > 0 Or InStr(bdeOut, "Fully Decrypted") > 0 Then
+                       "pass", "检测到 BitLocker 已加密（保护状态开启）。", "第3章 第3.1节", "")
+    ElseIf fullyDec Then
         Call AddResult("3.1", "数据安全", "涉密数据采取加密保护措施（BitLocker）", _
                        "fail", "磁盘未启用 BitLocker 加密。", "第3章 第3.1节", _
                        "启用BitLocker（控制面板→BitLocker驱动器加密 或 manage-bde -on C:)")
     Else
         Call AddResult("3.1", "数据安全", "涉密数据采取加密保护措施（BitLocker）", _
-                       "manual", "无法确定 BitLocker 状态，请手动核查", "第3章 第3.1节", "")
+                       "manual", "无法确定 BitLocker 实际加密状态（可能权限不足或命令无输出），请人工核查。", "第3章 第3.1节", "")
     End If
 End Sub
 
@@ -1277,7 +1297,7 @@ Sub Check_4_22_PortSeparation()
                        "pass", "应用端口（80/443）和管理端口（3389/445）分别监听，端口未混用。", "第4章 第4.22节", "")
     Else
         Call AddResult("4.22", "应用安全", "分开设置管理端口与应用端口", _
-                       "pass", "本次未同时检测到Web端口和管理端口混用情况。", "第4章 第4.22节", "")
+                       "manual", "本次未同时检测到Web端口和管理端口（可能未部署Web/管理服务或使用非默认端口），是否真正分离需人工确认。", "第4章 第4.22节", "核查Web端口与管理端口的监听情况，确保管理端口仅限内网访问。")
     End If
 End Sub
 
@@ -1306,7 +1326,7 @@ Sub Check_4_23_AppDBSep()
                        "第4章 第4.23节", "将数据库迁移到独立服务器，应用服务器上不应安装数据库。")
     Else
         Call AddResult("4.23", "应用安全", "应用服务和数据存储分离部署", _
-                       "pass", "未检测到Web和数据库在同一台主机上混合部署。", "第4章 第4.23节", "")
+                       "manual", "未检测到Web和数据库同时在同一台主机上监听（可能仅部署其中之一或使用非标准端口），是否真正分离部署需人工确认。", "第4章 第4.23节", "核查应用服务与数据库是否部署于不同主机/网络区域。")
     End If
 End Sub
 
