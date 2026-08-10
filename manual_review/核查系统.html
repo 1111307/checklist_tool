@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>配置核查 - 人工核查系统</title>
+<style>
+*{box-sizing:border-box;}
+body{font-family:"Microsoft YaHei","微软雅黑",Arial,sans-serif;margin:0;background:#f0f2f5;color:#222;font-size:13px;}
+header{background:linear-gradient(135deg,#1a3c6e,#2c5aa0);color:#fff;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+header h1{margin:0;font-size:18px;font-weight:600;}
+header .actions{display:flex;gap:8px;}
+header .actions button{background:#fff;color:#1a3c6e;border:none;padding:8px 14px;border-radius:4px;font-size:13px;font-weight:600;cursor:pointer;}
+header .actions button:hover{background:#e8eef7;}
+header .actions button.danger{color:#c62828;}
+.bar{background:#fff;padding:10px 22px;border-bottom:1px solid #e0e0e0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.bar label{font-size:12px;color:#555;}
+.bar input{padding:5px 8px;border:1px solid #ccc;border-radius:3px;font-size:12px;width:140px;}
+.stats{background:#fff;padding:10px 22px;border-bottom:1px solid #e0e0e0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.stats .chip{padding:6px 12px;border-radius:14px;font-size:12px;font-weight:600;color:#fff;}
+.stats .s-pass{background:#2e7d32;} .stats .s-fail{background:#c62828;}
+.stats .s-manual{background:#ef6c00;} .stats .s-na{background:#757575;} .stats .s-empty{background:#b0bec5;color:#333;}
+.stats .progress{margin-left:auto;font-size:12px;color:#555;}
+.stats .progress b{color:#1a3c6e;}
+.filters{background:#fff;padding:8px 22px;border-bottom:1px solid #e0e0e0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:10;}
+.filters .tab{padding:5px 11px;border:1px solid #ccc;border-radius:14px;cursor:pointer;font-size:12px;background:#f7f9fb;}
+.filters .tab.active{background:#1a3c6e;color:#fff;border-color:#1a3c6e;}
+.filters .tab .n{color:#888;font-size:11px;margin-left:3px;}
+.filters .tab.active .n{color:#cfe;}
+.filters input[type=text]{margin-left:auto;padding:5px 10px;border:1px solid #ccc;border-radius:3px;font-size:12px;width:200px;}
+textarea{width:100%;border:1px solid #e0e0e0;border-radius:3px;padding:5px 7px;font-size:12px;font-family:inherit;resize:vertical;min-height:36px;background:#fafbfc;}
+textarea:focus{border-color:#2c5aa0;background:#fff;outline:none;}
+.banner{background:#fff3cd;color:#856404;padding:6px 22px;font-size:12px;border-bottom:1px solid #ffe69e;display:none;}
+.banner.show{display:block;}
+.batchbar{background:#eef2f7;padding:8px 22px;border-bottom:1px solid #d0d8e4;display:flex;gap:8px;align-items:center;font-size:12px;flex-wrap:wrap;}
+.batchbar .lbl{color:#1a3c6e;font-weight:600;}
+.batchbar button{border:1px solid #bbb;background:#fff;padding:4px 9px;border-radius:3px;cursor:pointer;font-size:11px;}
+.batchbar button:hover{background:#e8eef7;}
+.batchbar .sel-count{color:#c62828;font-weight:600;}
+.batchbar.hidden{display:none;}
+.cards{padding:14px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:12px;}
+.chap-head{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:6px 0 2px;}
+.chap-head h2{font-size:15px;color:#1a3c6e;margin:0;}
+.chap-head .cnt{font-size:12px;color:#888;}
+.chap-head .select-all{margin-left:auto;font-size:11px;color:#2c5aa0;cursor:pointer;text-decoration:underline;}
+.card{background:#fff;border-radius:6px;border:1px solid #e0e0e0;border-left:4px solid #ccc;padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
+.card.s-pass{border-left-color:#2e7d32;} .card.s-fail{border-left-color:#c62828;}
+.card.s-manual{border-left-color:#ef6c00;} .card.s-na{border-left-color:#757575;}
+.card.sel{box-shadow:0 0 0 2px #2c5aa0;}
+.card-top{display:flex;align-items:flex-start;gap:8px;}
+.card-top .chk{margin-top:3px;cursor:pointer;}
+.card-top .id{font-weight:700;color:#1a3c6e;font-size:13px;white-space:nowrap;}
+.card-top .title{font-size:13px;line-height:1.5;}
+.meta{font-size:11px;color:#999;display:flex;gap:12px;flex-wrap:wrap;}
+.meta .g{color:#6a8;}
+.meta .p{color:#aaa;max-width:100%;}
+.res{display:flex;gap:4px;flex-wrap:wrap;}
+.res button{border:1px solid #ddd;background:#fff;padding:4px 9px;border-radius:3px;cursor:pointer;font-size:12px;}
+.res button.r-pass.sel{background:#2e7d32;color:#fff;border-color:#2e7d32;}
+.res button.r-fail.sel{background:#c62828;color:#fff;border-color:#c62828;}
+.res button.r-manual.sel{background:#ef6c00;color:#fff;border-color:#ef6c00;}
+.res button.r-na.sel{background:#757575;color:#fff;border-color:#757575;}
+.field label{font-size:11px;color:#888;display:block;margin-bottom:2px;}
+.empty{padding:40px;text-align:center;color:#999;}
+footer{padding:12px 22px;color:#888;font-size:11px;text-align:center;}
+</style>
+</head>
+<body>
+<header>
+  <h1>配置核查 · 人工核查系统</h1>
+  <div class="actions">
+    <button onclick="saveProgress()">保存进度</button>
+    <button onclick="exportExcel()">导出 Excel 报告</button>
+    <button class="danger" onclick="clearAll()">清空</button>
+  </div>
+</header>
+<div class="bar">
+  <label>被核查系统：<input id="m-os" placeholder="如 银河麒麟V10"></label>
+  <label>主机名：<input id="m-host" placeholder="如 lalala-pc"></label>
+  <label>核查人：<input id="m-checker" placeholder="姓名"></label>
+  <label>核查日期：<input id="m-date" type="date"></label>
+  <label>单位：<input id="m-unit" placeholder="可选"></label>
+</div>
+<div class="stats" id="stats"></div>
+<div class="banner" id="banner"></div>
+<div class="filters" id="filters">
+  <input type="text" id="search" placeholder="搜索核查项关键词…" oninput="render()">
+</div>
+<div class="batchbar hidden" id="batchbar">
+  <span class="lbl">批量操作：</span>
+  <span class="sel-count" id="selcount">已选 0 项</span>
+  <button onclick="applyBatch('pass')">设为合规</button>
+  <button onclick="applyBatch('fail')">设为不合规</button>
+  <button onclick="applyBatch('manual')">设为需人工</button>
+  <button onclick="applyBatch('na')">设为不适用</button>
+  <button onclick="clearResults()">清除结果</button>
+  <button onclick="clearSel()">取消选择</button>
+</div>
+<div class="cards" id="cards"></div>
+<footer>人工核查系统 · 数据源自《配置核查表 v2.0.0》共 134 项 · 进度自动保存于本机浏览器</footer>
+<script>
+const ITEMS = [{"id": "1.1", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "操作系统、数据管理系统、中间件等平台软件应及时安装补丁程序", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟、Nginx、Tomcat、MySQL、SQL Server、达梦、Redis"}, {"id": "1.2", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "操作系统应安装防病毒软件并及时升级", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "1.3", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "操作系统应按需求裁剪服务和端口", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "1.4", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "操作系应身有防火墙功能", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "1.5", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "操作系统应停用冗余网络设置", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "Win7、WinXP"}, {"id": "1.6", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "操作系统远程管理应开放唯一管理服务,指定管理终端 并采取传输加密保护措施", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "1.7", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "数据库管理系统应删除冗余帐户,应设置不少于8个字符且字符采用字母大小写， 数字及特殊字符混合编制的账户口令", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦、Redis"}, {"id": "1.8", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "数据库管理系统应删除冗余存储过程", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦、Redis"}, {"id": "1.9", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "数据库管理系统应具有基于表级增删改查等细粒度访问和管理授权功能", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦"}, {"id": "1.10", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "数据库管理系统应具有自主访问控制功能", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦、Redis"}, {"id": "1.11", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "数据库管理系统应具有备份和恢复功能", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦、Redis"}, {"id": "1.12", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "数据库管理系统应具有表级审计、告警和阻断功能", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦、Redis"}, {"id": "1.13", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "数据库管理系统的数据应和其它应用的数据分类独立存储", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦"}, {"id": "1.14", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "中间件应采取限制运行权限和使用安全管理通道等安全加固措施", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "Nginx、Tomcat"}, {"id": "1.15", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "应具备数据库管理系统超级管理员远程登录限制远程登陆限制能力", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦、Redis"}, {"id": "1.16", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "应具备数据库管理系统输入（参数）检查能力", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦、Redis"}, {"id": "1.17", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "应限制操作系统开放的远程管理服务或端口", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": ""}, {"id": "1.18", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "应限制用户对服务器资源的最大或最小使用限度", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "Win7、WinXP"}, {"id": "1.19", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "应更换数据库管理系统的默认服务端口、管理员用户名和口令", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦、Redis"}, {"id": "1.20", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "数据库管理系统应配置安全策略", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、达梦、Redis"}, {"id": "1.21", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "数据库管理系统应具有行级或列级审计功能", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦、Redis"}, {"id": "1.22", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "数据库管理系统应采取单独、安全监控、审计指施", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦、Redis"}, {"id": "1.23", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "数据库管理系统仅为应用服务器提供访问服务", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "MySQL、SQL Server、达梦、Redis"}, {"id": "1.24", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "应具备日志审计能力，审计日志至少保留180天", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟、MySQL、SQL Server、达梦"}, {"id": "1.25", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "检查是否具备边界保护能力,是否可以抗攻击，防纂改", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟、MySQL、SQL Server、达梦、Redis"}, {"id": "1.26", "chapter": "系统安全", "cno": 1, "category": "系统安全", "title": "检查是否有防病毒日志、补丁日志、记录相关信息 记录信息的完整，有效", "guide": "《配置核查作业指导书》第1章 系统安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟、MySQL、SQL Server、达梦、Redis"}, {"id": "3.1", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "集中存储的涉密数据应采取加密保护措施", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "3.2", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "用户计算机之间的数据交互、文件传输凳应统一管控和审计", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "3.3", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "涉密存储载体在降密级使用前或重大JS演训活动结束后，应采取数据写覆盖方法及时清除数据", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "3.4", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "对确定销毁的涉密载体，应采取消磁、粉碎、溶解、化浆和熔化等方法进行销毁", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "其他"}, {"id": "3.5", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "网络、系统、应用和用户行为等日志应采取读写控制、加密、变换、完整性校验等保护措施，TM级数据存储1应采取加密保护措施", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "3.6", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "网络边界应具备信息过滤、敏感内容识别等数据放泄漏能力", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "3.7", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "数据存储系统管理登录至少采取验证码等增强措施，修改默认用户名和口令等默认设置，管理与访问应具有行为审计功能，审计日志应至少保留180天", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "3.8", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "数据存储系统应根据重要程度划分不同存储区快，并设置用户访问权限", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "3.9", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "检查数据传输过程是否按照要求进行加密，传输路径是否合理，是否统一管控、留有日志记录，是否具有防泄漏措施，是否存在安全风险", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "3.10", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "检查数据共享是否合理，是否存在安全隐患", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "3.11", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "检查对数据的访问是否按照权限分级访问，是否对访问行为进行审计", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "3.12", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "检查数据采集是否超出业务需求范围", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "3.13", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "检查数据各环节处理是否满足密级相应的保密要求", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "3.14", "chapter": "数据安全", "cno": 3, "category": "数据安全", "title": "检查对数据的访问是否按照权限分级访问，是否对访问行为进行审计，对大数据的访问是否提供同一管控和访问控制", "guide": "《配置核查作业指导书》第3章 数据安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.1", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应用系统软件应采取备份措施", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.2", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应用系统软件应及时安装补丁程序，且更新所用升级包应经过安全性测试；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.3", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "需基于可信根对应用系统软件进行可信验证。可信性受到破坏后报警。", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.4", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "提供公共信息服务的服务器应应与涉密信息服务器分设，专用服务器应只提供专用服务。", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.5", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "提供公共信息服务的服务器应具备防DDoS攻击能力", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.6", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "Web应用系统服务器应采取Web防护措施。", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.7", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "网站服务宜以静态页面形式发布；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.8", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "网站应采取网页放篡改措施，防止对信息内容的非法修改；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.9", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "Web应用系统应具备防范SQL注入、跨站脚本等攻击能力；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.10", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "Web应用系统应具备执行代码有效验证能力；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.11", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应具备用户授权访问控制能力；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.12", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应具备访问应用最大并发会话连接数限制能力；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.13", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "业务管理终端专设专用；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.14", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应具有基于用户角色的授权访问控制能力，访问控制主体的细粒度达到用户级或进程级，客体的细粒度应达到文件级、表和记录级、字段级；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.15", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "文电等文档专用业务处理系统应具有签名验证、密级标识等功能；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.16", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "远程管理应采取加密保护措施；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.17", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应支持管理员、安全员、审计员三权分立的职责划分，禁止设立超级管理员，并限制管理员、安全员、审计员的数量；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.18", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "业务管理终端登录应采取网络地址限制措施；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.19", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应具有结束会话、限定登录错误次数和自动退出等登录失败处理功能；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.20", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "宜使用自主设计开发的网络服务、协议、接口等，增强应用安全。", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.21", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应具有基于专用物理部件或生物特征多因素的、与JD密码算法相结合的数字证书用户身份认证功能；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP"}, {"id": "4.22", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应更改Web应用系统默认服务发布端口；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.23", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应分开设置管理端口与应用端口；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.24", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应用服务和数据存储应部署在不同的服务器上；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.25", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应具有对所有访问行为和管理行为的日志审计功能，支持多组合查询检索，可读性强，具有解释和展示功能，审计日志应只是保留180d;", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.26", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "应经过代码级安全漏洞挖掘；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.27", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "检查是否具备对人机接口输入、网络通信输入、文件输入的数据进行格式和长度检查的功能；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.28", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "检查是否能够有效检测并防御SQL注入、网页篡改、跨站脚本、拒绝服务等应用层攻击；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.29", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "检查是否具有用户访问权限统一管理功能；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.30", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "检查是否具备统一管理措施，是否对远程管理进行限制；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.31", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "检查是否能够设置最大并发会话连接数、会话建立速率、单用户并发会话数；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "4.32", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "检查所有应用是否具备备份与恢复功能；", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "中标麒麟、银河麒麟"}, {"id": "4.33", "chapter": "应用安全", "cno": 4, "category": "应用安全", "title": "检查应用软件是否基于国产自主可控软硬件自主开发", "guide": "《配置核查作业指导书》第4章 应用安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.1", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "用户计算机应安装防病毒软件并及时升级，发现病毒应及时查杀，查杀无效时应断开网络并向网络管理部分报备；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.2", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "用户计算机应根据需要安装补丁程序；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.3", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "用户应设置用户应用口令，通过认证后使用信息服务；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.4", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "用户计算机应具有互不相同的用户名和口令；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.5", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "用户计算机应关闭冗余系统服务和端口；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.6", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "用户计算机应具备阻断和告警非法连接互联网的能力；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.7", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "用户计算机应具有文件保护功能；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.8", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "应采取终端管控措施、具有统一配置、安全加固、网络访问控制、外设接口管控、软件进程管控、无线模块禁用、防止IP地址和MAC地址非授权改动等功能；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.9", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "用户计算机应禁止安装与工作无关的软件；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.10", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "用户计算机USB接口应禁止私自连接对拷线和手机、媒体播放设备等个人移动电子设备；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.11", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "用户计算机登录应使用基于专用物理部件或生物特征的多因素身份认证方式，应设置超时锁屏，屏幕保护等待时间不超过5min,服务器应设置登录口令，口令超度不得少于10个字符，字符应采用字母大小写、数字及特殊字符混合编制，更换周期不超过30d;", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "中标麒麟、银河麒麟"}, {"id": "2.12", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "用户计算机应物理拆除Wi-Fi、红外、蓝牙等无线模块，确需使用Wi-Fi的应严格采用JY密码等措施保护；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.13", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "用户计算机应采取非法外联阻断、文件输出管控等措施；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.14", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "应具备用户行为审计能力；审计日志应至少保留xxd；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟"}, {"id": "2.15", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "检查安全策略配置情况和设置功能；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": ""}, {"id": "2.16", "chapter": "用户安全", "cno": 2, "category": "用户安全", "title": "检查被试装备中操作系统、数据库以及应用软件等是否完成补丁修复和升级到最新版本；", "guide": "《配置核查作业指导书》第2章 用户安全", "plat": "Win7、WinXP、中标麒麟、银河麒麟、MySQL、SQL Server、达梦、Redis"}, {"id": "5.1", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "JD网络跨网跨域数据交换时应按以下流程进行： 1）应向网络管理部门和主管保密部门提出申请，审批通过后开展工作； 2）遵循跨网跨域数据交换相关标准，在需求分析的基础上进行安全保密方案设计； 3）组织专家进行方案评审；4）配齐网络安全防护设备； 5）提请j委保密委员会办公室和j委联合参谋部信息通信局进行专项安全检测； 6）检测通过后方可开始运行；7）报主管保密部门审核，报j委保密委员会办公室、JW联合参谋部门信息通信局备案", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.2", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "利用无线网络技术构建安全防护等级为三级、四级、五级的网络时，应按照4.3.3 b 所述工作流程执行： 1）应向网络管理部门和主管保密部门提出申请，审批通过后开展工作； 2）遵循跨网跨域数据交换相关标准，在需求分析的基础上进行安全保密方案设计； 3）组织专家进行方案评审； 4）配齐网络安全防护设备； 5）提请j委保密委员会办公室和j委联合参谋部信息通信局进行转向安全检测； 6）检测通过后方可开始运行； 7）报主管保密部门审核，报JW保密委员会办公室、JW联合参谋部信息通信局备案", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.3", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "应按最小化原则设计网络架构，局域网宜采用交换技术组网，在适当预留扩展空间的前提下合理配置连续IP地址", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.4", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "网络边界物理互联的节点数量、使用的路由协议种类、用于路由的地址网段等应满足最小化原则", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.5", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "局域网内部应根据业务性质划分若干个安全区域，不同用途的服务器、数据存储设备、除网络设备外的嵌入式设备应单独划分安全区域", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.6", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "网络设备应根据实际业务需求和安全防护要求按照最小化原则在远程管理、账户设置、访问控制等方面进行安全配置", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.7", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "网络设备应开放唯一网络管理服务，并限制管理终端访问", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.8", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "远程网络管理网络设备和网络安全防护设备应采用具有加密保护功能的管理服务", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.9", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "同一网络传输链路具有相同安全功能的防护设备应使用不同架构或不同品牌产品", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.10", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "应对组播源、组播地址、组播成员采取控制措施", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.11", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "重要网络设备和网络安全防护设备应有备份", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.12", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "远程传输应采取链路加密、网络加密、信源加密中两层保护措施", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.13", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "应设立网络安全管理中心并指定管理终端，对网络设备、网络安全防护设备、存储设备等资源进行单独管理", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.14", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "与互联网、非JD网络、安全防护等级为一级的网络应物理隔离，与安全防护等级为二级、三级和四级的网络应逻辑隔离", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.15", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "不同用途、不同性质的网络之间应需通过防火墙、网络隔离器、单向传输设备、单项导入设备等网络安全防护设备加强逻辑隔离，应采取边界数据交换控制措施，应具备对攻击行为和非法访问等实时告警、审计、阻断和定位等能力", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.16", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "局域网各安全区域之间、服务器与终端之间、服务器之间、终端之间应采取全网细粒度访问控制措施", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.17", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "远程传输租用地方线路时应采取链路加密、网络加密、信源加密三层保护措施", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.18", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "应采取不低于基于801.1x协议认证强度的接入认证措施，认证因素至少包括交换机端口、计算机IP地址和MAC地址", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.19", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "用户计算机之间应逻辑隔离", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.20", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "应具备全网行为审计记录能力，审计日志应至少保留180天", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.21", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "应对全网攻击行为、违规行为采取实时监视、报警、审计、控制处理、阻断和定位措施", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.22", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "数据存储系统的管理网路与应用网路应逻辑隔离", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "5.23", "chapter": "网络安全", "cno": 5, "category": "网络安全", "title": "检查网络设备配备的合理性、必要性，是否存在非必要的冗余内容", "guide": "《配置核查作业指导书》第5章 网络安全", "plat": ""}, {"id": "6.1", "chapter": "物理安全", "cno": 6, "category": "物理安全", "title": "使用的网络设备、服务器、终端等，应选用进入《全J计算机及网络设备集中采购目录》的产品", "guide": "《配置核查作业指导书》第6章 物理安全", "plat": "其他"}, {"id": "6.2", "chapter": "物理安全", "cno": 6, "category": "物理安全", "title": "使用的安全网关、防火墙等信息安全产品，应通过JD信息安全测评认证机构的认证", "guide": "《配置核查作业指导书》第6章 物理安全", "plat": "其他"}, {"id": "6.3", "chapter": "物理安全", "cno": 6, "category": "物理安全", "title": "机房应有序、规范、合理走线布线，明确互联网区域和内部区域，粘贴标识，区分不同线路", "guide": "《配置核查作业指导书》第6章 物理安全", "plat": "其他"}, {"id": "6.4", "chapter": "物理安全", "cno": 6, "category": "物理安全", "title": "机房应符合GB 2887-2011中4.6.1所规定的温湿度等要求", "guide": "《配置核查作业指导书》第6章 物理安全", "plat": "其他"}, {"id": "6.5", "chapter": "物理安全", "cno": 6, "category": "物理安全", "title": "机房应安装安防监控设备，对机房的人员进出、设备操作等进行监管", "guide": "《配置核查作业指导书》第6章 物理安全", "plat": "其他"}, {"id": "6.6", "chapter": "物理安全", "cno": 6, "category": "物理安全", "title": "机房应将涉密区域和互联网区域设置于不同场所", "guide": "《配置核查作业指导书》第6章 物理安全", "plat": "其他"}, {"id": "6.7", "chapter": "物理安全", "cno": 6, "category": "物理安全", "title": "在涉密网络中使用过的打印机、复印机、刻录机、扫描仪、存储载体等设备严禁在互联网中使用", "guide": "《配置核查作业指导书》第6章 物理安全", "plat": "其他"}, {"id": "6.8", "chapter": "物理安全", "cno": 6, "category": "物理安全", "title": "应选用《JY关键软硬件自主可控产品名录》中的芯片类、计算机及外设类、网络设备类、安全防护设备类、存储设备类等产品", "guide": "《配置核查作业指导书》第6章 物理安全", "plat": "其他"}, {"id": "6.9", "chapter": "物理安全", "cno": 6, "category": "物理安全", "title": "与安全防护等级低的网络使用不同色系线缆进行严格隔离区分", "guide": "《配置核查作业指导书》第6章 物理安全", "plat": "其他"}, {"id": "7.1", "chapter": "组织机构", "cno": 7, "category": "组织机构", "title": "应设置安全管理机构，保证系统安全措施的落实；", "guide": "《配置核查作业指导书》第7章 组织机构", "plat": "其他"}, {"id": "7.2", "chapter": "组织机构", "cno": 7, "category": "组织机构", "title": "应配备专职系统安全保密管理人员，负责系统安全措施的落实。", "guide": "《配置核查作业指导书》第7章 组织机构", "plat": "其他"}, {"id": "7.3", "chapter": "组织机构", "cno": 7, "category": "组织机构", "title": "应具有安全管理领导机构，督导系统安全措施的落实；", "guide": "《配置核查作业指导书》第7章 组织机构", "plat": "其他"}, {"id": "7.4", "chapter": "组织机构", "cno": 7, "category": "组织机构", "title": "应具有系统安全保密技术管理人员，具体负责安全保密技术措施的落实，保证系统安全运行；", "guide": "《配置核查作业指导书》第7章 组织机构", "plat": "其他"}, {"id": "7.5", "chapter": "组织机构", "cno": 7, "category": "组织机构", "title": "应具有完善的应急响应体系，应对突发事件。", "guide": "《配置核查作业指导书》第7章 组织机构", "plat": "其他"}, {"id": "8.1", "chapter": "规章制度", "cno": 8, "category": "规章制度", "title": "应具有日常安全管理制度、入网审批制度和系统安全保密检查制度等；", "guide": "《配置核查作业指导书》第8章 规章制度", "plat": "其他"}, {"id": "8.2", "chapter": "规章制度", "cno": 8, "category": "规章制度", "title": "应具有安全管理操作规程、安全监控操作规程、安全审计操作规程、应急响应操作规程等。", "guide": "《配置核查作业指导书》第8章 规章制度", "plat": "其他"}, {"id": "8.3", "chapter": "规章制度", "cno": 8, "category": "规章制度", "title": "应具有日常系统备份制度和存储载体使用管理制度；", "guide": "《配置核查作业指导书》第8章 规章制度", "plat": "其他"}, {"id": "8.4", "chapter": "规章制度", "cno": 8, "category": "规章制度", "title": "应具有脆弱性分析等规程。", "guide": "《配置核查作业指导书》第8章 规章制度", "plat": "其他"}, {"id": "9.1", "chapter": "管理实施", "cno": 9, "category": "管理实施", "title": "应具有应急响应预案，当发生危及系统安全的事件时应根据操作规程及时采取措施，符合应急预案启动条件时按预案开展应急措施；", "guide": "《配置核查作业指导书》第9章 管理实施", "plat": "其他"}, {"id": "9.2", "chapter": "管理实施", "cno": 9, "category": "管理实施", "title": "计算机信息系统安全保密管理人员应能对网络中的网络安全防护设备进行统一配置、管理，并能实现安全管理中心与网络安全防护设备之间的响应；", "guide": "《配置核查作业指导书》第9章 管理实施", "plat": "其他"}, {"id": "9.3", "chapter": "管理实施", "cno": 9, "category": "管理实施", "title": "应具有与实际情况相符且完整的安全保密策略文档和安全保密技术及产品配置的详细记录；", "guide": "《配置核查作业指导书》第9章 管理实施", "plat": "其他"}, {"id": "9.4", "chapter": "管理实施", "cno": 9, "category": "管理实施", "title": "安全保密技术管理人员应对每日网络和系统运行情况实施安全审计，每月组织本级网络的安全性检测，编写安全审计与评估报告，并形成记录，系统配置发生变化的情况下应及时组织安全检测评估。", "guide": "《配置核查作业指导书》第9章 管理实施", "plat": "其他"}];
+const STAT_CN = {pass:"合规", fail:"不合规", manual:"需人工核查", na:"不适用"};
+const STAT_ORDER = ["fail","manual","na","pass"];
+const STATE_KEY = "peizhihecha_manual_v1";
+
+let state = loadProgress();
+let filterChap = "0";
+let selected = new Set();
+
+function loadProgress(){
+  try{ const s = JSON.parse(localStorage.getItem(STATE_KEY)||"{}"); if(s.items) return s; }catch(e){}
+  return { items:{}, meta:{} };
+}
+function persist(){
+  state.meta = { os:val("m-os"), host:val("m-host"), checker:val("m-checker"), date:val("m-date"), unit:val("m-unit") };
+  localStorage.setItem(STATE_KEY, JSON.stringify(state));
+}
+function val(id){ return document.getElementById(id).value||""; }
+function setVal(id,v){ if(v) document.getElementById(id).value=v; }
+
+setVal("m-os", state.meta.os); setVal("m-host", state.meta.host);
+setVal("m-checker", state.meta.checker); setVal("m-date", state.meta.date);
+setVal("m-unit", state.meta.unit);
+["m-os","m-host","m-checker","m-date","m-unit"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", persist);
+});
+
+function itemState(id){ return state.items[id] || (state.items[id]={result:"",detail:"",rec:""}); }
+function setResult(id, r){
+  const it = itemState(id); it.result = (it.result===r) ? "" : r; persist(); render();
+}
+function setDetail(id, v){ itemState(id).detail=v; persist(); updateStats(); }
+function setRec(id, v){ itemState(id).rec=v; persist(); }
+
+function buildFilters(){
+  const counts = {}, chapNames = {};
+  ITEMS.forEach(i=>{ counts[i.cno]=(counts[i.cno]||0)+1; if(!chapNames[i.cno]) chapNames[i.cno]=i.chapter; });
+  const f = document.getElementById("filters");
+  f.querySelectorAll(".tab").forEach(e=>e.remove());
+  const all = document.createElement("span");
+  all.className="tab"+(filterChap==="0"?" active":"");
+  all.innerHTML="全部 <span class='n'>"+ITEMS.length+"</span>";
+  all.onclick=()=>{filterChap="0";buildFilters();render();};
+  f.insertBefore(all, f.firstChild);
+  Object.keys(chapNames).sort((a,b)=>+a-+b).forEach(cno=>{
+    const t=document.createElement("span");
+    t.className="tab"+(filterChap===cno?" active":"");
+    t.innerHTML=chapNames[cno]+" <span class='n'>"+counts[cno]+"</span>";
+    t.onclick=()=>{filterChap=cno;buildFilters();render();};
+    f.insertBefore(t, document.getElementById("search"));
+  });
+}
+
+function filteredItems(){
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  return ITEMS.filter(i=>{
+    if(filterChap!=="0" && String(i.cno)!==filterChap) return false;
+    if(q && !(i.title.toLowerCase().includes(q)||i.id.toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+function render(){
+  const rows = filteredItems();
+  const wrap = document.getElementById("cards");
+  if(!rows.length){ wrap.innerHTML='<div class="empty">无匹配项</div>'; updateStats(); return; }
+  const groups = {};
+  rows.forEach(i=>{ (groups[i.cno] = groups[i.cno]||[]).push(i); });
+  let html = "";
+  Object.keys(groups).sort((a,b)=>+a-+b).forEach(cno=>{
+    const arr = groups[cno];
+    const allSel = arr.every(i=>selected.has(i.id));
+    html += `<div class="chap-head"><h2>第${cno}章 ${arr[0].chapter}</h2><span class="cnt">${arr.length} 项</span><span class="select-all" onclick="toggleChapSel('${cno}', ${allSel?'true':'false'})">${allSel?'取消全选':'全选本章'}</span></div>`;
+    html += arr.map(i=>{
+      const st = itemState(i.id);
+      const mkBtn = (r)=>`<button class="r-${r} ${st.result===r?'sel':''}" onclick="setResult('${i.id}','${r}')">${STAT_CN[r]}</button>`;
+      const chk = selected.has(i.id) ? "checked" : "";
+      return `<div class="card s-${st.result||'none'} ${selected.has(i.id)?'sel':''}">
+        <div class="card-top">
+          <input type="checkbox" class="chk" ${chk} onchange="toggleSel('${i.id}',this.checked)">
+          <span class="id">${i.id}</span>
+          <span class="title">${esc(i.title)}</span>
+        </div>
+        <div class="meta">
+          <span class="g">📖 ${esc(i.guide)}</span>
+          ${i.plat?`<span class="p">适用：${esc(i.plat)}</span>`:''}
+        </div>
+        <div class="res">${["pass","fail","manual","na"].map(mkBtn).join("")}</div>
+        <div class="field"><label>核查发现 / 证据</label><textarea rows="2" oninput="setDetail('${i.id}',this.value)" placeholder="填写现场核查发现">${esc(st.detail)}</textarea></div>
+        <div class="field"><label>整改建议</label><textarea rows="2" oninput="setRec('${i.id}',this.value)" placeholder="整改建议">${esc(st.rec)}</textarea></div>
+      </div>`;
+    }).join("");
+  });
+  wrap.innerHTML = html;
+  updateStats();
+}
+
+function toggleSel(id, on){ if(on) selected.add(id); else selected.delete(id); render(); }
+function toggleChapSel(cno, unselect){
+  filteredItems().filter(i=>String(i.cno)===cno).forEach(i=>{
+    if(unselect) selected.delete(i.id); else selected.add(i.id);
+  });
+  render();
+}
+function clearSel(){ selected.clear(); render(); }
+function applyBatch(r){ if(!selected.size) return; selected.forEach(id=>{ itemState(id).result=r; }); persist(); render(); }
+function clearResults(){ if(!selected.size) return; if(!confirm("清除选中项的结果？")) return; selected.forEach(id=>{ itemState(id).result=""; }); persist(); render(); }
+
+function updateStats(){
+  let pass=0,fail=0,manual=0,na=0,empty=0;
+  ITEMS.forEach(i=>{
+    const r=itemState(i.id).result;
+    if(r==="pass")pass++; else if(r==="fail")fail++; else if(r==="manual")manual++; else if(r==="na")na++; else empty++;
+  });
+  const filled = ITEMS.length-empty;
+  document.getElementById("stats").innerHTML =
+    `<span class="chip s-pass">合规 ${pass}</span><span class="chip s-fail">不合规 ${fail}</span>`+
+    `<span class="chip s-manual">需人工 ${manual}</span><span class="chip s-na">不适用 ${na}</span>`+
+    `<span class="chip s-empty">未填 ${empty}</span>`+
+    `<span class="progress">已核查 <b>${filled}/${ITEMS.length}</b></span>`;
+  const banner = document.getElementById("banner");
+  if(empty>0){ banner.className="banner show"; banner.innerHTML=`⚠ 还有 ${empty} 项未填写结果，导出的报告将不含这些项。`; }
+  else { banner.className="banner"; }
+  const n=selected.size;
+  document.getElementById("selcount").textContent="已选 "+n+" 项";
+  document.getElementById("batchbar").className="batchbar"+(n?"":" hidden");
+}
+
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function saveProgress(){ persist();
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`核查进度_${stamp()}.json`; a.click(); URL.revokeObjectURL(a.href);
+  alert("进度已保存（本机+下载了一份json备份）");
+}
+function clearAll(){
+  if(!confirm("确定清空所有核查结果？此操作不可撤销。")) return;
+  state={items:{},meta:{}}; localStorage.removeItem(STATE_KEY); selected.clear();
+  ["m-os","m-host","m-checker","m-date","m-unit"].forEach(id=>document.getElementById(id).value="");
+  render(); buildFilters();
+}
+function stamp(){
+  const d=new Date(); const p=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+function exportExcel(){
+  persist();
+  const filled = ITEMS.filter(i=>itemState(i.id).result);
+  if(!filled.length){ alert("尚未填写任何结果，无法导出。"); return; }
+  const byStatus = {}; STAT_ORDER.forEach(s=>byStatus[s]=[]);
+  filled.forEach(i=>byStatus[itemState(i.id).result].push(i));
+  const sec = [["fail","一、未通过"],["manual","二、需人工核查"],["na","三、不适用"],["pass","四、通过"]];
+  const escH = s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  let rows="";
+  sec.forEach(([k,title])=>{
+    const arr=byStatus[k]; if(!arr.length) return;
+    rows += `<p><b>${title}（${arr.length} 项）</b></p>`;
+    rows += `<table border=1><tr style="background:#1a3c6e;color:#fff;"><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>`;
+    arr.forEach(i=>{
+      const st=itemState(i.id);
+      rows += `<tr><td>${escH(i.chapter)}</td><td>${escH(i.id)}</td><td>${escH(i.category)}</td><td>${escH(i.title)}</td><td>${escH(STAT_CN[st.result])}</td><td>${escH(st.detail)}</td><td>${escH(st.rec)}</td><td>${escH(i.guide)}</td></tr>`;
+    });
+    rows += `</table>`;
+  });
+  const m=state.meta;
+  const cnt = {pass:byStatus.pass.length,fail:byStatus.fail.length,manual:byStatus.manual.length,na:byStatus.na.length};
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8"><style>table{border-collapse:collapse;mso-number-format:"\@";}th,td{border:1px solid #999;padding:4px 6px;font-family:"Microsoft YaHei";font-size:12px;}th{background:#1a3c6e;color:#fff;}p{margin:8px 0;}</style></head>
+<body>
+<p style="font-size:14px;font-weight:bold;">配置核查报告（人工核查版）</p>
+<p>被核查系统：${escH(m.os)}　主机名：${escH(m.host)}　核查人：${escH(m.checker)}　核查日期：${escH(m.date)}　单位：${escH(m.unit)}</p>
+<p>合规：${cnt.pass}　不合规：${cnt.fail}　需人工核查：${cnt.manual}　不适用：${cnt.na}　（共 ${filled.length} 项）</p>
+${rows}
+</body></html>`;
+  const blob = new Blob(["\ufeff"+html],{type:"application/vnd.ms-excel;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`配置核查报告_人工核查_${stamp()}.xls`; a.click(); URL.revokeObjectURL(a.href);
+}
+
+buildFilters();
+render();
+</script>
+</body>
+</html>

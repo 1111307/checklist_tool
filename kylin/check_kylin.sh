@@ -770,12 +770,45 @@ check_3_1_encryption() {
 }
 
 check_3_5_logprotection() {
-    local perm
+    # 指导书3.5=日志读写控制/加密/变换/完整性校验，TM级数据存储加密。多层核查。
+    local perm logrotate sudo_log integrity detail=""
+    # 1. 读写控制：/var/log 权限
     perm="$(run_cmd "stat -c '%a' /var/log 2>/dev/null")"
     if [ -n "$perm" ] && [ "$perm" -le 750 ] 2>/dev/null; then
-        add_result "3.5" "数据安全" "日志文件保护" "pass" "/var/log 权限为 $perm，非过度开放。" "第3章" "持续限制日志目录/文件权限，防止未授权访问或篡改。"
+        detail="读写控制:/var/log权限$perm(≤750，合规); "
+    elif [ -n "$perm" ]; then
+        detail="读写控制:/var/log权限$perm(过宽，应≤750); "
     else
-        add_result "3.5" "数据安全" "日志文件保护" "fail" "/var/log 权限为 ${perm:-未知}，权限设置可能过于开放。" "第3章" "将日志目录权限收紧（如750），仅允许必要账户访问。"
+        detail="读写控制:无法获取/var/log权限; "
+    fi
+    # 2. 日志轮转(变换/完整性)：logrotate 是否配置 syslog/auth 日志轮转
+    logrotate="$(run_cmd "grep -rlE 'syslog|auth|messages|/var/log' /etc/logrotate.d/ /etc/logrotate.conf 2>/dev/null | head -3")"
+    if [ -n "$logrotate" ]; then
+        detail="${detail}轮转:已配置logrotate($logrotate); "
+    else
+        detail="${detail}轮转:未发现syslog/auth日志轮转配置; "
+    fi
+    # 3. sudo 日志只读访问控制（visudo 审计用户只读）
+    sudo_log="$(run_cmd "grep -E 'NOPASSWD.*(cat|grep|journalctl|less|more)' /etc/sudoers /etc/sudoers.d/* 2>/dev/null | head -2")"
+    if [ -n "$sudo_log" ]; then
+        detail="${detail}sudo只读:$sudo_log; "
+    else
+        detail="${detail}sudo只读:未配置审计用户日志只读sudo; "
+    fi
+    # 4. 完整性校验工具(AIDE/tripwire)
+    if pkg_installed aide 2>/dev/null || pkg_installed tripwire 2>/dev/null; then
+        integrity="已安装AIDE/tripwire"
+        detail="${detail}完整性:$integrity"
+    else
+        detail="${detail}完整性:未安装AIDE/tripwire"
+    fi
+    # 综合判定
+    if echo "$detail" | grep -q "读写控制:.*合规" && echo "$detail" | grep -q "轮转:已配置"; then
+        add_result "3.5" "数据安全" "日志读写控制/轮转/完整性保护" "pass" "$detail" "第3章" "保持日志权限收紧、logrotate轮转与完整性校验。"
+    elif echo "$detail" | grep -q "读写控制:.*过宽"; then
+        add_result "3.5" "数据安全" "日志读写控制/轮转/完整性保护" "fail" "$detail 日志目录权限过宽，存在未授权读写风险。" "第3章" "收紧/var/log权限至750，配置logrotate轮转与完整性校验。"
+    else
+        add_result "3.5" "数据安全" "日志读写控制/轮转/完整性保护" "manual" "$detail 日志加密（LUKS/磁盘加密）与TM级数据存储加密需人工确认，脱敏变换配置需人工核查。" "第3章" "对日志采取读写控制、加密、变换、完整性校验，TM级数据存储加密。"
     fi
 }
 
@@ -793,12 +826,22 @@ check_3_10_shares() {
 }
 
 check_3_8_storagepartition() {
-    local mounts
+    # 指导书3.8=按重要程度划分存储区块+设置访问权限。多层：独立分区+ACL访问权限。
+    local mounts acl_info detail=""
     mounts="$(run_cmd "df -h 2>/dev/null | grep -E '/var$|/home$|/data$' | wc -l")"
     if [ "${mounts:-0}" -gt 0 ] 2>/dev/null; then
-        add_result "3.8" "数据安全" "存储分区规划" "pass" "检测到 /var /home /data 等业务/日志目录使用独立分区，共 $mounts 个。" "第3章" "保持关键目录独立分区，避免单点磁盘写满影响系统运行。"
+        detail="独立分区:/var /home /data 共${mounts}个; "
     else
-        add_result "3.8" "数据安全" "存储分区规划" "manual" "未检测到 /var /home /data 独立分区，请人工确认存储分区规划是否合理。" "第3章" "建议将 /var、/home、业务数据目录规划为独立分区。"
+        detail="独立分区:未检测到/var /home /data独立分区; "
+    fi
+    # 查关键数据目录ACL/权限
+    local dir_perm
+    dir_perm="$(run_cmd "stat -c '%a %n' /home /data /var/lib 2>/dev/null | head -3")"
+    detail="${detail}目录权限:${dir_perm:-无法获取}"
+    if [ "${mounts:-0}" -gt 0 ] 2>/dev/null; then
+        add_result "3.8" "数据安全" "存储区块划分与访问权限" "manual" "$detail 已划分独立分区，但各存储区块ACL是否按用户/组分级授权需人工核查(getfacl)。" "第3章" "按重要程度划分存储区块并设置分级访问权限。"
+    else
+        add_result "3.8" "数据安全" "存储区块划分与访问权限" "manual" "$detail 建议将关键数据目录规划为独立分区并配置分级ACL。" "第3章" "按重要程度划分存储区块并设置分级访问权限。"
     fi
 }
 
@@ -807,100 +850,212 @@ check_3_8_storagepartition() {
 # ============================================================
 
 check_4_15_nla() {
-    add_result "4.15" "应用安全" "网络级身份验证(NLA)" "na" "NLA为Windows RDP专有机制，Linux平台不适用。若部署了xrdp，请参照4.29远程管理项核查。" "第4章" "如部署图形化远程桌面（xrdp/VNC），应启用加密与身份验证。"
+    add_result "4.15" "应用安全" "文电文档签名验证/密级标识" "manual" "文电等文档专用业务处理系统的签名验证、密级标识功能属应用层能力，需人工核查系统是否具备数字签名验证与密级标识功能。指导书方法：检查gpg/证书签名工具、SELinux MLS(sestatus)与文件安全上下文(ls -Z)密级标记。" "第4章" "文电文档专用系统应具备签名验证与密级标识功能。"
 }
 
 check_4_16_roleseparation() {
-    local sudoers
-    sudoers="$(run_cmd "wc -l < /etc/sudoers 2>/dev/null")"
-    add_result "4.16" "应用安全" "三权分立" "manual" "sudo配置行数：${sudoers:-未知}，管理员/审计员/操作员的三权分立需人工核查账户与sudo授权划分。" "第4章" "划分系统管理、安全审计、业务操作等不同角色账户，避免权限过度集中。"
+    # 指导书4.16=远程管理应采取加密保护措施。原4.29的PermitRootLogin逻辑迁入此号。
+    local rootlogin
+    rootlogin="$(grep -Ei '^\s*PermitRootLogin' /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}' | head -1)"
+    local weak=""
+    weak="$(grep -Ei '^\s*(Ciphers|MACs|KexAlgorithms)' /etc/ssh/sshd_config 2>/dev/null | grep -Ei '3des|arcfour|rc4|blowfish|cbc|sha1|diffie-hellman-group1')"
+    local telnet
+    telnet="$(run_cmd "ss -lntp 2>/dev/null | grep ':23 '")"
+    if [ -n "$telnet" ]; then
+        add_result "4.16" "应用安全" "远程管理加密保护" "fail" "检测到Telnet(23)明文管理服务在监听：$telnet。远程管理未全部采用加密保护。" "第4章" "停用Telnet，远程管理统一使用SSH等加密协议。"
+    elif [ -n "$weak" ]; then
+        add_result "4.16" "应用安全" "远程管理加密保护" "fail" "sshd_config 中配置了弱加密算法：$weak" "第4章" "禁用3DES/RC4/CBC/SHA1等弱算法，使用AES-GCM/ChaCha20等强算法。"
+    elif [ "$rootlogin" = "no" ]; then
+        add_result "4.16" "应用安全" "远程管理加密保护" "pass" "未检测到明文Telnet管理服务与弱加密算法，且 PermitRootLogin=no。" "第4章" "保持SSH加密管理，禁用Telnet，定期核查加密套件。"
+    else
+        add_result "4.16" "应用安全" "远程管理加密保护" "fail" "未检测到明文Telnet与弱加密算法，但 PermitRootLogin=${rootlogin:-未设置}，未明确禁止root直接远程登录。" "第4章" "在sshd_config设置 PermitRootLogin no。"
+    fi
 }
 
 check_4_17_iprestrict() {
-    local allow
-    allow="$(run_cmd "cat /etc/hosts.allow 2>/dev/null | grep -v '^#' | grep -v '^$'")"
-    if [ -n "$allow" ]; then
-        add_result "4.17" "应用安全" "管理IP限制" "pass" "检测到 /etc/hosts.allow 配置了访问限制：$allow" "第4章" "持续维护允许管理访问的IP白名单。"
-    else
-        add_result "4.17" "应用安全" "管理IP限制" "manual" "/etc/hosts.allow 未配置限制规则，请人工核实是否通过firewalld/安全组等方式限制管理访问来源。" "第4章" "通过hosts.allow/firewalld/安全组限制管理访问来源IP。"
-    fi
+    # 指导书4.17=三权分立。原4.16的sudo逻辑迁入此号。
+    local sudoers
+    sudoers="$(run_cmd "wc -l < /etc/sudoers 2>/dev/null")"
+    add_result "4.17" "应用安全" "三权分立" "manual" "sudo配置行数：${sudoers:-未知}，管理员/安全员/审计员的三权分立需人工核查账户与sudo授权划分（指导书方法：核查passwd/group中三员账户、:0:组、sudoers授权）。" "第4章" "划分系统管理、安全审计、业务操作等不同角色账户，避免权限过度集中。"
 }
 
 check_4_18_lockout() {
-    local faillock=""
-    for f in /etc/security/faillock.conf /etc/pam.d/system-auth /etc/pam.d/common-auth; do
-        [ -f "$f" ] && grep -Eq 'pam_faillock|pam_tally2|deny=' "$f" 2>/dev/null && faillock="$f"
-    done
-    if [ -n "$faillock" ]; then
-        add_result "4.18" "应用安全" "账户锁定策略" "pass" "$faillock 中检测到账户锁定策略配置（pam_faillock/pam_tally2）。" "第4章" "确保连续登录失败达到阈值后账户被锁定，锁定时间满足安全要求。"
+    # 指导书4.18=业务管理终端登录采取网络地址限制。原4.17的hosts.allow逻辑迁入此号。
+    local allow sshd_allow
+    allow="$(run_cmd "cat /etc/hosts.allow 2>/dev/null | grep -v '^#' | grep -v '^$'")"
+    sshd_allow="$(grep -Ei '^\s*(AllowUsers|DenyUsers|AllowGroups|DenyGroups)' /etc/ssh/sshd_config 2>/dev/null)"
+    if [ -n "$allow" ] || [ -n "$sshd_allow" ]; then
+        add_result "4.18" "应用安全" "业务管理终端网络地址限制" "pass" "检测到管理访问来源限制：hosts.allow[${allow:-无}] sshd[${sshd_allow:-无}]。" "第4章" "持续维护允许管理访问的IP/账户白名单。"
     else
-        add_result "4.18" "应用安全" "账户锁定策略" "fail" "未在PAM配置中发现pam_faillock/pam_tally2账户锁定策略。" "第4章" "在PAM中启用pam_faillock，配置登录失败锁定阈值。"
-    fi
-}
-
-check_4_22_portseparation() { add_result "4.22" "应用安全" "管理端口与业务端口分离" "manual" "端口分离需结合具体业务架构人工核查（如管理端口是否与业务端口隔离监听）。" "第4章" "将管理端口与业务端口分离，管理端口仅限内网访问。"; }
-check_4_23_appdbsep()      { add_result "4.23" "应用安全" "应用与数据库分离部署" "manual" "需人工核查应用服务与数据库是否部署于不同主机/网络区域。" "第4章" "应用系统与数据库建议分离部署，降低单点被攻破后的横向风险。"; }
-check_4_24_appaudit()      { add_result "4.24" "应用安全" "应用操作审计" "manual" "应用层操作审计需结合具体应用系统日志人工核查。" "第4章" "应用系统应记录关键业务操作日志，满足可追溯要求。"; }
-
-check_4_6_waf() {
-    local found=""
-    if pkg_installed modsecurity 2>/dev/null || pkg_installed libmodsecurity3 2>/dev/null; then
-        found="modsecurity"
-    fi
-    if svc_active nginx 2>/dev/null && run_cmd "nginx -V 2>&1 | grep -qi modsecurity"; then
-        found="$found nginx+modsecurity"
-    fi
-    if [ -n "$found" ]; then
-        add_result "4.6" "应用安全" "Web应用防火墙(WAF)" "pass" "检测到WAF相关组件：$found" "第4章" "持续更新WAF规则库，覆盖OWASP Top10攻击类型。"
-    else
-        add_result "4.6" "应用安全" "Web应用防火墙(WAF)" "manual" "未检测到本机部署modsecurity等WAF组件，可能采用云端/前置WAF设备，请人工核实。" "第4章" "对外提供Web服务的系统应部署WAF防护。"
-    fi
-}
-
-check_4_8_antitamper() {
-    if pkg_installed aide 2>/dev/null; then
-        add_result "4.8" "应用安全" "网页防篡改" "pass" "检测到 AIDE 文件完整性校验工具已安装。" "第4章" "定期更新AIDE基线库，及时发现文件被篡改的情况。"
-    else
-        add_result "4.8" "应用安全" "网页防篡改" "manual" "未检测到AIDE/tripwire等文件完整性校验工具，请人工核实是否部署了网页防篡改系统。" "第4章" "对外提供Web服务的系统应部署防篡改/文件完整性监控机制。"
-    fi
-}
-
-check_4_12_sessionlimit() {
-    local tmout
-    tmout="$(grep -E '^\s*TMOUT=' /etc/profile /etc/profile.d/*.sh 2>/dev/null | head -1)"
-    local sshalive
-    sshalive="$(grep -Ei '^\s*ClientAliveInterval' /etc/ssh/sshd_config 2>/dev/null)"
-    if [ -n "$tmout" ] || [ -n "$sshalive" ]; then
-        add_result "4.12" "应用安全" "会话超时限制" "pass" "检测到会话超时配置：${tmout:-} ${sshalive:-}" "第4章" "保持登录会话空闲超时设置，建议不超过10分钟。"
-    else
-        add_result "4.12" "应用安全" "会话超时限制" "fail" "未检测到 TMOUT 或 sshd ClientAliveInterval 超时配置。" "第4章" "在/etc/profile设置TMOUT，并在sshd_config配置ClientAliveInterval。"
+        add_result "4.18" "应用安全" "业务管理终端网络地址限制" "manual" "未在hosts.allow/sshd_config发现管理终端地址限制，请人工核实是否通过firewalld/安全组限制。" "第4章" "通过hosts.allow/firewalld/sshd AllowUsers限制管理访问来源IP。"
     fi
 }
 
 check_4_21_defaultport() {
-    local port
-    port="$(grep -Ei '^\s*Port' /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}' | head -1)"
-    port="${port:-22}"
-    if [ "$port" = "22" ]; then
-        add_result "4.21" "应用安全" "默认端口修改" "fail" "SSH仍使用默认端口22。" "第4章" "将SSH管理端口修改为非默认端口，降低被扫描/暴力破解风险。"
+    # 指导书4.21=基于专用物理部件/生物特征多因素数字证书认证。原SSH默认端口逻辑迁至4.22。
+    add_result "4.21" "应用安全" "多因素数字证书认证" "manual" "基于专用物理部件或生物特征的多因素数字证书认证属应用层能力，需人工核查。指导书方法：检查pam_fprintd/pam_biometric模块、openssl ecparam(sm2)国密证书、证书库。" "第4章" "重要应用应支持多因素+数字证书认证。"
+}
+
+check_4_22_portseparation() {
+    # 指导书4.22=应更改Web应用系统默认服务发布端口。原4.21的端口检查逻辑迁入并改为查Web默认端口。
+    local webport
+    webport="$(run_cmd "ss -lntp 2>/dev/null | grep -E ':80 |:443 |:8080 |:8443 '")"
+    if [ -n "$webport" ]; then
+        add_result "4.22" "应用安全" "更改Web默认服务端口" "fail" "Web服务仍使用默认端口(80/443/8080/8443)监听：$webport" "第4章" "将Web服务发布端口修改为非默认端口。"
     else
-        add_result "4.21" "应用安全" "默认端口修改" "pass" "SSH已修改为非默认端口：$port" "第4章" "持续保持管理端口非默认配置，并做好访问控制。"
+        add_result "4.22" "应用安全" "更改Web默认服务端口" "manual" "未在标准Web端口(80/443/8080/8443)检测到监听，可能未部署Web服务或已使用非默认端口，需人工确认。" "第4章" "Web服务应使用非默认端口发布。"
     fi
+}
+check_4_23_appdbsep() {
+    # 指导书4.23=应分开设置管理端口与应用端口。原4.22逻辑迁入并改为管理/业务端口分离。
+    add_result "4.23" "应用安全" "分开设置管理端口与应用端口" "manual" "管理端口与业务端口是否分离需人工核查。指导书方法：ss -tlnp检查管理端口(22/3389等)与业务端口(80/443等)是否隔离监听、firewalld区域划分。" "第4章" "管理端口与业务端口分离，管理端口仅限内网访问。"
+}
+check_4_24_appaudit() {
+    # 指导书4.24=应用服务和数据存储应部署在不同服务器。原4.23逻辑迁入并改为应用/数据存储分离。
+    add_result "4.24" "应用安全" "应用与数据存储分离部署" "manual" "应用服务与数据存储是否分离部署需人工核查。指导书方法：netstat查数据库端口ESTAB来源、mount查数据存储、hostname/ipconfig确认是否同机。" "第4章" "应用服务与数据存储建议部署于不同服务器。"
+}
+
+check_4_1_appbackup() {
+    # 指导书v2.1 4.1.3 补充：应用层(备份配置) + 数据库层(binlog/mysqldump)。OS层备份详见4.32。
+    local db_bak="" app_bak="" detail=""
+    # 1. 数据库层：MySQL binlog + mysqldump定时任务
+    if command -v mysql >/dev/null 2>&1; then
+        local binlog
+        binlog="$(run_cmd "mysql -e \"SHOW VARIABLES LIKE 'log_bin'\" 2>/dev/null | grep -i on")"
+        [ -n "$binlog" ] && db_bak="MySQL binlog已开启(用于增量恢复)"
+    fi
+    local dump_cron
+    dump_cron="$(run_cmd "grep -rlE 'mysqldump|dmap|sys_dump|pg_dump' /etc/cron.d /etc/cron.daily /var/spool/cron 2>/dev/null")"
+    [ -n "$dump_cron" ] && db_bak="${db_bak:+$db_bak；}检测到数据库备份定时任务:$dump_cron"
+    # 2. 应用层：应用配置中的备份参数
+    app_bak="$(run_cmd "grep -rilE 'backup|备份|dump' /opt/*/conf/*.conf /opt/*/config/*.yml 2>/dev/null | head -3")"
+    [ -n "$app_bak" ] && app_bak="应用配置含备份参数:$app_bak"
+    detail="${db_bak:-数据库备份层未检测到binlog/备份定时任务}；${app_bak:-应用配置未检测到备份参数}；OS层备份详见4.32。"
+    if [ -n "$db_bak" ] || [ -n "$app_bak" ]; then
+        add_result "4.1" "应用安全" "应用系统软件应采取备份措施" "manual" "$detail 检测到备份相关配置，但备份有效性(是否近期/可恢复)需人工确认。" "第4章" "建立应用+数据库+OS三层备份机制并定期验证可恢复。"
+    else
+        add_result "4.1" "应用安全" "应用系统软件应采取备份措施" "manual" "$detail 应用自身备份功能/数据库备份策略需人工核查(含应用管理界面备份功能、mysqldump/RMAN/backupset)。" "第4章" "建立应用+数据库+OS三层备份机制并定期验证可恢复。"
+    fi
+}
+
+check_4_6_waf() {
+    # 指导书4.6=Web安全防护措施(8层通用方法)。OS层可查：WAF组件、安全响应头、Cookie属性。
+    local waf="" sec_headers="" web_listening=""
+    # 1. WAF组件
+    if pkg_installed modsecurity 2>/dev/null || pkg_installed libmodsecurity3 2>/dev/null; then
+        waf="modsecurity"
+    fi
+    if svc_active nginx 2>/dev/null && run_cmd "nginx -V 2>&1 | grep -qi modsecurity"; then
+        waf="$waf nginx+modsecurity"
+    fi
+    # 2. 是否有Web服务在监听(80/443/8080)
+    web_listening="$(run_cmd "ss -lntp 2>/dev/null | grep -E ':80 |:443 |:8080 '")"
+    # 3. 安全响应头(curl本地Web服务)
+    if [ -n "$web_listening" ] && command -v curl >/dev/null 2>&1; then
+        local hdrs
+        hdrs="$(run_cmd "curl -sI http://127.0.0.1 2>/dev/null")"
+        if [ -n "$hdrs" ]; then
+            local missing=""
+            echo "$hdrs" | grep -qi 'X-Frame-Options' || missing="$missing X-Frame-Options"
+            echo "$hdrs" | grep -qi 'X-Content-Type-Options' || missing="$missing X-Content-Type-Options"
+            echo "$hdrs" | grep -qi 'Content-Security-Policy' || missing="$missing CSP"
+            if [ -n "$missing" ]; then
+                sec_headers="安全头缺失:$missing"
+            else
+                sec_headers="安全头齐全(X-Frame/X-Content-Type/CSP)"
+            fi
+        fi
+    fi
+    local detail="WAF:[${waf:-无}] Web监听:[${web_listening:+有}] $sec_headers"
+    if [ -n "$waf" ]; then
+        add_result "4.6" "应用安全" "Web应用安全防护措施" "manual" "$detail。WAF组件已部署，但输入校验/输出编码/SQL参数化/DB最小权限/错误信息控制等应用层8项需人工核查代码。" "第4章" "持续更新WAF规则，覆盖输入校验/输出编码/SQL注入/Cookie安全等。"
+    elif [ -n "$web_listening" ]; then
+        add_result "4.6" "应用安全" "Web应用安全防护措施" "manual" "$detail。部署了Web服务但未检测到WAF组件，安全头$([ -z \"\$sec_headers\" ] && echo '未获取' || echo '已查')。应用层防护需人工核查。" "第4章" "对外Web服务应部署WAF并配置安全响应头。"
+    else
+        add_result "4.6" "应用安全" "Web应用安全防护措施" "manual" "$detail。未检测到本机Web服务监听，可能未部署Web应用或采用前置设备，需人工核实。" "第4章" "对外Web服务应部署WAF防护。"
+    fi
+}
+
+check_4_8_antitamper() {
+    # 指导书v2.1 4.8.3 补充：专业防篡改系统 + 文件完整性 + Web目录权限。AIDE装了≠配置到位。
+    local aide="" tamper_sys="" webdir="" detail=""
+    # 1. 文件完整性工具
+    if pkg_installed aide 2>/dev/null || pkg_installed tripwire 2>/dev/null; then
+        aide="AIDE/tripwire已安装"
+        # 查AIDE是否配置监控Web目录
+        local aide_cfg
+        aide_cfg="$(run_cmd "grep -E '/var/www|html' /etc/aide/aide.conf /etc/aide/aide.conf.d/* 2>/dev/null | head -2")"
+        [ -n "$aide_cfg" ] && aide="$aide(已配置监控Web目录)" || aide="$aide(未配置监控Web目录)"
+    fi
+    # 2. 专业网页防篡改系统
+    tamper_sys="$(run_cmd "systemctl list-units 2>/dev/null | grep -iE 'guard|tamper|protect|防篡改' | head -2")"
+    [ -z "$tamper_sys" ] && tamper_sys="$(run_cmd "find /opt -maxdepth 2 -name '*guard*' -o -name '*tamper*' -o -name '*防篡*' 2>/dev/null | head -2")"
+    [ -n "$tamper_sys" ] && tamper_sys="专业防篡改系统:$tamper_sys"
+    # 3. Web目录权限/只读挂载
+    if [ -d /var/www ]; then
+        local mount_ro
+        mount_ro="$(run_cmd "mount | grep '/var/www' | grep -i 'ro,'")"
+        [ -n "$mount_ro" ] && webdir="/var/www只读挂载" || webdir="/var/www非只读挂载"
+    fi
+    detail="${aide:-无AIDE/tripwire}；${tamper_sys:-未检测到专业防篡改系统}；${webdir:-无Web目录}"
+    if [ -n "$tamper_sys" ]; then
+        add_result "4.8" "应用安全" "网页防篡改" "manual" "$detail 部署了专业防篡改系统，但Web目录权限与告警配置需人工确认。" "第4章" "保持防篡改系统运行，定期更新基线。"
+    elif [ -n "$aide" ]; then
+        add_result "4.8" "应用安全" "网页防篡改" "manual" "$detail AIDE已安装但需确认是否配置Web目录监控及专业防篡改系统。" "第4章" "部署专业防篡改系统或配置AIDE监控Web目录。"
+    else
+        add_result "4.8" "应用安全" "网页防篡改" "manual" "$detail 未检测到防篡改工具，请人工核实是否部署了网页防篡改系统。" "第4章" "对外Web服务应部署防篡改/文件完整性监控机制。"
+    fi
+}
+
+check_4_12_sessionlimit() {
+    # 指导书4.12=最大并发会话连接数限制。原会话超时逻辑迁至4.19。本号Top10补逻辑，先manual占位。
+    add_result "4.12" "应用安全" "最大并发会话连接数限制" "manual" "应用最大并发会话连接数限制需人工核查。指导书方法：检查/proc/sys/net/core/somaxconn、file-max、ss并发连接数、sshd MaxSessions/MaxStartups。" "第4章" "配置最大并发会话与连接数限制，防止资源耗尽。"
 }
 
 check_4_29_remotemgmt() {
-    local rootlogin
-    rootlogin="$(grep -Ei '^\s*PermitRootLogin' /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}' | head -1)"
-    if [ "$rootlogin" = "no" ]; then
-        add_result "4.29" "应用安全" "远程管理安全" "pass" "sshd_config 中 PermitRootLogin=no，已禁止root直接远程登录。" "第4章" "持续禁止root直接远程登录，使用普通账户+sudo方式管理。"
+    # 指导书4.29=用户访问权限统一管理功能。原PermitRootLogin逻辑已迁至4.16。
+    add_result "4.29" "应用安全" "用户访问权限统一管理" "manual" "用户访问权限统一管理需覆盖OS层+应用层统一认证平台。指导书v2.1 4.29.3补充：应用层(IAM/CAS/OAuth2.0/SSO: systemctl list-units | grep -iE \"iam\\|cas\\|oauth\\|sso\\|auth\"; grep -r \"sso\\|cas\\|oauth\\|auth.server\\|iam\\|统一认证\" /opt/*/conf/*.conf; 权限变更经统一平台审批可追溯)、OS层(sssd.conf/authconfig统一认证、sudoers授权)。" "第4章" "应用应接入统一认证/权限平台，权限变更集中受控。"
+}
+
+check_4_31_appbackup() {
+    # 指导书4.31=最大并发会话/会话建立速率/单用户并发会话数。指导书方法：sshd MaxSessions/MaxStartups/MaxAuthTries、limits.conf maxlogins。
+    local ssh_limit="" pam_limit="" detail=""
+    # 1. sshd 并发会话限制
+    ssh_limit="$(run_cmd "sshd -T 2>/dev/null | grep -iE 'maxsessions|maxstartups|maxauthtries'")"
+    [ -z "$ssh_limit" ] && ssh_limit="$(grep -Ei '^\s*(MaxSessions|MaxStartups|MaxAuthTries)' /etc/ssh/sshd_config 2>/dev/null)"
+    # 2. PAM/limits 单用户并发会话限制
+    pam_limit="$(run_cmd "grep -rE 'maxlogins|maxsyslogins' /etc/security/limits.conf /etc/security/limits.d/ 2>/dev/null")"
+    if [ -n "$ssh_limit" ] && [ -n "$pam_limit" ]; then
+        detail="sshd:$ssh_limit; PAM limits:$pam_limit"
+        add_result "4.31" "应用安全" "最大并发会话/速率/单用户并发限制" "pass" "$detail" "第4章" "保持并发会话与速率限制配置。"
+    elif [ -n "$ssh_limit" ] || [ -n "$pam_limit" ]; then
+        detail="sshd:[${ssh_limit:-未配置}]; PAM limits:[${pam_limit:-未配置}]"
+        add_result "4.31" "应用安全" "最大并发会话/速率/单用户并发限制" "manual" "$detail 部分限制已配置，但应用层并发会话数/连接数限制需人工核查。" "第4章" "配置sshd MaxSessions/MaxStartups及limits.conf maxlogins。"
     else
-        add_result "4.29" "应用安全" "远程管理安全" "fail" "sshd_config 中 PermitRootLogin=${rootlogin:-未设置（默认允许或prohibit-password）}，未明确禁止root远程登录。" "第4章" "在sshd_config设置 PermitRootLogin no，禁止root账户直接远程登录。"
+        add_result "4.31" "应用安全" "最大并发会话/速率/单用户并发限制" "fail" "未检测到sshd MaxSessions/MaxStartups/MaxAuthTries及limits.conf maxlogins配置。" "第4章" "在sshd_config配置MaxSessions/MaxStartups/MaxAuthTries，limits.conf配置maxlogins。"
     fi
 }
 
-check_4_31_appbackup() { add_result "4.31" "应用安全" "应用系统备份" "manual" "应用系统级备份策略需结合具体业务系统人工核查。" "第4章" "建立应用系统配置与数据的定期备份机制。"; }
-
 check_4_32_domesticsoftware() {
+    # 指导书4.32=所有应用具备备份与恢复功能。原国产化逻辑迁至4.33。
+    local bakdir bakfiles cron
+    # 限定常见备份目录，排除 /tmp /var/cache /proc /sys 等缓存/系统目录，避免误判
+    bakdir="$(run_cmd "find /backup /data /home /opt /var -maxdepth 3 -type d \\( -iname '*backup*' -o -iname '*bak' \\) 2>/dev/null | grep -vE '/tmp|/cache|/\\.cache' | head -3")"
+    bakfiles="$(run_cmd "find /backup /data/backup /var/backup /home /opt -maxdepth 3 -type f \\( -name '*.bak' -o -name '*.sql.gz' -o -name '*backup*.tar.gz' \\) 2>/dev/null | head -5")"
+    cron="$(run_cmd "grep -rilE 'mysqldump|dmap|sys_dump|backup' /etc/cron.d /etc/cron.daily /var/spool/cron 2>/dev/null")"
+    if [ -n "$bakfiles" ]; then
+        add_result "4.32" "应用安全" "应用备份与恢复功能" "manual" "在常见备份目录检测到备份文件：$bakfiles。请人工确认备份有效性（时间是否近期、是否可恢复）。" "第4章" "定期验证备份可恢复性，异地存储。"
+    elif [ -n "$cron" ]; then
+        add_result "4.32" "应用安全" "应用备份与恢复功能" "manual" "检测到与备份相关的定时任务：$cron。请人工确认备份执行情况与可恢复性。" "第4章" "定期验证备份可恢复性，异地存储。"
+    elif [ -n "$bakdir" ]; then
+        add_result "4.32" "应用安全" "应用备份与恢复功能" "manual" "检测到疑似备份目录：$bakdir，但未发现备份文件。请人工确认备份执行情况。" "第4章" "建立应用配置与数据的定期备份机制并验证可恢复。"
+    else
+        add_result "4.32" "应用安全" "应用备份与恢复功能" "manual" "未在常见位置检测到备份文件或定时备份任务，应用是否具备备份与恢复功能需人工核查（含应用自身备份功能、数据库备份、OS定时任务三层）。" "第4章" "建立应用配置与数据的定期备份机制并验证可恢复。"
+    fi
+}
+
+check_4_33_domesticsoftware() {
+    # 指导书4.33=应用软件基于国产自主可控软硬件自主开发。原4.32国产化逻辑迁入。
     local dbkw="dmdbms kingbase gbase oceanbase tidb opengauss gaussdb"
     local mwkw="tongweb apusic primeton"
     local pkglist found=""
@@ -916,9 +1071,56 @@ check_4_32_domesticsoftware() {
         fi
     done
     if [ -n "$found" ]; then
-        add_result "4.32" "应用安全" "国产化软硬件适配" "pass" "操作系统本身即为国产操作系统：$KYLIN_TYPE；另检测到国产数据库/中间件相关软件包：$found。" "第4章" "持续核查关键应用软件与国产操作系统/CPU的适配兼容情况。"
+        add_result "4.33" "应用安全" "国产化软硬件自主开发" "pass" "操作系统本身即为国产操作系统：$KYLIN_TYPE；另检测到国产数据库/中间件相关软件包：$found。" "第4章" "持续核查关键应用软件与国产操作系统/CPU的适配兼容情况。"
     else
-        add_result "4.32" "应用安全" "国产化软硬件适配" "manual" "操作系统本身即为国产操作系统：$KYLIN_TYPE；但未检测到已安装的国产数据库/中间件软件包，关键应用软件是否基于国产软硬件自主开发需人工核查。" "第4章" "核查关键应用软件与国产操作系统/CPU的适配兼容情况。"
+        add_result "4.33" "应用安全" "国产化软硬件自主开发" "manual" "操作系统本身即为国产操作系统：$KYLIN_TYPE；但未检测到已安装的国产数据库/中间件软件包，关键应用软件是否基于国产软硬件自主开发需人工核查。" "第4章" "核查关键应用软件与国产操作系统/CPU的适配兼容情况。"
+    fi
+}
+
+check_4_25_logaudit() {
+    # 指导书4.25=对所有访问行为和管理行为的日志审计功能，审计日志至少保留180天
+    # 方法：systemctl auditd/rsyslog状态、/var/log/auth.log存在性、logrotate中audit的rotate/maxage≥180、ausearch/aureport可用性
+    local svc_status="" log_file="" rotate_cfg="" tools=""
+    # 1. 审计服务状态
+    if svc_active auditd; then
+        svc_status="auditd运行中"
+        local rules
+        rules="$(run_cmd 'auditctl -l 2>/dev/null | wc -l')"
+        svc_status="$svc_status，已加载${rules:-0}条审计规则"
+    elif svc_active rsyslog || svc_active syslog-ng; then
+        svc_status="auditd未运行，但rsyslog/syslog-ng在运行"
+    else
+        svc_status="未检测到auditd或rsyslog/syslog-ng"
+    fi
+    # 2. 日志文件存在性
+    for f in /var/log/audit/audit.log /var/log/auth.log /var/log/secure; do
+        [ -f "$f" ] && log_file="$log_file $f" && break
+    done
+    log_file="${log_file:-未找到标准审计日志文件}"
+    # 3. logrotate 180天留存
+    local rotate180=""
+    rotate180="$(run_cmd "grep -rE 'rotate|maxage' /etc/logrotate.d/ /etc/logrotate.conf 2>/dev/null | grep -iE 'audit|auth|secure|syslog' | head -3")"
+    local rotate_days=""
+    # 提取rotate次数估算天数（rotate×weekly≈天数，粗略）
+    local rot_cnt
+    rot_cnt="$(run_cmd "grep -A5 -iE 'audit|/var/log/secure|/var/log/auth.log' /etc/logrotate.d/* /etc/logrotate.conf 2>/dev/null | grep -E 'rotate[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | head -1")"
+    if [ -n "$rot_cnt" ] && [ "$rot_cnt" -ge 26 ] 2>/dev/null; then
+        rotate_days="rotate=$rot_cnt(约$((rot_cnt*7))天，≥180天)"
+    elif [ -n "$rot_cnt" ]; then
+        rotate_days="rotate=$rot_cnt(约$((rot_cnt*7))天，不足180天)"
+    fi
+    # 4. 查询工具
+    command -v ausearch >/dev/null 2>&1 && tools="$tools ausearch"
+    command -v aureport >/dev/null 2>&1 && tools="$tools aureport"
+    tools="${tools:-无ausearch/aureport}"
+    # 综合判定
+    local detail="$svc_status；日志文件:$log_file；轮转:$rotate_days${rotate180:+($rotate180)}；查询工具:$tools。"
+    if echo "$svc_status" | grep -q "auditd运行中" && [ -n "$log_file" ] && echo "$rotate_days" | grep -q "≥180"; then
+        add_result "4.25" "应用安全" "日志审计功能+180天留存" "pass" "$detail" "第4章" "保持审计服务运行与日志180天留存策略。"
+    elif echo "$svc_status" | grep -q "未检测"; then
+        add_result "4.25" "应用安全" "日志审计功能+180天留存" "fail" "$detail" "第4章" "安装并启用auditd，配置日志轮转留存不少于180天。"
+    else
+        add_result "4.25" "应用安全" "日志审计功能+180天留存" "manual" "$detail 日志留存是否达180天及审计规则覆盖面需人工确认。" "第4章" "确保auditd运行、审计规则覆盖访问/管理行为、日志留存≥180天。"
     fi
 }
 
@@ -951,36 +1153,35 @@ add_manual_checks() {
     add_result "2.11_m" "用户安全" "口令认证硬件Key（双因子）" "na" "是否采用硬件Key等双因子认证方式需结合具体业务系统评估，本次系统级核查不适用。" "第2章" "对高权限账户建议启用硬件Key等双因子认证方式。"
 
     # ---- 第3章 补充（数据安全）----
-    add_result "3.2" "数据安全" "数据加密统一管控" "na" "用户/应用数据加密的统一管控措施属于业务系统层面，本次操作系统层核查不适用。" "第3章" "对敏感数据的获取、加密应实施统一管控。"
-    add_result "3.3" "数据安全" "存储介质消磁处理" "na" "存储介质报废前消磁处理需结合资产管理流程人工核查，不适用于本次系统核查。" "第3章" "敏感存储介质报废前应采取消磁等不可恢复处理措施。"
-    add_result "3.4" "数据安全" "重要数据全生命周期安全管理" "na" "重要数据传输、存储、销毁全过程安全管理需结合业务流程人工核查。" "第3章" "建立重要数据全生命周期（采集-传输-存储-销毁）安全管理机制。"
+    add_result "3.2" "数据安全" "数据交互/文件传输统一管控和审计" "manual" "用户计算机间数据交互、文件传输的统一管控和审计需人工核查。指导书方法：核查文件系统审计(auditpol文件系统/auditd)、防火墙非法端口、samba共享日志、移动存储管控。" "第3章" "数据交互与文件传输应统一管控并审计。"
+    add_result "3.3" "数据安全" "涉密载体降密级前写覆盖清除" "manual" "涉密存储载体降密级前/演训后应数据写覆盖清除，需人工核查。指导书方法：检测shred/cipher写覆盖工具是否安装、shell history/日志中cipher /w或shred -n执行痕迹。" "第3章" "涉密载体降密级前应采取数据写覆盖方法及时清除数据。"
+    add_result "3.4" "数据安全" "涉密载体物理销毁(消磁/粉碎/溶解)" "manual" "确定销毁的涉密载体应采取消磁、粉碎、溶解、化浆、熔化等物理销毁，属管理流程层需人工核查销毁档案与影像。无OS层方法。" "第3章" "涉密载体销毁应双人操作、全程监控、留存销毁档案。"
     add_result "3.6" "数据安全" "数据边界防泄漏(DLP)" "na" "数据边界防泄漏/防篡改措施属于业务/网络边界层面，本次系统核查不适用。" "第3章" "在数据边界部署防泄漏(DLP)与防篡改措施。"
-    add_result "3.7" "数据安全" "数据存储访问日志与留存(≥180天)" "na" "数据存储系统的访问日志记录与180天留存需结合具体存储系统人工核查。" "第3章" "存储系统应记录访问日志并留存不少于180天。"
-    add_result "3.9" "数据安全" "数据备份加密与隔离" "na" "数据备份是否采用加密、路径隔离、统一管控及操作日志记录需人工核查备份系统。" "第3章" "备份数据应加密存储，备份路径隔离并记录操作日志。"
-    add_result "3.11" "数据安全" "数据访问权限最小化分级授权" "na" "数据访问权限的分级最小化授权需结合业务系统权限模型人工核查。" "第3章" "数据访问权限应按最小化原则分级授权。"
-    add_result "3.12" "数据安全" "数据采集范围合规性" "na" "数据采集范围是否超出业务必要范围需结合业务需求人工核查。" "第3章" "数据采集范围应限定在业务必要范围内。"
-    add_result "3.13" "数据安全" "备份介质加密" "na" "备份介质是否加密及必要性评估需人工核查备份管理制度。" "第3章" "视数据敏感级别对备份介质采取加密措施。"
-    add_result "3.14" "数据安全" "敏感数据访问统一管控" "na" "敏感数据访问的统一管控与最小化授权需结合业务系统人工核查。" "第3章" "对敏感数据访问实施统一管控，权限最小化。"
+    add_result "3.7" "数据安全" "数据存储管理登录增强/默认口令/审计/180天" "manual" "数据存储系统管理登录的多因素验证码、默认账户修改、行为审计、180天留存需人工核查。指导书方法：storage-cli login确认验证码、storage-cli user list确认无默认账户、audit log config show确认retention_days≥180。单机层可查：默认账户root/admin是否改密、auditd留存(logrotate rotate≥180)、PAM多因素模块。" "第3章" "存储管理登录应启用验证码等增强措施，改默认账户口令，行为审计留存≥180天。"
+    add_result "3.9" "数据安全" "数据传输加密/路径/管控/日志/防泄漏" "manual" "数据传输过程加密、路径合理性、统一管控、日志记录、防泄漏需人工核查。指导书方法：netstat查业务端口是否用HTTPS/TLS(443)、certutil/openssl查证书、net use/Get-SmbShare查传输路径、auditpol/auditd查传输日志、DLP/防火墙防泄漏。" "第3章" "数据传输应加密、路径合理、统一管控、留日志、具防泄漏措施。"
+    add_result "3.11" "数据安全" "数据访问权限分级+审计" "manual" "数据访问权限分级需覆盖OS文件+数据库表/字段+应用角色三层。指导书v2.1 3.11.3补充：数据库层(MySQL SHOW GRANTS FOR 'user'@'host'; SQL Server sys.database_permissions; PostgreSQL \\dp表权限)、应用层(grep -r \"role\\|权限\\|classified\" 应用conf、不同角色登录测试)、审计(audit_trail/auditd/auditpol Object Access)。" "第3章" "数据访问应按权限分级，并对访问行为审计。"
+    add_result "3.12" "数据安全" "数据采集是否超出业务需求" "manual" "数据采集范围是否超出业务需求需人工核查。指导书方法：sc query查采集/同步服务、数据库表/字段与业务清单比对、采集日志抽查来源频率。" "第3章" "数据采集应限定在业务必要范围内。"
+    add_result "3.14" "数据安全" "数据访问分级+审计+大数据统一管控" "manual" "大数据访问统一管控需覆盖OS层+大数据平台层+数据库层。指导书v2.1 3.14.3补充：大数据平台(HDFS ACL:hdfs dfs -getfacl; Hive权限:beeline -e \"SHOW GRANT\"; Apache Ranger策略页面; Kerberos:klist)、统一管控(ss -tlnp | grep ':50070\\|:10000\\|:8020'确认无直连旁路)、数据库审计覆盖大数据查询。" "第3章" "对大数据访问提供统一管控和访问控制。"
+    add_result "3.13" "数据安全" "数据各环节处理密级保密要求" "manual" "数据存储/处理/传输各环节是否满足密级保密要求需人工核查。指导书3.13.2一键脚本：存储加密(cryptsetup status查LUKS)、传输加密(netstat :443 LISTEN)、访问控制(sshd PasswordAuth)、审计监控(auditd)、数据分类(find *密*目录)。" "第3章" "数据各环节处理应满足密级相应的保密要求。"
 
     # ---- 第4章 补充（应用安全，业务层，非OS层）----
-    add_result "4.1" "应用安全" "应用系统容灾措施" "na" "应用系统是否具备异地容灾/多活能力属于业务架构层面，本次系统核查不适用。" "第4章" "重要业务应用应具备容灾备份能力。"
-    add_result "4.2" "应用安全" "应用系统补丁及时性" "na" "应用层（非OS层）补丁的及时安装情况需人工核查具体应用版本。" "第4章" "应用系统应及时安装厂商发布的安全补丁。"
-    add_result "4.3" "应用安全" "开放端口应用身份认证与告警监测" "na" "对开放端口对应应用的身份认证与告警监测需结合业务系统人工核查。" "第4章" "对外开放端口的应用应具备身份认证及异常告警监测能力。"
-    add_result "4.4" "应用安全" "敏感信息传输加密保护" "na" "业务层敏感信息获取过程的加密保护需人工核查具体应用实现。" "第4章" "业务应用获取敏感信息时应采取加密保护措施。"
-    add_result "4.5" "应用安全" "互联网应用DDoS防御能力" "na" "对外提供服务的应用是否具备DDoS防御能力属于网络架构层面，不适用于本次系统核查。" "第4章" "面向互联网的应用应具备或依托上层设备的DDoS防御能力。"
-    add_result "4.7" "应用安全" "网站静态化发布" "na" "网站应用是否采取静态页面发布方式需人工核查具体网站架构。" "第4章" "有条件的网站建议采取静态页面发布方式降低攻击面。"
-    add_result "4.9" "应用安全" "Web应用防SQL注入/XSS攻击能力" "na" "Web应用自身的防注入/防XSS能力需人工核查代码实现或WAF防护效果。" "第4章" "Web应用应具备或依托WAF防SQL注入、XSS等攻击的能力。"
-    add_result "4.10" "应用安全" "执行代码有效性校验" "na" "应用对上传/执行代码的有效性校验需人工核查具体代码实现。" "第4章" "应用应对可执行代码进行有效性与合法性校验。"
-    add_result "4.11" "应用安全" "用户权限访问控制开发规范" "na" "基于用户权限的访问控制开发规范需人工核查应用设计文档。" "第4章" "应用开发应遵循最小权限访问控制规范。"
-    add_result "4.13" "应用安全" "业务管理终端专人专用" "na" "业务管理终端是否专人专用需现场人工核查。" "第4章" "业务管理终端应指定专人专用并登记备案。"
-    add_result "4.14" "应用安全" "基于用户角色的细粒度访问控制" "na" "基于用户角色授权的细粒度访问控制需人工核查应用RBAC实现。" "第4章" "应用应基于用户角色实现细粒度的访问控制。"
-    add_result "4.19" "应用安全" "非通用协议接口通信" "na" "是否使用非通用协议/接口进行关键通信需人工核查具体业务实现。" "第4章" "关键业务通信建议避免使用完全通用、易被利用的协议接口。"
-    add_result "4.20" "应用安全" "口令以外的认证方式" "na" "是否具备口令认证以外的认证方式（如证书、生物特征）需人工核查。" "第4章" "重要应用建议提供口令以外的认证方式。"
-    add_result "4.25" "应用安全" "应用系统代码级安全漏洞（渗透测试）" "na" "应用系统是否存在代码级安全漏洞需通过渗透测试评估，不适用于本次系统核查。" "第4章" "定期开展渗透测试，修复代码级安全漏洞。"
-    add_result "4.26" "应用安全" "账户异常登录/异常通信监测" "na" "账户异常登录、异常通信、异常文件上传等监测能力需人工核查具体应用/态势感知系统。" "第4章" "应用应具备账户异常行为监测能力，或依托态势感知平台。"
-    add_result "4.27" "应用安全" "应用层攻击防护效果验证" "na" "抵御SQL注入/XSS/DoS等应用层攻击的实际效果需通过测试验证，不适用于本次系统核查。" "第4章" "定期验证应用层攻击防护措施的实际效果。"
-    add_result "4.28" "应用安全" "统一身份认证(IAM)" "na" "是否接入统一身份认证平台需人工核查具体业务系统集成情况。" "第4章" "重要业务系统建议接入统一身份认证(IAM)平台。"
-    add_result "4.30" "应用安全" "并发会话/连接数限制（应用层）" "na" "应用层对并发会话数、连接数、单用户连接数的限制需人工核查具体应用配置。" "第4章" "应用层应对并发会话及连接数进行合理限制。"
+    # 4.1 由 check_4_1_appbackup 函数查数据库备份层，此处不重复
+    add_result "4.2" "应用安全" "应用系统补丁及时性" "manual" "应用层补丁及时性需人工核查具体应用版本与厂商安全公告。指导书方法：apt list --upgradable / rpm -qa 比对、应用版本日志。" "第4章" "应用系统应及时安装厂商发布的安全补丁。"
+    add_result "4.3" "应用安全" "基于可信根可信验证" "manual" "基于可信根对应用软件可信验证、破坏后报警属应用层能力，需人工核查。指导书方法：ls /sys/class/tpm 查TPM、systemctl查aide/tripwire完整性监控。" "第4章" "应用软件应基于可信根验证，破坏后报警。"
+    add_result "4.4" "应用安全" "公共/涉密服务器分设、专用服务器专用" "manual" "公共信息服务服务器与涉密服务器是否分设、专用服务器是否只提供专用服务需人工核查。指导书方法：netstat查监听端口+进程、sc query服务清单比对。" "第4章" "公共/涉密服务器分设，专用服务器只提供专用服务。"
+    add_result "4.5" "应用安全" "公共信息服务器防DDoS能力" "manual" "防DDoS需多层协同。指导书v2.1 4.5.3补充：边界设备(登录防火墙核查DDoS清洗策略)、应用层限流(nginx limit_req/limit_conn、tomcat maxThreads/acceptCount、grep -r \"limit_req\\|limit_conn\" /etc/nginx/)、主机层(sysctl tcp_syncookies/tcp_max_syn_backlog、iptables limit)。" "第4章" "公共信息服务器应具备或依托DDoS防御能力。"
+    add_result "4.7" "应用安全" "网站静态化发布" "manual" "网站是否静态化发布需人工核查。指导书方法：find *.php/*.jsp动态脚本文件数、nginx配置、curl X-Powered-By。" "第4章" "有条件的网站建议静态页面发布。"
+    add_result "4.9" "应用安全" "防范SQL注入/XSS攻击能力" "manual" "Web应用防SQL注入/XSS能力需人工核查。指导书方法：curl -I安全头(CSP/X-Frame)、curl构造SQLi观察返回。" "第4章" "Web应用应具备或依托WAF防SQL注入/XSS。"
+    add_result "4.10" "应用安全" "执行代码有效性校验" "manual" "应用对上传/执行代码有效性校验需人工核查。指导书方法：nikto扫描、上传文件类型白名单配置。" "第4章" "应用应对可执行代码进行有效性与合法性校验。"
+    add_result "4.11" "应用安全" "用户授权访问控制能力" "manual" "用户授权访问控制需核查应用层RBAC+数据库层授权。指导书v2.1 4.11.3补充：应用RBAC(查应用配置role-permission映射、grep -r \"role\\|permission\\|auth\\|权限\" /opt/*/conf/、应用管理界面角色列表)、数据库授权(MySQL SELECT user,host FROM mysql.user; SHOW GRANTS; SQL Server sys.database_principals)、OS层(id/groups/sudo -l)。" "第4章" "应用应实现RBAC，数据库账号权限最小化。"
+    add_result "4.13" "应用安全" "业务管理终端专设专用" "manual" "业务管理终端是否专设专用需现场人工核查。指导书方法：grep auth.log登录来源IP比对终端台账。" "第4章" "业务管理终端应指定专人专用并登记备案。"
+    add_result "4.14" "应用安全" "基于用户角色细粒度访问控制" "manual" "基于用户角色的细粒度访问控制(用户/进程/文件/表记录字段级)需人工核查。指导书方法：getfacl/ls -Z文件标签、SELinux状态、DB账户权限。" "第4章" "应用应基于用户角色实现细粒度访问控制。"
+    add_result "4.19" "应用安全" "登录失败处理(会话超时/锁定/自动退出)" "manual" "登录失败处理需覆盖OS层+应用层。指导书v2.1 4.19.3补充：应用层(grep -r \"loginFail\\|lockout\\|maxAttempts\\|captcha\" 应用conf查登录失败锁定/CAPTCHA、session-timeout会话超时、应用界面连续错误登录测试)、OS层(pam_faillock/pam_tally2账户锁定、TMOUT/ClientAliveInterval会话超时)。" "第4章" "应用层与OS层均应具备登录失败处理(锁定/超时/自动退出)。"
+    add_result "4.20" "应用安全" "自主设计协议/接口" "manual" "是否使用自主设计的网络服务/协议/接口需人工核查。指导书方法：find国密sm2/sm3/sm4配置、国产中间件/SDK。" "第4章" "关键业务通信宜使用自主设计协议/接口。"
+    add_result "4.26" "应用安全" "账户异常行为监测" "manual" "账户异常登录/异常通信/异常文件上传监测需人工核查。指导书方法：核查应用日志/态势感知平台异常告警规则。" "第4章" "应用应具备账户异常行为监测能力。"
+    add_result "4.27" "应用安全" "输入数据格式长度检查" "manual" "人机接口/网络通信/文件输入数据格式长度检查需人工核查。指导书方法：php upload_max_filesize/post_max_size、应用校验配置。" "第4章" "应用应对输入数据进行格式和长度检查。"
+    add_result "4.28" "应用安全" "检测防御应用层攻击" "manual" "检测并防御SQL注入/网页篡改/XSS/DoS等应用层攻击需人工核查。指导书方法：curl安全头、curl构造SQLi/XSS观察返回。" "第4章" "应能检测并防御应用层攻击。"
+    add_result "4.30" "应用安全" "统一管理措施与远程管理限制" "manual" "统一管理措施与远程管理限制需人工核查。指导书方法：cockpit/webmin/ansible集中管理平台、sshd AllowUsers、iptables DROP:22。" "第4章" "应设置统一管理措施并限制远程管理。"
 
     # ---- 第5章 网络安全（网络设备/架构层，不适用于单机系统核查）----
     add_result "5.1" "网络安全" "网络拓扑图" "na" "网络拓扑图的绘制与维护需人工核查网络管理文档，不适用于单机系统核查。" "第5章" "绘制并维护最新网络拓扑图。"
@@ -1327,6 +1528,7 @@ check_3_10_shares
 check_3_8_storagepartition
 
 # ---------- 第4章 应用安全 ----------
+check_4_1_appbackup
 check_4_15_nla
 check_4_16_roleseparation
 check_4_17_iprestrict
@@ -1341,6 +1543,8 @@ check_4_21_defaultport
 check_4_29_remotemgmt
 check_4_31_appbackup
 check_4_32_domesticsoftware
+check_4_33_domesticsoftware
+check_4_25_logaudit
 
 # ---------- 第10章 密码与传输安全 ----------
 check_10_1_tls
