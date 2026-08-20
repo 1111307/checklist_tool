@@ -8,9 +8,10 @@ doc = Document('配置核查作业指导书_v2.2.docx')
 guide_items = []
 cur_ch = None
 for p in doc.paragraphs:
-    if p.style.name == 'Heading 2':
+    # 标题层级说明：v2.2 已将层级整体上移（章=Heading 1，条目=Heading 2）
+    if p.style.name == 'Heading 1':
         cur_ch = p.text.strip()
-    elif p.style.name == 'Heading 3':
+    elif p.style.name == 'Heading 2':
         m = re.match(r'(\d+\.\d+)\s+(.*)', p.text.strip())
         if m:
             guide_items.append((cur_ch, m.group(1), m.group(2)))
