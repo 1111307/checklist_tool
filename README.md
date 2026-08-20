@@ -1,8 +1,35 @@
 # 配置核查工具
 
-面向不同操作系统平台的安全配置核查脚本合集，参考《配置核查作业指导书》标准，对系统安全、用户安全、数据安全、应用安全、密码与传输安全等章节进行自动化核查，并生成 HTML / Excel 格式报告。
+面向 Windows 和国产操作系统（麒麟）的安全配置核查脚本合集，参考《配置核查作业指导书》标准，对**操作系统 + 数据库 + 中间件**进行自动化核查，并生成 HTML / Excel 格式报告。
 
 两个平台的核查项**编号、章节、四态判定规则完全对齐**，方便跨平台核查结果统一汇总对照。
+
+---
+
+## 快速开始
+
+| 平台 | 一键核查全部（OS + 数据库 + 中间件 + 汇总） | 只查操作系统 |
+|------|------|------|
+| **Windows** | 双击 `win\run_all.bat`（管理员） | 双击 `win\run.bat` |
+| **麒麟** | `sudo bash kylin/run_all.sh` | `sudo bash kylin/run.sh` |
+
+> 两个平台均**无需安装 Python 或任何第三方依赖**：Windows 用系统自带的 VBScript（`cscript`），麒麟用系统自带的 Bash。
+
+---
+
+## 核查对象
+
+除操作系统外，另覆盖 6 个数据库/中间件：
+
+| 组件 | Windows 脚本 | 麒麟脚本 | 核查项数 |
+|------|------|------|------|
+| 操作系统 | `check_xp7.vbs` | `check_kylin.sh` | 137 项 |
+| MySQL / MariaDB | `check_mysql.vbs` | `check_mysql.sh` | 19 项 |
+| Redis | `check_redis.vbs` | `check_redis.sh` | 16 项 |
+| 达梦 DM8 | `check_dm.vbs` | `check_dm.sh` | 19 项 |
+| SQL Server | `check_sqlserver.vbs` | `check_sqlserver.sh` | 18 项 |
+| Nginx | `check_nginx.vbs` | `check_nginx.sh` | 8 项 |
+| Tomcat | `check_tomcat.vbs` | `check_tomcat.sh` | 8 项 |
 
 ---
 
@@ -10,31 +37,46 @@
 
 ```
 配置核查/
-├── win_xp7/                    Windows XP/7 版（VBScript，无需Python）
-│   ├── check_xp7.vbs           核查主脚本
-│   ├── run.bat                 双击启动入口
-│   ├── README.md               使用说明
-│   └── output/                 报告输出目录
+├── win/                         Windows 版（VBScript，无需 PowerShell/Python）
+│   ├── check_xp7.vbs            操作系统核查
+│   ├── check_mysql.vbs 等       6 个数据库/中间件核查脚本
+│   ├── merge_report.vbs         汇总合并器
+│   ├── db_config.conf           数据库连接配置（改密码看这里）
+│   ├── run_all.bat / run.bat    启动入口
+│   ├── README.md                使用说明
+│   └── output/                  报告输出目录
 │
-├── kylin/                      中标麒麟/银河麒麟版（Bash，无需Python）
-│   ├── check_kylin.sh          核查主脚本
-│   ├── run.sh                  启动入口
-│   ├── README.md               使用说明
-│   └── output/                 报告输出目录
+├── kylin/                       麒麟版（Bash，无需 Python）
+│   ├── check_kylin.sh           操作系统核查
+│   ├── check_mysql.sh 等        6 个数据库/中间件核查脚本
+│   ├── lib_xlsx.sh / merge_xlsx.sh  零依赖 xlsx 生成 + 汇总合并
+│   ├── db_config.conf           数据库连接配置
+│   ├── run_all.sh / run.sh      启动入口
+│   ├── README.md                使用说明
+│   └── output/                  报告输出目录
 │
-└── 配置核查作业指导书.docx      核查标准依据文档
+├── docker/                      Docker 靶机测试环境（可选）
+├── gen_xlsx.py                  Python 版 xlsx 转换器（可选，有 Python 时用）
+├── 配置核查表_v2.0.0.xlsx        核查项原始表
+├── 配置核查表核查项全览.md        135 项核查项全览（含自动化标注）
+├── 配置核查作业指导书_v2.0.0.docx  核查标准依据
+└── manual_review/               人工核查补充建议文档
 ```
 
 ---
 
-## 支持平台
+## 数据库连接配置
 
-| 目录 | 适用系统 | 运行环境 | 说明 |
-|------|---------|---------|------|
-| [win_xp7](win_xp7/README.md) | Windows XP SP3 / Windows 7 / Server 2003/2008 R2 | `cscript.exe`（系统自带） | 双击 `run.bat` 即可运行 |
-| [kylin](kylin/README.md) | 中标麒麟 NeoKylin（yum/rpm） / 银河麒麟 Kylin OS（apt/dpkg） | Bash（系统自带） | `sudo bash run.sh` 运行 |
+各数据库脚本的账号密码通过**各平台目录下的 `db_config.conf`** 配置，编辑即可，无需改脚本：
 
-两个版本均**无需安装 Python 或任何第三方依赖**，只依赖操作系统自带的命令行工具（WMI/注册表 或 systemctl/ss/awk 等）。
+```ini
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASS=你的密码
+```
+
+**连接参数优先级：环境变量 > `db_config.conf` > 脚本默认值**
 
 ---
 
@@ -69,9 +111,20 @@
 
 运行后在对应目录的 `output/` 下生成：
 
-- `配置核查报告_日期时间.html` —— 网页报告，按"未通过→需人工核查→不适用→通过"分区展示
-- `配置核查报告_日期时间.xls`（或 Windows 版可选 `.xlsx`） —— Excel/WPS 可直接打开，无需安装 Office
+- 各组件：`配置核查报告_组件名_日期时间.html`（网页）+ `.xls`（表格，WPS/Excel 可直接打开）
+- 汇总：`配置核查汇总报告_日期时间.xls` / `.xlsx`（合并所有组件，带"组件"列）
 
-kylin 版报告每条结果附带"参考指导书"列，标明对应《配置核查作业指导书》的章节，便于测试人员对照查阅。
+麒麟版在系统有 `zip` 命令时额外生成真 `.xlsx`（零依赖）；Windows 版有 Excel/WPS 时用 COM 生成真 `.xlsx`。
 
-具体使用方式和各章节详细核查项，请查看对应平台目录下的 README。
+每条结果附带对应《配置核查作业指导书》的章节，便于测试人员对照查阅。
+
+---
+
+## 相关文档
+
+- **`配置核查表_v2.0.0.xlsx`** —— 135 项核查项原始表（10 大类、11 个核查对象）
+- **`配置核查表核查项全览.md`** —— 核查项全览，含"✅可自动化 / 🟡部分 / ⚪需人工 / ⏭️跳过"标注
+- **`配置核查作业指导书_v2.0.0.docx`** —— 核查标准依据文档
+- **`manual_review/`** —— 人工核查补充建议
+
+具体使用方式、各组件详细核查项和配置说明，请查看各平台目录下的 README（`win/README.md`、`kylin/README.md`）。

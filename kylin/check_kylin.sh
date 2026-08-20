@@ -14,6 +14,9 @@ OUT_DIR="$SCRIPT_DIR/output"
 mkdir -p "$OUT_DIR"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 
+# 零依赖 .xlsx 生成器（可选，需要 zip 命令；缺失时自动降级为 .xls）
+[ -f "$SCRIPT_DIR/lib_xlsx.sh" ] && source "$SCRIPT_DIR/lib_xlsx.sh"
+
 # ---------- 结果存储（并行数组）----------
 R_ID=(); R_CAT=(); R_TITLE=(); R_STATUS=(); R_DETAIL=(); R_CHAPTER=(); R_REC=(); R_GUIDE=()
 R_COUNT=0
@@ -64,6 +67,7 @@ guide_ref() {
         1.24) clause=1.24; title="应具备日志审计能力，审计日志至少保留180天" ;;
         1.25) clause=1.25; title="检查是否具备边界保护能力，是否可以抗攻击、防篡改" ;;
         1.26|1.26_m) clause=1.26; title="检查是否有防病毒日志、补丁日志、记录相关信息，记录信息的完整、有效" ;;
+        1.27) clause=1.27; title="操作系统、数据库管理系统、中间件、办公软件等基础软件应采用具有完备的售后技术支持与服务的正版或定制软件" ;;
         2.1) clause=2.1; title="服务器和用户计算机应设置登录口令" ;;
         2.2) clause=2.2; title="用户计算机应根据需要安装补丁程序" ;;
         2.3) clause=2.3; title="用户应设置用户应用口令，通过认证后使用信息服务" ;;
@@ -445,6 +449,22 @@ check_1_26_securitylogs() {
     fi
 }
 
+check_1_27_softwarelicensing() {
+    local osinfo licinfo findings=""
+    osinfo="$(run_cmd "cat /etc/os-release 2>/dev/null | grep -E '^(NAME|VERSION)=' | tr '\n' ' '")"
+    [ -n "$osinfo" ] && findings="${findings}  · 系统：${osinfo}"
+    licinfo="$(run_cmd "cat /etc/.kyinfo 2>/dev/null | head -5 | tr '\n' ' '")"
+    if [ -n "$licinfo" ]; then
+        findings="${findings}  · 授权信息：${licinfo}"
+    else
+        findings="${findings}  · 未找到 /etc/.kyinfo 授权文件"
+    fi
+    local repo
+    repo="$(run_cmd "cat /etc/yum.repos.d/NeoKylin.repo 2>/dev/null | grep -E '^baseurl|^mirrorlist' | head -3 | tr '\n' ' '")"
+    [ -n "$repo" ] && findings="${findings}  · YUM 源：${repo}"
+    add_result "1.27" "系统安全" "基础软件正版/授权及售后技术支持" "manual" "操作系统版本与授权信息已自动核查，但正版/定制软件及售后技术支持需人工核对采购与授权凭证。${findings}" "第1章" "核对操作系统、数据库、中间件、办公软件的采购合同、正版授权证书及售后技术支持合同。"
+}
+
 # ---------- 数据库相关（1.7 - 1.23）----------
 DB_TYPE=""
 detect_db() {
@@ -660,7 +680,14 @@ check_2_16_patchlatest() {
 check_2_7_fstype() {
     local fstype
     fstype="$(run_cmd "df -T / 2>/dev/null | tail -1 | awk '{print \$2}'")"
-    add_result "2.7" "用户安全" "文件系统安全" "na" "Windows NTFS检查在Linux平台不适用；当前根分区文件系统为：${fstype:-未知}（ext4/xfs原生支持权限位与ACL）。" "第2章" "确保关键分区文件系统支持权限位/ACL，并正确设置目录权限。"
+    case "$fstype" in
+        ext3|ext4|xfs|btrfs)
+            add_result "2.7" "用户安全" "文件系统安全" "pass" "根分区文件系统为 ${fstype}，原生支持权限位与 ACL，具备文件保护能力。" "第2章" "持续通过权限位/ACL 设置关键目录访问控制。"
+            ;;
+        *)
+            add_result "2.7" "用户安全" "文件系统安全" "fail" "根分区文件系统为 ${fstype:-未知}，不支持或未确认支持权限位/ACL。" "第2章" "关键分区应采用 ext4/xfs 等支持权限位/ACL 的文件系统。"
+            ;;
+    esac
 }
 
 check_2_9_riskysoftware() {
@@ -842,6 +869,87 @@ check_3_8_storagepartition() {
         add_result "3.8" "数据安全" "存储区块划分与访问权限" "manual" "$detail 已划分独立分区，但各存储区块ACL是否按用户/组分级授权需人工核查(getfacl)。" "第3章" "按重要程度划分存储区块并设置分级访问权限。"
     else
         add_result "3.8" "数据安全" "存储区块划分与访问权限" "manual" "$detail 建议将关键数据目录规划为独立分区并配置分级ACL。" "第3章" "按重要程度划分存储区块并设置分级访问权限。"
+    fi
+}
+
+check_3_2_transferaudit() {
+    local share_svc="" port="" audit_on=0
+    svc_active smbd 2>/dev/null && share_svc="$share_svc smbd"
+    svc_active smb 2>/dev/null && share_svc="$share_svc smb"
+    svc_active vsftpd 2>/dev/null && share_svc="$share_svc vsftpd"
+    port="$(run_cmd "ss -tlnp 2>/dev/null | grep -E ':445 |:21 '")"
+    svc_active auditd && audit_on=1
+    if [ -z "$share_svc" ] && [ -z "$port" ]; then
+        add_result "3.2" "数据安全" "数据交互/文件传输统一管控和审计" "manual" "未检测到Samba/FTP等文件共享/传输服务，本机无此类数据交互通道；是否涉及其他应用内文件传输需人工确认。" "第3章" "数据交互与文件传输应统一管控并审计。"
+    elif [ "$audit_on" -eq 1 ]; then
+        add_result "3.2" "数据安全" "数据交互/文件传输统一管控和审计" "pass" "检测到文件共享/传输服务[${share_svc:-无} ${port:-}]，且auditd审计服务已启用，具备审计能力。" "第3章" "确保审计规则覆盖文件共享/传输行为并留存日志。"
+    else
+        add_result "3.2" "数据安全" "数据交互/文件传输统一管控和审计" "fail" "检测到文件共享/传输服务[${share_svc:-无} ${port:-}]，但auditd审计服务未启用，缺少统一审计。" "第3章" "启用auditd并配置文件传输/共享行为审计规则。"
+    fi
+}
+
+check_3_3_wipe() {
+    local tools=""
+    command -v shred >/dev/null 2>&1 && tools="$tools shred"
+    command -v wipe >/dev/null 2>&1 && tools="$tools wipe"
+    if [ -n "$tools" ]; then
+        add_result "3.3" "数据安全" "涉密载体降密级前写覆盖清除" "pass" "检测到数据写覆盖工具：$tools，具备写覆盖清除能力。" "第3章" "降密级前/演训结束后使用shred/wipe等工具对载体写覆盖清除。"
+    else
+        add_result "3.3" "数据安全" "涉密载体降密级前写覆盖清除" "fail" "未检测到shred/wipe等数据写覆盖工具，无法执行涉密载体写覆盖清除。" "第3章" "安装shred/wipe等工具，落实载体降密级前写覆盖清除。"
+    fi
+}
+
+check_3_7_storagelogin() {
+    local shadow_line="" locked=0
+    shadow_line="$(run_cmd "grep -E '^(root|admin):' /etc/shadow 2>/dev/null")"
+    if [ -n "$shadow_line" ] && echo "$shadow_line" | grep -qE '^[^:]+:[!*]'; then
+        locked=1
+    fi
+    local audit_conf=""
+    audit_conf="$(run_cmd "grep -E '^\s*(max_log_file|num_logs)' /etc/audit/auditd.conf 2>/dev/null | tr '\n' ' '")"
+    local rot_cnt=""
+    rot_cnt="$(run_cmd "grep -A5 -iE 'audit' /etc/logrotate.d/* /etc/logrotate.conf 2>/dev/null | grep -oE 'rotate[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | head -1")"
+    local retention_ok=0
+    [ -n "$rot_cnt" ] && [ "$rot_cnt" -ge 26 ] 2>/dev/null && retention_ok=1
+    if [ "$locked" -eq 1 ] && [ "$retention_ok" -eq 1 ]; then
+        add_result "3.7" "数据安全" "数据存储管理登录增强/默认口令/审计/180天" "pass" "默认账户(root/admin)已锁定；审计留存rotate=$rot_cnt(约$((rot_cnt*7))天，≥180天)。auditd配置：${audit_conf:-无}。" "第3章" "保持默认账户锁定与审计日志≥180天留存。"
+    elif [ "$locked" -eq 1 ]; then
+        add_result "3.7" "数据安全" "数据存储管理登录增强/默认口令/审计/180天" "manual" "默认账户(root/admin)已锁定，但审计留存是否达180天未能确认(rotate=${rot_cnt:-未配置})，存储系统自身审计留存需人工核查。" "第3章" "确认存储系统审计日志留存≥180天。"
+    else
+        add_result "3.7" "数据安全" "数据存储管理登录增强/默认口令/审计/180天" "manual" "默认账户(root/admin)仍启用口令登录(${shadow_line:-无法读取shadow})，是否已改默认口令及管理登录增强措施(验证码等)需人工核查。" "第3章" "默认账户应改密或锁定，启用验证码等增强措施，审计留存≥180天。"
+    fi
+}
+
+check_3_9_transencryption() {
+    local tls
+    tls="$(run_cmd "ss -tlnp 2>/dev/null | grep -E ':443 '")"
+    if [ -n "$tls" ]; then
+        add_result "3.9" "数据安全" "数据传输加密/路径/管控/日志/防泄漏" "pass" "检测到HTTPS/TLS加密监听(443)：$tls，数据传输采用加密通道。" "第3章" "保持数据传输使用HTTPS/TLS等加密协议。"
+    else
+        add_result "3.9" "数据安全" "数据传输加密/路径/管控/日志/防泄漏" "manual" "未检测到443端口HTTPS监听，本机数据传输是否加密(可能使用其他端口/协议或非本机传输)需人工确认。" "第3章" "数据传输应加密、路径合理、统一管控、留日志、具防泄漏措施。"
+    fi
+}
+
+check_3_11_permgrading() {
+    local shadow_perm
+    shadow_perm="$(run_cmd "stat -c '%a' /etc/shadow 2>/dev/null")"
+    if [ "$shadow_perm" = "600" ] || [ "$shadow_perm" = "640" ] || [ "$shadow_perm" = "400" ] || [ "$shadow_perm" = "440" ] || [ "$shadow_perm" = "0" ] || [ "$shadow_perm" = "000" ]; then
+        add_result "3.11" "数据安全" "数据访问权限分级+审计" "pass" "/etc/shadow 权限为 $shadow_perm（已收紧，非644/666），关键数据访问权限设置合理。" "第3章" "关键数据文件保持最小权限(600/640)，并配置访问审计。"
+    elif [ -n "$shadow_perm" ]; then
+        add_result "3.11" "数据安全" "数据访问权限分级+审计" "fail" "/etc/shadow 权限为 $shadow_perm，过宽(应600/640)，存在未授权读取风险。" "第3章" "将/etc/shadow权限收紧为600或640。"
+    else
+        add_result "3.11" "数据安全" "数据访问权限分级+审计" "manual" "无法读取/etc/shadow权限，数据访问分级情况需人工核查。" "第3章" "关键数据文件应设最小权限并分级访问。"
+    fi
+}
+
+check_3_13_dataclassification() {
+    local luks=""
+    luks="$(run_cmd "lsblk -o NAME,TYPE,FSTYPE,MOUNTPOINT 2>/dev/null | grep -iE 'crypt|LUKS'")"
+    [ -z "$luks" ] && luks="$(run_cmd "dmsetup ls 2>/dev/null | grep -i crypt")"
+    if [ -n "$luks" ]; then
+        add_result "3.13" "数据安全" "数据各环节处理密级保密要求" "pass" "检测到磁盘加密(LUKS/crypt)映射：$luks，存储环节密级处理具备加密保护。" "第3章" "数据存储/处理/传输各环节保持密级相应加密保护。"
+    else
+        add_result "3.13" "数据安全" "数据各环节处理密级保密要求" "manual" "未检测到LUKS/crypt磁盘加密，数据传输加密(443)与访问控制等各环节是否满足密级要求需人工核查。" "第3章" "数据各环节处理应满足密级相应保密要求(存储/传输加密等)。"
     fi
 }
 
@@ -1124,6 +1232,111 @@ check_4_25_logaudit() {
     fi
 }
 
+check_4_2_apppatch() {
+    if [ "$PKG_MGR" = "apt" ]; then
+        local cnt
+        cnt="$(run_cmd "apt list --upgradable 2>/dev/null | grep -v '^Listing' | grep -c upgradable")"
+        cnt="${cnt:-0}"
+        if [ "$cnt" -gt 0 ] 2>/dev/null; then
+            add_result "4.2" "应用安全" "应用系统补丁及时性" "fail" "检测到 $cnt 个可升级软件包(含应用)，补丁未安装到最新。" "第4章" "及时安装应用及系统安全补丁，升级包应经过安全性测试。"
+        else
+            add_result "4.2" "应用安全" "应用系统补丁及时性" "pass" "未检测到可升级软件包，应用补丁状态较新。" "第4章" "持续跟踪应用厂商安全公告并及时更新。"
+        fi
+    else
+        local out
+        out="$(run_cmd "yum check-update 2>/dev/null | grep -Ev '^$|^Loaded|^Last metadata|^Obsoleting|^Security:' | wc -l")"
+        out="${out:-0}"
+        if [ "$out" -gt 0 ] 2>/dev/null; then
+            add_result "4.2" "应用安全" "应用系统补丁及时性" "fail" "yum check-update 检测到约 $out 个可更新软件包，应用补丁未安装到最新。" "第4章" "及时安装应用及系统安全补丁。"
+        else
+            add_result "4.2" "应用安全" "应用系统补丁及时性" "pass" "yum 未发现可更新软件包，应用补丁状态较新。" "第4章" "持续跟踪应用厂商安全公告并及时更新。"
+        fi
+    fi
+}
+
+check_4_3_trustedroot() {
+    local tpm="" integ=""
+    [ -d /sys/class/tpm/tpm0 ] && tpm="/sys/class/tpm/tpm0"
+    if pkg_installed aide 2>/dev/null || pkg_installed tripwire 2>/dev/null; then
+        integ="aide/tripwire"
+    fi
+    if [ -n "$tpm" ] || [ -n "$integ" ]; then
+        add_result "4.3" "应用安全" "基于可信根可信验证" "pass" "检测到可信根/完整性监控：${tpm:+TPM}${integ:+ ${integ}}。" "第4章" "保持可信根/完整性监控运行，应用可信性破坏后报警。"
+    else
+        add_result "4.3" "应用安全" "基于可信根可信验证" "manual" "未检测到TPM或aide/tripwire完整性监控，应用基于可信根的可信验证能力需人工确认。" "第4章" "基于可信根对应用软件可信验证，破坏后报警。"
+    fi
+}
+
+check_4_4_pubclssep() {
+    local web="" db=""
+    web="$(run_cmd "ss -tlnp 2>/dev/null | grep -E ':80 |:443 '")"
+    db="$(run_cmd "ss -tlnp 2>/dev/null | grep -E ':3306 |:5432 |:6379 '")"
+    if [ -n "$web" ] && [ -n "$db" ]; then
+        add_result "4.4" "应用安全" "公共/涉密服务器分设、专用服务器专用" "fail" "同机同时运行Web服务[${web}]与数据库服务[${db}]，公共/涉密服务器未分设。" "第4章" "公共信息服务器与涉密/数据库服务器应分设部署。"
+    elif [ -n "$web" ] || [ -n "$db" ]; then
+        add_result "4.4" "应用安全" "公共/涉密服务器分设、专用服务器专用" "manual" "检测到Web服务[${web:-无}]或数据库服务[${db:-无}]单一类型，是否与其他服务器分设需人工结合网络架构确认。" "第4章" "公共/涉密服务器分设，专用服务器只提供专用服务。"
+    else
+        add_result "4.4" "应用安全" "公共/涉密服务器分设、专用服务器专用" "manual" "未检测到本机Web(80/443)或数据库(3306/5432/6379)服务监听，分设情况需人工结合网络架构确认。" "第4章" "公共/涉密服务器分设，专用服务器只提供专用服务。"
+    fi
+}
+
+check_4_7_staticpublish() {
+    local dyn="" webdir=0
+    dyn="$(run_cmd "find /var/www /usr/share/nginx -type f \\( -name '*.php' -o -name '*.jsp' \\) 2>/dev/null | head -5")"
+    [ -d /var/www ] && webdir=1
+    [ -d /usr/share/nginx ] && webdir=1
+    if [ -n "$dyn" ]; then
+        add_result "4.7" "应用安全" "网站静态化发布" "fail" "检测到动态脚本文件：$dyn，网站未静态化发布。" "第4章" "网站宜以静态页面形式发布。"
+    elif [ "$webdir" -eq 1 ]; then
+        add_result "4.7" "应用安全" "网站静态化发布" "pass" "未检测到php/jsp动态脚本，网站以静态页面形式发布。" "第4章" "保持网站静态化发布。"
+    else
+        add_result "4.7" "应用安全" "网站静态化发布" "manual" "未检测到Web目录(/var/www、/usr/share/nginx)，是否部署网站及是否静态化发布需人工确认。" "第4章" "网站宜以静态页面形式发布。"
+    fi
+}
+
+check_4_11_useraccess() {
+    local sudo_group=""
+    sudo_group="$(run_cmd "getent group sudo wheel 2>/dev/null | cut -d: -f1,4 | tr '\n' ' '")"
+    add_result "4.11" "应用安全" "用户授权访问控制能力" "manual" "管理员组及成员[${sudo_group:-无sudo/wheel组}]。用户授权访问控制(RBAC)及数据库/应用层授权需人工核查。" "第4章" "应用应实现RBAC，数据库账号权限最小化。"
+}
+
+check_4_14_finegrained() {
+    local selinux="" acl=""
+    command -v getenforce >/dev/null 2>&1 && selinux="$(run_cmd getenforce)"
+    acl="$(run_cmd "getfacl /etc/shadow 2>/dev/null | grep -E '^mask::|^user:[^:]+:|^group:[^:]+:'")"
+    if [ "$selinux" = "Enforcing" ]; then
+        add_result "4.14" "应用安全" "基于用户角色细粒度访问控制" "pass" "SELinux处于Enforcing模式，具备强制细粒度访问控制能力。" "第4章" "保持SELinux Enforcing并维护文件安全标签。"
+    elif [ -n "$acl" ]; then
+        add_result "4.14" "应用安全" "基于用户角色细粒度访问控制" "pass" "检测到文件扩展ACL配置：$acl，具备文件级细粒度访问控制。" "第4章" "保持文件ACL/角色权限配置。"
+    else
+        add_result "4.14" "应用安全" "基于用户角色细粒度访问控制" "manual" "未检测到SELinux Enforcing或文件扩展ACL，应用基于用户角色的细粒度访问控制(用户/进程/文件/表记录字段级)需人工核查。" "第4章" "应用应基于用户角色实现细粒度访问控制。"
+    fi
+}
+
+check_4_19_loginfailure() {
+    local pam_lock="" faillock_conf=""
+    pam_lock="$(run_cmd "grep -E 'pam_faillock|pam_tally2' /etc/pam.d/system-auth /etc/pam.d/common-auth 2>/dev/null | grep -v '^\s*#'")"
+    faillock_conf="$(run_cmd "grep -E '^\s*(deny|unlock_time)' /etc/security/faillock.conf 2>/dev/null")"
+    if [ -n "$pam_lock" ] || [ -n "$faillock_conf" ]; then
+        add_result "4.19" "应用安全" "登录失败处理(锁定/超时/自动退出)" "pass" "检测到登录失败锁定配置：${pam_lock:+PAM($pam_lock)}${faillock_conf:+ faillock.conf($faillock_conf)}。" "第4章" "保持登录失败锁定与自动退出配置。"
+    else
+        add_result "4.19" "应用安全" "登录失败处理(锁定/超时/自动退出)" "fail" "未检测到pam_faillock/pam_tally2登录失败锁定及faillock.conf deny/unlock_time配置。" "第4章" "在PAM中启用pam_faillock，配置登录失败锁定次数与解锁时间。"
+    fi
+}
+
+check_4_30_unifiedmgmt() {
+    local ssh_restrict="" rootlogin="" mgmt=""
+    ssh_restrict="$(grep -Ei '^\s*(AllowUsers|DenyUsers)' /etc/ssh/sshd_config 2>/dev/null)"
+    rootlogin="$(grep -Ei '^\s*PermitRootLogin' /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}' | head -1)"
+    [ "$rootlogin" = "no" ] && ssh_restrict="$ssh_restrict PermitRootLogin=no"
+    mgmt="$(run_cmd "systemctl list-units --all 2>/dev/null | grep -iE 'cockpit|webmin|ansible' | head -3")"
+    if [ -n "$ssh_restrict" ] || [ -n "$mgmt" ]; then
+        add_result "4.30" "应用安全" "统一管理措施与远程管理限制" "pass" "检测到远程管理限制/集中管理：${ssh_restrict:+sshd($ssh_restrict)}${mgmt:+ 管理平台($mgmt)}。" "第4章" "保持统一管理措施并限制远程管理访问来源。"
+    else
+        add_result "4.30" "应用安全" "统一管理措施与远程管理限制" "fail" "未检测到sshd AllowUsers/DenyUsers/PermitRootLogin=no限制或cockpit/webmin/ansible等集中管理平台。" "第4章" "设置统一管理措施并限制远程管理(sshd AllowUsers/集中管理平台)。"
+    fi
+}
+
 # ============================================================
 # 第10章 密码与传输安全
 # ============================================================
@@ -1153,35 +1366,21 @@ add_manual_checks() {
     add_result "2.11_m" "用户安全" "口令认证硬件Key（双因子）" "na" "是否采用硬件Key等双因子认证方式需结合具体业务系统评估，本次系统级核查不适用。" "第2章" "对高权限账户建议启用硬件Key等双因子认证方式。"
 
     # ---- 第3章 补充（数据安全）----
-    add_result "3.2" "数据安全" "数据交互/文件传输统一管控和审计" "manual" "用户计算机间数据交互、文件传输的统一管控和审计需人工核查。指导书方法：核查文件系统审计(auditpol文件系统/auditd)、防火墙非法端口、samba共享日志、移动存储管控。" "第3章" "数据交互与文件传输应统一管控并审计。"
-    add_result "3.3" "数据安全" "涉密载体降密级前写覆盖清除" "manual" "涉密存储载体降密级前/演训后应数据写覆盖清除，需人工核查。指导书方法：检测shred/cipher写覆盖工具是否安装、shell history/日志中cipher /w或shred -n执行痕迹。" "第3章" "涉密载体降密级前应采取数据写覆盖方法及时清除数据。"
     add_result "3.4" "数据安全" "涉密载体物理销毁(消磁/粉碎/溶解)" "manual" "确定销毁的涉密载体应采取消磁、粉碎、溶解、化浆、熔化等物理销毁，属管理流程层需人工核查销毁档案与影像。无OS层方法。" "第3章" "涉密载体销毁应双人操作、全程监控、留存销毁档案。"
     add_result "3.6" "数据安全" "数据边界防泄漏(DLP)" "na" "数据边界防泄漏/防篡改措施属于业务/网络边界层面，本次系统核查不适用。" "第3章" "在数据边界部署防泄漏(DLP)与防篡改措施。"
-    add_result "3.7" "数据安全" "数据存储管理登录增强/默认口令/审计/180天" "manual" "数据存储系统管理登录的多因素验证码、默认账户修改、行为审计、180天留存需人工核查。指导书方法：storage-cli login确认验证码、storage-cli user list确认无默认账户、audit log config show确认retention_days≥180。单机层可查：默认账户root/admin是否改密、auditd留存(logrotate rotate≥180)、PAM多因素模块。" "第3章" "存储管理登录应启用验证码等增强措施，改默认账户口令，行为审计留存≥180天。"
-    add_result "3.9" "数据安全" "数据传输加密/路径/管控/日志/防泄漏" "manual" "数据传输过程加密、路径合理性、统一管控、日志记录、防泄漏需人工核查。指导书方法：netstat查业务端口是否用HTTPS/TLS(443)、certutil/openssl查证书、net use/Get-SmbShare查传输路径、auditpol/auditd查传输日志、DLP/防火墙防泄漏。" "第3章" "数据传输应加密、路径合理、统一管控、留日志、具防泄漏措施。"
-    add_result "3.11" "数据安全" "数据访问权限分级+审计" "manual" "数据访问权限分级需覆盖OS文件+数据库表/字段+应用角色三层。指导书v2.1 3.11.3补充：数据库层(MySQL SHOW GRANTS FOR 'user'@'host'; SQL Server sys.database_permissions; PostgreSQL \\dp表权限)、应用层(grep -r \"role\\|权限\\|classified\" 应用conf、不同角色登录测试)、审计(audit_trail/auditd/auditpol Object Access)。" "第3章" "数据访问应按权限分级，并对访问行为审计。"
     add_result "3.12" "数据安全" "数据采集是否超出业务需求" "manual" "数据采集范围是否超出业务需求需人工核查。指导书方法：sc query查采集/同步服务、数据库表/字段与业务清单比对、采集日志抽查来源频率。" "第3章" "数据采集应限定在业务必要范围内。"
     add_result "3.14" "数据安全" "数据访问分级+审计+大数据统一管控" "manual" "大数据访问统一管控需覆盖OS层+大数据平台层+数据库层。指导书v2.1 3.14.3补充：大数据平台(HDFS ACL:hdfs dfs -getfacl; Hive权限:beeline -e \"SHOW GRANT\"; Apache Ranger策略页面; Kerberos:klist)、统一管控(ss -tlnp | grep ':50070\\|:10000\\|:8020'确认无直连旁路)、数据库审计覆盖大数据查询。" "第3章" "对大数据访问提供统一管控和访问控制。"
-    add_result "3.13" "数据安全" "数据各环节处理密级保密要求" "manual" "数据存储/处理/传输各环节是否满足密级保密要求需人工核查。指导书3.13.2一键脚本：存储加密(cryptsetup status查LUKS)、传输加密(netstat :443 LISTEN)、访问控制(sshd PasswordAuth)、审计监控(auditd)、数据分类(find *密*目录)。" "第3章" "数据各环节处理应满足密级相应的保密要求。"
 
     # ---- 第4章 补充（应用安全，业务层，非OS层）----
     # 4.1 由 check_4_1_appbackup 函数查数据库备份层，此处不重复
-    add_result "4.2" "应用安全" "应用系统补丁及时性" "manual" "应用层补丁及时性需人工核查具体应用版本与厂商安全公告。指导书方法：apt list --upgradable / rpm -qa 比对、应用版本日志。" "第4章" "应用系统应及时安装厂商发布的安全补丁。"
-    add_result "4.3" "应用安全" "基于可信根可信验证" "manual" "基于可信根对应用软件可信验证、破坏后报警属应用层能力，需人工核查。指导书方法：ls /sys/class/tpm 查TPM、systemctl查aide/tripwire完整性监控。" "第4章" "应用软件应基于可信根验证，破坏后报警。"
-    add_result "4.4" "应用安全" "公共/涉密服务器分设、专用服务器专用" "manual" "公共信息服务服务器与涉密服务器是否分设、专用服务器是否只提供专用服务需人工核查。指导书方法：netstat查监听端口+进程、sc query服务清单比对。" "第4章" "公共/涉密服务器分设，专用服务器只提供专用服务。"
     add_result "4.5" "应用安全" "公共信息服务器防DDoS能力" "manual" "防DDoS需多层协同。指导书v2.1 4.5.3补充：边界设备(登录防火墙核查DDoS清洗策略)、应用层限流(nginx limit_req/limit_conn、tomcat maxThreads/acceptCount、grep -r \"limit_req\\|limit_conn\" /etc/nginx/)、主机层(sysctl tcp_syncookies/tcp_max_syn_backlog、iptables limit)。" "第4章" "公共信息服务器应具备或依托DDoS防御能力。"
-    add_result "4.7" "应用安全" "网站静态化发布" "manual" "网站是否静态化发布需人工核查。指导书方法：find *.php/*.jsp动态脚本文件数、nginx配置、curl X-Powered-By。" "第4章" "有条件的网站建议静态页面发布。"
     add_result "4.9" "应用安全" "防范SQL注入/XSS攻击能力" "manual" "Web应用防SQL注入/XSS能力需人工核查。指导书方法：curl -I安全头(CSP/X-Frame)、curl构造SQLi观察返回。" "第4章" "Web应用应具备或依托WAF防SQL注入/XSS。"
     add_result "4.10" "应用安全" "执行代码有效性校验" "manual" "应用对上传/执行代码有效性校验需人工核查。指导书方法：nikto扫描、上传文件类型白名单配置。" "第4章" "应用应对可执行代码进行有效性与合法性校验。"
-    add_result "4.11" "应用安全" "用户授权访问控制能力" "manual" "用户授权访问控制需核查应用层RBAC+数据库层授权。指导书v2.1 4.11.3补充：应用RBAC(查应用配置role-permission映射、grep -r \"role\\|permission\\|auth\\|权限\" /opt/*/conf/、应用管理界面角色列表)、数据库授权(MySQL SELECT user,host FROM mysql.user; SHOW GRANTS; SQL Server sys.database_principals)、OS层(id/groups/sudo -l)。" "第4章" "应用应实现RBAC，数据库账号权限最小化。"
     add_result "4.13" "应用安全" "业务管理终端专设专用" "manual" "业务管理终端是否专设专用需现场人工核查。指导书方法：grep auth.log登录来源IP比对终端台账。" "第4章" "业务管理终端应指定专人专用并登记备案。"
-    add_result "4.14" "应用安全" "基于用户角色细粒度访问控制" "manual" "基于用户角色的细粒度访问控制(用户/进程/文件/表记录字段级)需人工核查。指导书方法：getfacl/ls -Z文件标签、SELinux状态、DB账户权限。" "第4章" "应用应基于用户角色实现细粒度访问控制。"
-    add_result "4.19" "应用安全" "登录失败处理(会话超时/锁定/自动退出)" "manual" "登录失败处理需覆盖OS层+应用层。指导书v2.1 4.19.3补充：应用层(grep -r \"loginFail\\|lockout\\|maxAttempts\\|captcha\" 应用conf查登录失败锁定/CAPTCHA、session-timeout会话超时、应用界面连续错误登录测试)、OS层(pam_faillock/pam_tally2账户锁定、TMOUT/ClientAliveInterval会话超时)。" "第4章" "应用层与OS层均应具备登录失败处理(锁定/超时/自动退出)。"
     add_result "4.20" "应用安全" "自主设计协议/接口" "manual" "是否使用自主设计的网络服务/协议/接口需人工核查。指导书方法：find国密sm2/sm3/sm4配置、国产中间件/SDK。" "第4章" "关键业务通信宜使用自主设计协议/接口。"
     add_result "4.26" "应用安全" "账户异常行为监测" "manual" "账户异常登录/异常通信/异常文件上传监测需人工核查。指导书方法：核查应用日志/态势感知平台异常告警规则。" "第4章" "应用应具备账户异常行为监测能力。"
     add_result "4.27" "应用安全" "输入数据格式长度检查" "manual" "人机接口/网络通信/文件输入数据格式长度检查需人工核查。指导书方法：php upload_max_filesize/post_max_size、应用校验配置。" "第4章" "应用应对输入数据进行格式和长度检查。"
     add_result "4.28" "应用安全" "检测防御应用层攻击" "manual" "检测并防御SQL注入/网页篡改/XSS/DoS等应用层攻击需人工核查。指导书方法：curl安全头、curl构造SQLi/XSS观察返回。" "第4章" "应能检测并防御应用层攻击。"
-    add_result "4.30" "应用安全" "统一管理措施与远程管理限制" "manual" "统一管理措施与远程管理限制需人工核查。指导书方法：cockpit/webmin/ansible集中管理平台、sshd AllowUsers、iptables DROP:22。" "第4章" "应设置统一管理措施并限制远程管理。"
 
     # ---- 第5章 网络安全（网络设备/架构层，不适用于单机系统核查）----
     add_result "5.1" "网络安全" "网络拓扑图" "na" "网络拓扑图的绘制与维护需人工核查网络管理文档，不适用于单机系统核查。" "第5章" "绘制并维护最新网络拓扑图。"
@@ -1488,6 +1687,7 @@ check_1_24_auditpolicy
 check_1_25_defender
 check_1_18_resourcelimits
 check_1_26_securitylogs
+check_1_27_softwarelicensing
 check_1_7_dbaccounts
 check_1_8_dbprocedures
 check_1_9_dbgrants
@@ -1526,6 +1726,12 @@ check_3_1_encryption
 check_3_5_logprotection
 check_3_10_shares
 check_3_8_storagepartition
+check_3_2_transferaudit
+check_3_3_wipe
+check_3_7_storagelogin
+check_3_9_transencryption
+check_3_11_permgrading
+check_3_13_dataclassification
 
 # ---------- 第4章 应用安全 ----------
 check_4_1_appbackup
@@ -1545,6 +1751,14 @@ check_4_31_appbackup
 check_4_32_domesticsoftware
 check_4_33_domesticsoftware
 check_4_25_logaudit
+check_4_2_apppatch
+check_4_3_trustedroot
+check_4_4_pubclssep
+check_4_7_staticpublish
+check_4_11_useraccess
+check_4_14_finegrained
+check_4_19_loginfailure
+check_4_30_unifiedmgmt
 
 # ---------- 第10章 密码与传输安全 ----------
 check_10_1_tls
@@ -1558,6 +1772,7 @@ echo "================================================================"
 print_summary
 generate_html
 generate_xls
+type generate_xlsx >/dev/null 2>&1 && generate_xlsx "$OUT_DIR/配置核查报告_${STAMP}.xlsx" "配置核查报告 - 中标麒麟/银河麒麟版"
 
 echo ""
-echo "核查完成，请到 output/ 目录查看 HTML/XLS 报告。"
+echo "核查完成，请到 output/ 目录查看 HTML/XLS/XLSX 报告。"
