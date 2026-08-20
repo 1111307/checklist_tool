@@ -1,0 +1,1422 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<!--[if gte mso 9]>
+<xml>
+<x:ExcelWorkbook>
+<x:ExcelWorksheets>
+<x:ExcelWorksheet>
+<x:Name>配置核查报告</x:Name>
+<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+</x:ExcelWorksheet>
+</x:ExcelWorksheets>
+</x:ExcelWorkbook>
+</xml>
+<![endif]-->
+<style>
+table{border-collapse:collapse;}
+th,td{border:1px solid #999;padding:4px 6px;font-family:"Microsoft YaHei",Arial;font-size:12px;mso-number-format:"\@";}
+th{background:#1a3c6e;color:#fff;font-weight:bold;}
+</style>
+</head>
+<body>
+<p>配置核查报告 - 中标麒麟/银河麒麟版　系统：Kylin Linux Advanced Server V10 (Halberd)（银河麒麟 Kylin OS（apt/dpkg））　核查时间：2026-08-14 21:35:52</p>
+<p>合规：6　不合规：12　需人工核查：77　不适用：43</p>
+<p><b>一、未通过（12 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.3</td>
+<td>系统安全</td>
+<td>高危服务/端口</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>检测到以下高危服务正在运行： vsftpd</td>
+<td>停用 telnet/rsh/rlogin/tftp 等明文/高危服务，使用 SSH 替代。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.3：操作系统应按需求裁剪服务和端口</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.4</td>
+<td>系统安全</td>
+<td>防火墙状态</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>未检测到 firewalld/ufw 运行，且 iptables 规则为空或默认放行。</td>
+<td>启用 firewalld/ufw 或配置 iptables 规则，禁止非必要访问。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.4：操作系统应具备防火墙功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.5</td>
+<td>系统安全</td>
+<td>SELinux/强制访问控制</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>SELinux 状态为 Disabled。</td>
+<td>启用 SELinux 并设置为 Enforcing 模式。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.5：操作系统应停用冗余网络设置</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.17</td>
+<td>系统安全</td>
+<td>Redis安全配置</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>Redis 配置文件 /etc/redis.conf 未设置 requirepass（无密码认证）。绑定：bind 127.0.0.1 -::1</td>
+<td>为 Redis 配置 requirepass 强密码，并将 bind 限制为内网地址。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.17：应限制操作系统开放的远程管理服务或端口</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.24</td>
+<td>系统安全</td>
+<td>审计策略</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>未检测到 auditd 或有效的审计日志机制。</td>
+<td>安装并启用 auditd 审计服务。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.24：应具备日志审计能力，审计日志至少保留180天</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.1</td>
+<td>用户安全</td>
+<td>密码有效期</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>/etc/login.defs 中 PASS_MAX_DAYS=99999，未配置或超过90天。</td>
+<td>在 /etc/login.defs 设置 PASS_MAX_DAYS 不超过90天。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.1：服务器和用户计算机应设置登录口令</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.10</td>
+<td>用户安全</td>
+<td>USB外设管控</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>未检测到usbguard或udev层面的USB存储管控规则。</td>
+<td>部署usbguard或配置udev规则禁用/管控USB存储设备。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.10：用户计算机USB接口应禁止私自连接对拷线和手机、媒体播放设备等个人移动电子设备</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.11</td>
+<td>用户安全</td>
+<td>口令复杂度策略</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>/etc/pam.d/system-auth 中未发现 pam_pwquality/pam_cracklib 的minlen等复杂度配置。</td>
+<td>在PAM中启用pam_pwquality，配置密码长度与复杂度要求。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.11：用户计算机登录应使用基于专用物理部件或生物特征的多因素身份认证方式，应设置超时锁屏（不超过5min），口令不少于10个字符，更换周期不超过30d</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.5</td>
+<td>数据安全</td>
+<td>日志读写控制/轮转/完整性保护</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>读写控制:/var/log权限755(过宽，应≤750); 轮转:已配置logrotate(/etc/logrotate.d/rpm
+/etc/logrotate.d/dnf
+/etc/logrotate.d/btmp); sudo只读:未配置审计用户日志只读sudo; 完整性:未安装AIDE/tripwire 日志目录权限过宽，存在未授权读写风险。</td>
+<td>收紧/var/log权限至750，配置logrotate轮转与完整性校验。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.5：网络、系统、应用和用户行为等日志应采取读写控制、加密、变换、完整性校验等保护措施</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.16</td>
+<td>应用安全</td>
+<td>远程管理加密保护</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>未检测到明文Telnet与弱加密算法，但 PermitRootLogin=yes，未明确禁止root直接远程登录。</td>
+<td>在sshd_config设置 PermitRootLogin no。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.16：远程管理应采取加密保护措施</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.22</td>
+<td>应用安全</td>
+<td>更改Web默认服务端口</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>Web服务仍使用默认端口(80/443/8080/8443)监听：LISTEN   0        511                    0.0.0.0:80              0.0.0.0:*       users:(("httpd",pid=11,fd=3),("httpd",pid=10,fd=3),("httpd",pid=9,fd=3),("httpd",pid=7,fd=3))
+LISTEN   0        100                          *:8080                  *:*       users:(("java",pid=241,fd=57))                                                 </td>
+<td>将Web服务发布端口修改为非默认端口。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.22：应更改Web应用系统默认服务发布端口</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.25</td>
+<td>应用安全</td>
+<td>日志审计功能+180天留存</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>未检测到auditd或rsyslog/syslog-ng；日志文件: /var/log/secure；轮转:rotate=30(约210天，≥180天)(/etc/logrotate.d/rsyslog:    maxage 365
+/etc/logrotate.d/rsyslog:    rotate 30
+/etc/logrotate.d/rsyslog:    postrotate)；查询工具: ausearch aureport。</td>
+<td>安装并启用auditd，配置日志轮转留存不少于180天。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.25：应具有对所有访问行为和管理行为的日志审计功能，审计日志应至少保留180d</td>
+</tr>
+</table>
+<p><b>二、需人工核查（77 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.2</td>
+<td>系统安全</td>
+<td>防病毒软件</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>未检测到常见国产终端安全软件特征，请人工确认是否安装了防病毒/EDR软件（如天融信、奇安信、深信服终端等）。</td>
+<td>根据单位要求安装终端安全防护软件。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.2：操作系统应安装防病毒软件并及时升级</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.18</td>
+<td>系统安全</td>
+<td>系统资源限制</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>当前 nofile 软限制为 1048576，未在 limits.conf 中发现全局限制配置，请人工核实是否满足需求。</td>
+<td>在 /etc/security/limits.conf 中配置合理的资源限制。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.18：应限制用户对服务器资源的最大或最小使用限度</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.14</td>
+<td>系统安全</td>
+<td>中间件安全配置</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>检测到中间件： nginx httpd tomcat tomcat(进程)，请人工核查版本、默认页面、目录浏览、错误信息回显等配置。</td>
+<td>关闭默认页面/目录浏览/详细错误信息，及时更新中间件版本。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.14：中间件应采取限制运行权限和使用安全管理通道等安全加固措施</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.16-17</td>
+<td>系统安全</td>
+<td>输入验证/SQL注入防护</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>输入验证与SQL注入防护属应用层代码逻辑，需人工/工具（如AWVS）核查应用系统。</td>
+<td>应用层对用户输入进行合法性校验，使用参数化查询防止SQL注入。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.16、1.17：应具备数据库管理系统输入（参数）检查能力 / 应限制操作系统开放的远程管理服务或端口</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.5</td>
+<td>用户安全</td>
+<td>多余服务清理</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>当前系统开机自启服务数：136，请人工核实是否存在未使用的多余服务/账户。</td>
+<td>定期核查并清理不再使用的服务、账户与软件。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.5：用户计算机应关闭冗余系统服务和端口</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.2</td>
+<td>用户安全</td>
+<td>终端补丁管理</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>该项与1.1系统补丁核查内容重叠，请以1.1核查结果为准，并结合终端管理平台核实补丁分发情况。</td>
+<td>通过补丁管理平台统一分发、核查终端补丁安装情况。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.2：用户计算机应根据需要安装补丁程序</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.6</td>
+<td>用户安全</td>
+<td>违规外联检测</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>当前已建立的网络连接数：1，是否存在违规外联需结合出网流量/日志人工核查。</td>
+<td>通过防火墙出站策略与流量审计，发现并阻断违规外联行为。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.6：用户计算机应具备阻断和告警非法连接互联网的能力</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.8</td>
+<td>用户安全</td>
+<td>终端管控软件</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>该项需人工确认是否安装了统一终端安全管理（EMM/终端管控）软件。</td>
+<td>部署统一终端安全管理软件，落实准入、补丁、外联等管控策略。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.8：应采取终端管控措施（统一配置、安全加固、网络访问控制、外设接口管控、软件进程管控、无线模块禁用等）</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.15</td>
+<td>用户安全</td>
+<td>安全策略落实</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>安全策略（如屏幕锁定、剪切板管控等）需结合终端管理平台/桌面环境配置人工核查。</td>
+<td>落实屏幕锁定超时、剪切板等桌面安全策略。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.15：检查安全策略配置情况和设置功能</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.9</td>
+<td>用户安全</td>
+<td>高风险软件</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>未检测到已知高风险远程控制软件（teamviewer/anydesk/todesk/sunlogin），但可能存在其他名称的同类软件，需人工核查已安装软件清单。</td>
+<td>核查已安装软件清单，卸载未经授权的远程控制等高危软件。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.9：用户计算机应禁止安装与工作无关的软件</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.13</td>
+<td>用户安全</td>
+<td>外联控制</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>iptables OUTPUT 链未发现可确认的阻断规则（DROP/REJECT），或通过其他手段（firewalld rich rule、上网行为管理）控制外联，需人工核实。</td>
+<td>通过防火墙/上网行为管理限制非必要的对外连接。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.13：用户计算机应采取非法外联阻断、文件输出管控等措施</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.1</td>
+<td>数据安全</td>
+<td>磁盘加密</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>已安装cryptsetup但未检测到LUKS加密分区，请人工确认是否需要磁盘加密。</td>
+<td>对存储敏感数据的磁盘/分区启用LUKS加密。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.1：集中存储的涉密数据应采取加密保护措施</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.10</td>
+<td>数据安全</td>
+<td>文件共享安全</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>检测到文件共享服务：smb ，请人工核查共享目录权限与访问控制列表。</td>
+<td>共享目录应设置访问账户与权限控制，禁止匿名/来宾访问。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.10：检查数据共享是否合理，是否存在安全隐患</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.8</td>
+<td>数据安全</td>
+<td>存储区块划分与访问权限</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>独立分区:未检测到/var /home /data独立分区; 目录权限:755 /home
+755 /var/lib 建议将关键数据目录规划为独立分区并配置分级ACL。</td>
+<td>按重要程度划分存储区块并设置分级访问权限。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.8：数据存储系统应根据重要程度划分不同存储区块，并设置用户访问权限</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.1</td>
+<td>应用安全</td>
+<td>应用系统软件应采取备份措施</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据库备份层未检测到binlog/备份定时任务；应用配置未检测到备份参数；OS层备份详见4.32。 应用自身备份功能/数据库备份策略需人工核查(含应用管理界面备份功能、mysqldump/RMAN/backupset)。</td>
+<td>建立应用+数据库+OS三层备份机制并定期验证可恢复。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.1：应用系统软件应采取备份措施</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.15</td>
+<td>应用安全</td>
+<td>文电文档签名验证/密级标识</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>文电等文档专用业务处理系统的签名验证、密级标识功能属应用层能力，需人工核查系统是否具备数字签名验证与密级标识功能。指导书方法：检查gpg/证书签名工具、SELinux MLS(sestatus)与文件安全上下文(ls -Z)密级标记。</td>
+<td>文电文档专用系统应具备签名验证与密级标识功能。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.15：文电等文档专用业务处理系统应具有签名验证、密级标识等功能</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.17</td>
+<td>应用安全</td>
+<td>三权分立</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>sudo配置行数：120，管理员/安全员/审计员的三权分立需人工核查账户与sudo授权划分（指导书方法：核查passwd/group中三员账户、:0:组、sudoers授权）。</td>
+<td>划分系统管理、安全审计、业务操作等不同角色账户，避免权限过度集中。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.17：应支持管理员、安全员、审计员三权分立的职责划分，禁止设立超级管理员</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.18</td>
+<td>应用安全</td>
+<td>业务管理终端网络地址限制</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>未在hosts.allow/sshd_config发现管理终端地址限制，请人工核实是否通过firewalld/安全组限制。</td>
+<td>通过hosts.allow/firewalld/sshd AllowUsers限制管理访问来源IP。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.18：业务管理终端登录应采取网络地址限制措施</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.23</td>
+<td>应用安全</td>
+<td>分开设置管理端口与应用端口</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>管理端口与业务端口是否分离需人工核查。指导书方法：ss -tlnp检查管理端口(22/3389等)与业务端口(80/443等)是否隔离监听、firewalld区域划分。</td>
+<td>管理端口与业务端口分离，管理端口仅限内网访问。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.23：应分开设置管理端口与应用端口</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.24</td>
+<td>应用安全</td>
+<td>应用与数据存储分离部署</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>应用服务与数据存储是否分离部署需人工核查。指导书方法：netstat查数据库端口ESTAB来源、mount查数据存储、hostname/ipconfig确认是否同机。</td>
+<td>应用服务与数据存储建议部署于不同服务器。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.24：应用服务和数据存储应部署在不同的服务器上</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.6</td>
+<td>应用安全</td>
+<td>Web应用安全防护措施</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>WAF:[无] Web监听:[有] 安全头缺失: X-Frame-Options X-Content-Type-Options CSP。部署了Web服务但未检测到WAF组件，安全头已查。应用层防护需人工核查。</td>
+<td>对外Web服务应部署WAF并配置安全响应头。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.6：Web应用系统服务器应采取Web防护措施</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.8</td>
+<td>应用安全</td>
+<td>网页防篡改</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>无AIDE/tripwire；未检测到专业防篡改系统；/var/www非只读挂载 未检测到防篡改工具，请人工核实是否部署了网页防篡改系统。</td>
+<td>对外Web服务应部署防篡改/文件完整性监控机制。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.8：网站应采取网页防篡改措施，防止对信息内容的非法修改</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.12</td>
+<td>应用安全</td>
+<td>最大并发会话连接数限制</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>应用最大并发会话连接数限制需人工核查。指导书方法：检查/proc/sys/net/core/somaxconn、file-max、ss并发连接数、sshd MaxSessions/MaxStartups。</td>
+<td>配置最大并发会话与连接数限制，防止资源耗尽。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.12：应具备访问应用最大并发会话连接数限制能力</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.21</td>
+<td>应用安全</td>
+<td>多因素数字证书认证</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>基于专用物理部件或生物特征的多因素数字证书认证属应用层能力，需人工核查。指导书方法：检查pam_fprintd/pam_biometric模块、openssl ecparam(sm2)国密证书、证书库。</td>
+<td>重要应用应支持多因素+数字证书认证。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.21：应具有基于专用物理部件或生物特征多因素的、与JD密码算法相结合的数字证书用户身份认证功能</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.29</td>
+<td>应用安全</td>
+<td>用户访问权限统一管理</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>用户访问权限统一管理需覆盖OS层+应用层统一认证平台。指导书v2.1 4.29.3补充：应用层(IAM/CAS/OAuth2.0/SSO: systemctl list-units | grep -iE "iam\|cas\|oauth\|sso\|auth"; grep -r "sso\|cas\|oauth\|auth.server\|iam\|统一认证" /opt/*/conf/*.conf; 权限变更经统一平台审批可追溯)、OS层(sssd.conf/authconfig统一认证、sudoers授权)。</td>
+<td>应用应接入统一认证/权限平台，权限变更集中受控。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.29：检查是否具有用户访问权限统一管理功能</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.31</td>
+<td>应用安全</td>
+<td>最大并发会话/速率/单用户并发限制</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>sshd:[未配置]; PAM limits:[/etc/security/limits.conf:#        - maxlogins - max number of logins for this user
+/etc/security/limits.conf:#        - maxsyslogins - max number of logins on the system
+/etc/security/limits.conf:#@student        -       maxlogins       4] 部分限制已配置，但应用层并发会话数/连接数限制需人工核查。</td>
+<td>配置sshd MaxSessions/MaxStartups及limits.conf maxlogins。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.31：检查是否能够设置最大并发会话连接数、会话建立速率、单用户并发会话数</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.32</td>
+<td>应用安全</td>
+<td>应用备份与恢复功能</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>检测到疑似备份目录：/var/lib/pgsql/backups，但未发现备份文件。请人工确认备份执行情况。</td>
+<td>建立应用配置与数据的定期备份机制并验证可恢复。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.32：检查所有应用是否具备备份与恢复功能（指导书原文4.33为国产化适配条款，与本项编号存在1位偏差，请人工核对）</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.33</td>
+<td>应用安全</td>
+<td>国产化软硬件自主开发</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>操作系统本身即为国产操作系统：银河麒麟 Kylin OS（apt/dpkg）；但未检测到已安装的国产数据库/中间件软件包，关键应用软件是否基于国产软硬件自主开发需人工核查。</td>
+<td>核查关键应用软件与国产操作系统/CPU的适配兼容情况。</td>
+<td>《配置核查作业指导书》第4章 应用安全</td>
+</tr>
+<tr>
+<td>第10章</td>
+<td>10.1</td>
+<td>密码与传输安全</td>
+<td>TLS/加密协议版本</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>OpenSSL版本：OpenSSL 1.1.1f  31 Mar 2020。未在sshd_config发现弱协议配置，具体业务系统（如Web服务器）TLS版本需人工核查证书与协议配置。</td>
+<td>确保对外提供服务的TLS版本不低于1.2，使用符合国密/国际标准的强加密套件。</td>
+<td>《配置核查作业指导书》第10章 协议安全审计（指导书本章原文未细分小节编号，审计协议的机密性、完整性、认可性、不可否认性）</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.26_m</td>
+<td>系统安全</td>
+<td>日志留存与更新记录完整性</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>系统更新日志、安全日志的完整留存情况需人工二次确认（自动化核查仅覆盖当前可读取部分）。</td>
+<td>确保更新日志、安全事件日志按制度要求完整留存，不被提前清理。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.26：检查是否有防病毒日志、补丁日志、记录相关信息，记录信息的完整、有效</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.2</td>
+<td>数据安全</td>
+<td>数据交互/文件传输统一管控和审计</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>用户计算机间数据交互、文件传输的统一管控和审计需人工核查。指导书方法：核查文件系统审计(auditpol文件系统/auditd)、防火墙非法端口、samba共享日志、移动存储管控。</td>
+<td>数据交互与文件传输应统一管控并审计。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.2：用户计算机之间的数据交互、文件传输等应统一管控和审计</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.3</td>
+<td>数据安全</td>
+<td>涉密载体降密级前写覆盖清除</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>涉密存储载体降密级前/演训后应数据写覆盖清除，需人工核查。指导书方法：检测shred/cipher写覆盖工具是否安装、shell history/日志中cipher /w或shred -n执行痕迹。</td>
+<td>涉密载体降密级前应采取数据写覆盖方法及时清除数据。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.3：涉密存储载体在降密级使用前或重大演训活动结束后，应采取数据写覆盖方法及时清除数据</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.4</td>
+<td>数据安全</td>
+<td>涉密载体物理销毁(消磁/粉碎/溶解)</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>确定销毁的涉密载体应采取消磁、粉碎、溶解、化浆、熔化等物理销毁，属管理流程层需人工核查销毁档案与影像。无OS层方法。</td>
+<td>涉密载体销毁应双人操作、全程监控、留存销毁档案。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.4：对确定销毁的涉密载体，应采取消磁、粉碎、溶解、化浆和熔化等方法进行销毁</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.7</td>
+<td>数据安全</td>
+<td>数据存储管理登录增强/默认口令/审计/180天</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据存储系统管理登录的多因素验证码、默认账户修改、行为审计、180天留存需人工核查。指导书方法：storage-cli login确认验证码、storage-cli user list确认无默认账户、audit log config show确认retention_days≥180。单机层可查：默认账户root/admin是否改密、auditd留存(logrotate rotate≥180)、PAM多因素模块。</td>
+<td>存储管理登录应启用验证码等增强措施，改默认账户口令，行为审计留存≥180天。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.7：数据存储系统管理登录至少采取验证码等增强措施，修改默认设置，审计日志至少保留180天</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.9</td>
+<td>数据安全</td>
+<td>数据传输加密/路径/管控/日志/防泄漏</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据传输过程加密、路径合理性、统一管控、日志记录、防泄漏需人工核查。指导书方法：netstat查业务端口是否用HTTPS/TLS(443)、certutil/openssl查证书、net use/Get-SmbShare查传输路径、auditpol/auditd查传输日志、DLP/防火墙防泄漏。</td>
+<td>数据传输应加密、路径合理、统一管控、留日志、具防泄漏措施。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.9：检查数据传输过程是否按要求加密，传输路径是否合理，是否统一管控、留有日志记录、具有防泄漏措施</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.11</td>
+<td>数据安全</td>
+<td>数据访问权限分级+审计</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据访问权限分级需覆盖OS文件+数据库表/字段+应用角色三层。指导书v2.1 3.11.3补充：数据库层(MySQL SHOW GRANTS FOR 'user'@'host'; SQL Server sys.database_permissions; PostgreSQL \dp表权限)、应用层(grep -r "role\|权限\|classified" 应用conf、不同角色登录测试)、审计(audit_trail/auditd/auditpol Object Access)。</td>
+<td>数据访问应按权限分级，并对访问行为审计。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.11：检查对数据的访问是否按照权限分级访问，是否对访问行为进行审计</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.12</td>
+<td>数据安全</td>
+<td>数据采集是否超出业务需求</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据采集范围是否超出业务需求需人工核查。指导书方法：sc query查采集/同步服务、数据库表/字段与业务清单比对、采集日志抽查来源频率。</td>
+<td>数据采集应限定在业务必要范围内。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.12：检查数据采集是否超出业务需求范围</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.14</td>
+<td>数据安全</td>
+<td>数据访问分级+审计+大数据统一管控</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>大数据访问统一管控需覆盖OS层+大数据平台层+数据库层。指导书v2.1 3.14.3补充：大数据平台(HDFS ACL:hdfs dfs -getfacl; Hive权限:beeline -e "SHOW GRANT"; Apache Ranger策略页面; Kerberos:klist)、统一管控(ss -tlnp | grep ':50070\|:10000\|:8020'确认无直连旁路)、数据库审计覆盖大数据查询。</td>
+<td>对大数据访问提供统一管控和访问控制。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.14：检查对数据的访问是否按照权限分级访问，对大数据的访问是否提供统一管控和访问控制</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.13</td>
+<td>数据安全</td>
+<td>数据各环节处理密级保密要求</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据存储/处理/传输各环节是否满足密级保密要求需人工核查。指导书3.13.2一键脚本：存储加密(cryptsetup status查LUKS)、传输加密(netstat :443 LISTEN)、访问控制(sshd PasswordAuth)、审计监控(auditd)、数据分类(find *密*目录)。</td>
+<td>数据各环节处理应满足密级相应的保密要求。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.13：检查数据各环节处理是否满足密级相应的保密要求</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.2</td>
+<td>应用安全</td>
+<td>应用系统补丁及时性</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>应用层补丁及时性需人工核查具体应用版本与厂商安全公告。指导书方法：apt list --upgradable / rpm -qa 比对、应用版本日志。</td>
+<td>应用系统应及时安装厂商发布的安全补丁。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.2：应用系统软件应及时安装补丁程序，且更新所用升级包应经过安全性测试</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.3</td>
+<td>应用安全</td>
+<td>基于可信根可信验证</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>基于可信根对应用软件可信验证、破坏后报警属应用层能力，需人工核查。指导书方法：ls /sys/class/tpm 查TPM、systemctl查aide/tripwire完整性监控。</td>
+<td>应用软件应基于可信根验证，破坏后报警。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.3：基于可信根对应用系统软件进行可信验证，可信性受到破坏后报警</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.4</td>
+<td>应用安全</td>
+<td>公共/涉密服务器分设、专用服务器专用</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>公共信息服务服务器与涉密服务器是否分设、专用服务器是否只提供专用服务需人工核查。指导书方法：netstat查监听端口+进程、sc query服务清单比对。</td>
+<td>公共/涉密服务器分设，专用服务器只提供专用服务。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.4：提供公共信息服务的服务器应与涉密信息服务器分设，专用服务器应只提供专用服务</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.5</td>
+<td>应用安全</td>
+<td>公共信息服务器防DDoS能力</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>防DDoS需多层协同。指导书v2.1 4.5.3补充：边界设备(登录防火墙核查DDoS清洗策略)、应用层限流(nginx limit_req/limit_conn、tomcat maxThreads/acceptCount、grep -r "limit_req\|limit_conn" /etc/nginx/)、主机层(sysctl tcp_syncookies/tcp_max_syn_backlog、iptables limit)。</td>
+<td>公共信息服务器应具备或依托DDoS防御能力。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.5：提供公共信息服务的服务器应具备防DDoS攻击能力</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.7</td>
+<td>应用安全</td>
+<td>网站静态化发布</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>网站是否静态化发布需人工核查。指导书方法：find *.php/*.jsp动态脚本文件数、nginx配置、curl X-Powered-By。</td>
+<td>有条件的网站建议静态页面发布。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.7：网站服务宜以静态页面形式发布</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.9</td>
+<td>应用安全</td>
+<td>防范SQL注入/XSS攻击能力</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>Web应用防SQL注入/XSS能力需人工核查。指导书方法：curl -I安全头(CSP/X-Frame)、curl构造SQLi观察返回。</td>
+<td>Web应用应具备或依托WAF防SQL注入/XSS。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.9：Web应用系统应具备防范SQL注入、跨站脚本等攻击能力</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.10</td>
+<td>应用安全</td>
+<td>执行代码有效性校验</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>应用对上传/执行代码有效性校验需人工核查。指导书方法：nikto扫描、上传文件类型白名单配置。</td>
+<td>应用应对可执行代码进行有效性与合法性校验。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.10：Web应用系统应具备执行代码有效验证能力</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.11</td>
+<td>应用安全</td>
+<td>用户授权访问控制能力</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>用户授权访问控制需核查应用层RBAC+数据库层授权。指导书v2.1 4.11.3补充：应用RBAC(查应用配置role-permission映射、grep -r "role\|permission\|auth\|权限" /opt/*/conf/、应用管理界面角色列表)、数据库授权(MySQL SELECT user,host FROM mysql.user; SHOW GRANTS; SQL Server sys.database_principals)、OS层(id/groups/sudo -l)。</td>
+<td>应用应实现RBAC，数据库账号权限最小化。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.11：应具备用户授权访问控制能力</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.13</td>
+<td>应用安全</td>
+<td>业务管理终端专设专用</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>业务管理终端是否专设专用需现场人工核查。指导书方法：grep auth.log登录来源IP比对终端台账。</td>
+<td>业务管理终端应指定专人专用并登记备案。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.13：业务管理终端专设专用</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.14</td>
+<td>应用安全</td>
+<td>基于用户角色细粒度访问控制</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>基于用户角色的细粒度访问控制(用户/进程/文件/表记录字段级)需人工核查。指导书方法：getfacl/ls -Z文件标签、SELinux状态、DB账户权限。</td>
+<td>应用应基于用户角色实现细粒度访问控制。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.14：应具有基于用户角色的授权访问控制能力，主体细粒度达到用户级或进程级，客体细粒度达到文件级、表和记录级、字段级</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.19</td>
+<td>应用安全</td>
+<td>登录失败处理(会话超时/锁定/自动退出)</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>登录失败处理需覆盖OS层+应用层。指导书v2.1 4.19.3补充：应用层(grep -r "loginFail\|lockout\|maxAttempts\|captcha" 应用conf查登录失败锁定/CAPTCHA、session-timeout会话超时、应用界面连续错误登录测试)、OS层(pam_faillock/pam_tally2账户锁定、TMOUT/ClientAliveInterval会话超时)。</td>
+<td>应用层与OS层均应具备登录失败处理(锁定/超时/自动退出)。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.19：应具有结束会话、限定登录错误次数和自动退出等登录失败处理功能</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.20</td>
+<td>应用安全</td>
+<td>自主设计协议/接口</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>是否使用自主设计的网络服务/协议/接口需人工核查。指导书方法：find国密sm2/sm3/sm4配置、国产中间件/SDK。</td>
+<td>关键业务通信宜使用自主设计协议/接口。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.20：宜使用自主设计开发的网络服务、协议、接口等，增强应用安全</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.26</td>
+<td>应用安全</td>
+<td>账户异常行为监测</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>账户异常登录/异常通信/异常文件上传监测需人工核查。指导书方法：核查应用日志/态势感知平台异常告警规则。</td>
+<td>应用应具备账户异常行为监测能力。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.26：应经过代码级安全漏洞挖掘</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.27</td>
+<td>应用安全</td>
+<td>输入数据格式长度检查</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>人机接口/网络通信/文件输入数据格式长度检查需人工核查。指导书方法：php upload_max_filesize/post_max_size、应用校验配置。</td>
+<td>应用应对输入数据进行格式和长度检查。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.27：检查是否具备对人机接口输入、网络通信输入、文件输入的数据进行格式和长度检查的功能</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.28</td>
+<td>应用安全</td>
+<td>检测防御应用层攻击</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>检测并防御SQL注入/网页篡改/XSS/DoS等应用层攻击需人工核查。指导书方法：curl安全头、curl构造SQLi/XSS观察返回。</td>
+<td>应能检测并防御应用层攻击。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.28：检查是否能够有效检测并防御SQL注入、网页篡改、跨站脚本、拒绝服务等应用层攻击</td>
+</tr>
+<tr>
+<td>第4章</td>
+<td>4.30</td>
+<td>应用安全</td>
+<td>统一管理措施与远程管理限制</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>统一管理措施与远程管理限制需人工核查。指导书方法：cockpit/webmin/ansible集中管理平台、sshd AllowUsers、iptables DROP:22。</td>
+<td>应设置统一管理措施并限制远程管理。</td>
+<td>《配置核查作业指导书》第4章 应用安全 4.30：检查是否能够设置统一管理措施，是否对远程管理进行限制</td>
+</tr>
+<tr>
+<td>第6章</td>
+<td>6.1</td>
+<td>物理安全</td>
+<td>机房门禁管理</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>机房门禁系统的部署与出入记录管理需现场人工核查。</td>
+<td>机房应部署门禁系统并留存出入记录。</td>
+<td>《配置核查作业指导书》第6章 物理安全 6.1：使用的网络设备、服务器、终端等，应选用进入《全军计算机及网络设备集中采购目录》的产品</td>
+</tr>
+<tr>
+<td>第6章</td>
+<td>6.2</td>
+<td>物理安全</td>
+<td>机房消防设施</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>机房消防设施（气体灭火、烟感等）配置需现场人工核查。</td>
+<td>机房应配置符合规范的消防设施。</td>
+<td>《配置核查作业指导书》第6章 物理安全 6.2：使用的安全网关、防火墙等信息安全产品，应通过信息安全测评认证机构的认证</td>
+</tr>
+<tr>
+<td>第6章</td>
+<td>6.3</td>
+<td>物理安全</td>
+<td>温湿度控制(GB2887-2011)</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>机房温湿度是否符合GB2887-2011要求需现场人工核查监测记录。</td>
+<td>机房温湿度控制应符合GB2887-2011标准要求。</td>
+<td>《配置核查作业指导书》第6章 物理安全 6.3：机房应有序、规范、合理走线布线，明确互联网区域和内部区域，粘贴标识，区分不同线路</td>
+</tr>
+<tr>
+<td>第6章</td>
+<td>6.4</td>
+<td>物理安全</td>
+<td>视频监控覆盖</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>机房摄像录像覆盖范围及留存时长需现场人工核查。</td>
+<td>机房重要区域应实现视频监控覆盖并留存记录。</td>
+<td>《配置核查作业指导书》第6章 物理安全 6.4：机房应符合GB 2887-2011中4.6.1所规定的温湿度等要求</td>
+</tr>
+<tr>
+<td>第6章</td>
+<td>6.5</td>
+<td>物理安全</td>
+<td>区域划分管理</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>机房功能区域划分（办公区/机房区/存储区）需现场人工核查。</td>
+<td>机房应实现功能区域划分并分级管控出入权限。</td>
+<td>《配置核查作业指导书》第6章 物理安全 6.5：机房应安装安防监控设备，对机房的人员进出、设备操作等进行监管</td>
+</tr>
+<tr>
+<td>第6章</td>
+<td>6.6</td>
+<td>物理安全</td>
+<td>存储介质管控</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>存储介质（磁盘/磁带/U盘）的出入库管理需人工核查台账记录。</td>
+<td>存储介质应建立出入库登记与管控台账。</td>
+<td>《配置核查作业指导书》第6章 物理安全 6.6：机房应将涉密区域和互联网区域设置于不同场所</td>
+</tr>
+<tr>
+<td>第6章</td>
+<td>6.7</td>
+<td>物理安全</td>
+<td>国产可控设备采购台账</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>关键设备是否采用国产自主可控产品需人工核查采购台账。</td>
+<td>关键设备应优先采购国产自主可控产品并建立台账。</td>
+<td>《配置核查作业指导书》第6章 物理安全 6.7：在涉密网络中使用过的打印机、复印机、刻录机、扫描仪、存储载体等设备严禁在互联网中使用</td>
+</tr>
+<tr>
+<td>第6章</td>
+<td>6.8</td>
+<td>物理安全</td>
+<td>设备安全等级标签</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>设备安全等级标签（色系标签）张贴情况需现场人工核查。</td>
+<td>按设备安全等级张贴对应色系标签便于识别管理。</td>
+<td>《配置核查作业指导书》第6章 物理安全 6.8：应选用《关键软硬件自主可控产品名录》中的芯片类、计算机及外设类、网络设备类、安全防护设备类、存储设备类等产品</td>
+</tr>
+<tr>
+<td>第6章</td>
+<td>6.9</td>
+<td>物理安全</td>
+<td>设备防盗防破坏</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>设备固定、防盗、防破坏措施需现场人工核查。</td>
+<td>对关键设备采取防盗、防破坏固定措施。</td>
+<td>《配置核查作业指导书》第6章 物理安全 6.9：与安全防护等级低的网络使用不同色系线缆进行严格隔离区分</td>
+</tr>
+<tr>
+<td>第7章</td>
+<td>7.1</td>
+<td>组织安全</td>
+<td>安全组织架构</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>信息安全组织架构是否健全需人工核查组织文件。</td>
+<td>建立健全的信息安全组织架构。</td>
+<td>《配置核查作业指导书》第7章 组织机构 7.1：应设置安全管理机构，保证系统安全措施的落实</td>
+</tr>
+<tr>
+<td>第7章</td>
+<td>7.2</td>
+<td>组织安全</td>
+<td>专职安全架构师配备</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>是否配备专职安全架构师需人工核查人员编制记录。</td>
+<td>应配备专职安全架构师负责整体安全规划。</td>
+<td>《配置核查作业指导书》第7章 组织机构 7.2：应配备专职系统安全保密管理人员，负责系统安全措施的落实</td>
+</tr>
+<tr>
+<td>第7章</td>
+<td>7.3</td>
+<td>组织安全</td>
+<td>安全领导小组</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>是否成立网络安全工作领导小组需人工核查文件与会议记录。</td>
+<td>应成立由主要负责人牵头的网络安全工作领导小组。</td>
+<td>《配置核查作业指导书》第7章 组织机构 7.3：应具有安全管理领导机构，督导系统安全措施的落实</td>
+</tr>
+<tr>
+<td>第7章</td>
+<td>7.4</td>
+<td>组织安全</td>
+<td>专职安全技术人员配备</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>专职安全技术人员的配备情况需人工核查人员编制记录。</td>
+<td>应配备与业务规模匹配的专职安全技术人员。</td>
+<td>《配置核查作业指导书》第7章 组织机构 7.4：应具有系统安全保密技术管理人员，具体负责安全保密技术措施的落实</td>
+</tr>
+<tr>
+<td>第7章</td>
+<td>7.5</td>
+<td>组织安全</td>
+<td>应急响应体系</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>网络安全应急响应组织体系是否建立需人工核查文档。</td>
+<td>建立覆盖事前-事中-事后的应急响应组织体系。</td>
+<td>《配置核查作业指导书》第7章 组织机构 7.5：应具有完善的应急响应体系，应对突发事件</td>
+</tr>
+<tr>
+<td>第8章</td>
+<td>8.1</td>
+<td>制度安全</td>
+<td>制度评审与发布机制</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>安全管理制度的定期评审与发布机制需人工核查文档版本记录。</td>
+<td>建立安全管理制度定期评审与正式发布机制。</td>
+<td>《配置核查作业指导书》第8章 规章制度 8.1：应具有日常安全管理制度、入网审批制度和系统安全保密检查制度等</td>
+</tr>
+<tr>
+<td>第8章</td>
+<td>8.2</td>
+<td>制度安全</td>
+<td>变更管理制度</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>系统/配置变更管理制度的执行情况需人工核查变更记录。</td>
+<td>建立并严格执行变更管理制度。</td>
+<td>《配置核查作业指导书》第8章 规章制度 8.2：应具有安全管理操作规程、安全监控操作规程、安全审计操作规程、应急响应操作规程等</td>
+</tr>
+<tr>
+<td>第8章</td>
+<td>8.3</td>
+<td>制度安全</td>
+<td>备份策略制度</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据备份策略（周期、留存、异地）是否制度化需人工核查文档。</td>
+<td>制定并落实数据备份策略制度。</td>
+<td>《配置核查作业指导书》第8章 规章制度 8.3：应具有日常系统备份制度和存储载体使用管理制度</td>
+</tr>
+<tr>
+<td>第8章</td>
+<td>8.4</td>
+<td>制度安全</td>
+<td>制度审查机制</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>安全管理制度的合规性审查机制需人工核查审查记录。</td>
+<td>建立安全管理制度的定期合规性审查机制。</td>
+<td>《配置核查作业指导书》第8章 规章制度 8.4：应具有脆弱性分析等规程</td>
+</tr>
+<tr>
+<td>第9章</td>
+<td>9.1</td>
+<td>管理安全</td>
+<td>应急演练</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>网络安全应急预案的实际演练记录需人工核查演练台账。</td>
+<td>定期组织网络安全应急演练并留存记录。</td>
+<td>《配置核查作业指导书》第9章 管理实施 9.1：应具有应急响应预案，发生危及系统安全的事件时应根据操作规程及时采取措施</td>
+</tr>
+<tr>
+<td>第9章</td>
+<td>9.2</td>
+<td>管理安全</td>
+<td>统一管理平台</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>设备/账户/日志是否接入统一管理平台需人工核查平台集成情况。</td>
+<td>推动设备、账户、日志纳入统一管理平台管控。</td>
+<td>《配置核查作业指导书》第9章 管理实施 9.2：安全保密管理人员应能对网络安全防护设备进行统一配置、管理</td>
+</tr>
+<tr>
+<td>第9章</td>
+<td>9.3</td>
+<td>管理安全</td>
+<td>培训文档与记录</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>安全意识与技能培训的文档及参与记录需人工核查。</td>
+<td>定期开展安全培训并留存文档与参与记录。</td>
+<td>《配置核查作业指导书》第9章 管理实施 9.3：应具有与实际情况相符且完整的安全保密策略文档和安全保密技术及产品配置的详细记录</td>
+</tr>
+<tr>
+<td>第9章</td>
+<td>9.4</td>
+<td>管理安全</td>
+<td>日常巡检制度</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>系统日常安全巡检的执行与记录情况需人工核查巡检台账。</td>
+<td>建立并落实系统日常安全巡检制度。</td>
+<td>《配置核查作业指导书》第9章 管理实施 9.4：安全保密技术管理人员应对每日网络和系统运行情况实施安全审计，每月组织安全性检测</td>
+</tr>
+</table>
+<p><b>三、不适用（43 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.25</td>
+<td>系统安全</td>
+<td>系统自带安全防护组件</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>Windows Defender 为Windows专有组件，Linux平台不适用；请参照1.2防病毒/EDR核查结果。</td>
+<td>参考本报告1.2项，确认已部署等效的终端安全防护能力。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.25：检查是否具备边界保护能力，是否可以抗攻击、防篡改</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.7</td>
+<td>系统安全-数据库</td>
+<td>数据库账户管理</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务（MySQL/达梦/Kingbase/PostgreSQL），标记不适用。</td>
+<td>核查数据库账户是否唯一分配、无共享账户，删除或锁定无用账户。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.7：数据库管理系统应删除冗余帐户，应设置不少于8个字符且字母大小写、数字及特殊字符混合编制的账户口令</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.8</td>
+<td>系统安全-数据库</td>
+<td>数据库存储过程管理</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务（MySQL/达梦/Kingbase/PostgreSQL），标记不适用。</td>
+<td>核查高危存储过程（如xp_cmdshell等效功能）是否禁用。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.8：数据库管理系统应删除冗余存储过程</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.9</td>
+<td>系统安全-数据库</td>
+<td>数据库权限最小化</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务（MySQL/达梦/Kingbase/PostgreSQL），标记不适用。</td>
+<td>按最小权限原则分配数据库账户权限，避免使用超级管理员账户运行业务。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.9：数据库管理系统应具有基于表级增删改查等细粒度访问和管理授权功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.10</td>
+<td>系统安全-数据库</td>
+<td>数据库访问控制</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务，标记不适用。</td>
+<td>限制数据库监听地址与访问来源IP。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.10：数据库管理系统应具有自主访问控制功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.11</td>
+<td>系统安全-数据库</td>
+<td>数据库备份策略</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务，标记不适用。</td>
+<td>建立数据库定期备份机制并定期验证可恢复性。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.11：数据库管理系统应具有备份和恢复功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.12</td>
+<td>系统安全-数据库</td>
+<td>数据库审计插件</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务（MySQL/达梦/Kingbase/PostgreSQL），标记不适用。</td>
+<td>启用数据库自带审计功能（达梦审计策略/金仓审计）记录关键操作。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.12：数据库管理系统应具有表级审计、告警和阻断功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.13</td>
+<td>系统安全-数据库</td>
+<td>数据库与业务隔离</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务（MySQL/达梦/Kingbase/PostgreSQL），标记不适用。</td>
+<td>评估数据库是否与Web/应用服务同机部署，建议物理或网络隔离。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.13：数据库管理系统的数据应和其它应用的数据分类独立存储</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.15</td>
+<td>系统安全-数据库</td>
+<td>数据库远程访问控制</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务，标记不适用。</td>
+<td>限制数据库仅允许可信运维终端远程访问。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.15：应具备数据库管理系统超级管理员远程登录限制能力</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.19</td>
+<td>系统安全-数据库</td>
+<td>数据库默认账户/端口</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务，标记不适用。</td>
+<td>修改数据库默认端口，禁用/改名默认账户。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.19：应更换数据库管理系统的默认服务端口、管理员用户名和口令</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.20</td>
+<td>系统安全-数据库</td>
+<td>数据库安全策略</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务（MySQL/达梦/Kingbase/PostgreSQL），标记不适用。</td>
+<td>制定并落实数据库密码策略、访问策略等安全配置基线。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.20：数据库管理系统应配置安全策略</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.21</td>
+<td>系统安全-数据库</td>
+<td>数据库操作审计</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务（MySQL/达梦/Kingbase/PostgreSQL），标记不适用。</td>
+<td>开启数据库操作审计功能，记录敏感操作行为。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.21：数据库管理系统应具有行级或列级审计功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.22</td>
+<td>系统安全-数据库</td>
+<td>数据库审计日志留存</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务（MySQL/达梦/Kingbase/PostgreSQL），标记不适用。</td>
+<td>确保数据库审计日志留存时长满足合规要求（通常不少于6个月）。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.22：数据库管理系统应采取单独、安全监控、审计措施</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.23</td>
+<td>系统安全-数据库</td>
+<td>应用与数据库账户分离</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到本机运行数据库服务（MySQL/达梦/Kingbase/PostgreSQL），标记不适用。</td>
+<td>应用系统连接数据库应使用独立受限账户，避免使用管理员账户。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.23：数据库管理系统仅为应用服务器提供访问服务</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.7</td>
+<td>用户安全</td>
+<td>文件系统安全</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>Windows NTFS检查在Linux平台不适用；当前根分区文件系统为：overlay（ext4/xfs原生支持权限位与ACL）。</td>
+<td>确保关键分区文件系统支持权限位/ACL，并正确设置目录权限。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.7：用户计算机应具有文件保护功能</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.12</td>
+<td>用户安全</td>
+<td>无线网络管控</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>未检测到 NetworkManager（nmcli），可能为无GUI服务器场景，标记不适用。</td>
+<td>如具备无线网卡，需按管控要求限制使用。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.12：用户计算机应物理拆除Wi-Fi、红外、蓝牙等无线模块</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.3</td>
+<td>用户安全</td>
+<td>移动端应用锁屏与口令验证</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>本机为服务器/工作站操作系统，移动端应用锁屏及口令验证保护不适用于本检查对象。</td>
+<td>如涉及移动端接入，应启用应用锁屏及口令验证保护。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.3：用户应设置用户应用口令，通过认证后使用信息服务</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.11_m</td>
+<td>用户安全</td>
+<td>口令认证硬件Key（双因子）</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>是否采用硬件Key等双因子认证方式需结合具体业务系统评估，本次系统级核查不适用。</td>
+<td>对高权限账户建议启用硬件Key等双因子认证方式。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.11：用户计算机登录应使用基于专用物理部件或生物特征的多因素身份认证方式，应设置超时锁屏（不超过5min），口令不少于10个字符，更换周期不超过30d</td>
+</tr>
+<tr>
+<td>第3章</td>
+<td>3.6</td>
+<td>数据安全</td>
+<td>数据边界防泄漏(DLP)</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>数据边界防泄漏/防篡改措施属于业务/网络边界层面，本次系统核查不适用。</td>
+<td>在数据边界部署防泄漏(DLP)与防篡改措施。</td>
+<td>《配置核查作业指导书》第3章 数据安全 3.6：网络边界应具备信息过滤、敏感内容识别等数据防泄漏能力</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.1</td>
+<td>网络安全</td>
+<td>网络拓扑图</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>网络拓扑图的绘制与维护需人工核查网络管理文档，不适用于单机系统核查。</td>
+<td>绘制并维护最新网络拓扑图。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.2</td>
+<td>网络安全</td>
+<td>专用网络设备部署</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>是否部署专用边界防护设备（防火墙/IDS/IPS等）需现场核查网络架构。</td>
+<td>在网络边界部署专用安全防护设备。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.3</td>
+<td>网络安全</td>
+<td>网络架构最小化原则</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>网络架构是否遵循最小化原则需人工核查网络设计文档。</td>
+<td>网络架构设计应遵循最小化、按需开放原则。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.4</td>
+<td>网络安全</td>
+<td>边界防护完整性</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>网络边界防护措施的完整性需现场核查所有出入口。</td>
+<td>确保所有网络边界出入口均有防护措施覆盖。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.5</td>
+<td>网络安全</td>
+<td>VLAN/安全域划分</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>VLAN划分与安全域隔离情况需人工登录网络设备核查。</td>
+<td>按业务重要性划分VLAN及安全域，实现隔离。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.6</td>
+<td>网络安全</td>
+<td>网络设备唯一标识</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>网络设备是否具备唯一标识管理需人工核查资产台账。</td>
+<td>为网络设备分配唯一标识并纳入资产管理。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.7</td>
+<td>网络安全</td>
+<td>远程管理加密</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>网络设备远程管理是否采用加密方式（SSH/HTTPS）需人工登录核查。</td>
+<td>网络设备远程管理应使用加密协议，禁用Telnet/HTTP。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.8</td>
+<td>网络安全</td>
+<td>网络设备厂商多样性</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>关键网络设备厂商是否存在单点依赖需人工核查采购记录。</td>
+<td>关键网络设备建议避免厂商单一依赖。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.9</td>
+<td>网络安全</td>
+<td>多播流量控制</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>多播流量的控制策略需人工登录网络设备核查。</td>
+<td>对多播流量实施必要的控制策略。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.10</td>
+<td>网络安全</td>
+<td>备份网络设备</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>关键网络设备是否具备热备/冷备需现场核查。</td>
+<td>关键网络设备应配置备份设备，避免单点故障。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.11</td>
+<td>网络安全</td>
+<td>安全运营中心(SOC)集成</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>网络设备日志是否已接入SOC/态势感知平台需人工核查集成情况。</td>
+<td>网络设备安全事件应接入统一安全运营平台。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.12</td>
+<td>网络安全</td>
+<td>单位间边界防护</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>不同单位/部门间网络边界的防护措施需人工核查网络架构。</td>
+<td>在不同单位/部门网络边界部署防护措施。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.13</td>
+<td>网络安全</td>
+<td>端口访问控制列表(ACL)</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>网络设备端口ACL配置需人工登录设备核查。</td>
+<td>在网络设备端口配置访问控制列表限制非法访问。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.14</td>
+<td>网络安全</td>
+<td>VPN接入安全</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>VPN远程接入的安全策略需人工核查VPN网关配置。</td>
+<td>远程接入应通过VPN并采取强身份认证。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.15</td>
+<td>网络安全</td>
+<td>802.1x接入认证</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>是否启用802.1x等接入认证机制需人工登录接入设备核查。</td>
+<td>内网接入建议启用802.1x等认证机制。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.16</td>
+<td>网络安全</td>
+<td>用户网络隔离</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>不同用户/部门间的网络隔离情况需人工核查VLAN/ACL配置。</td>
+<td>不同用户群体间应实现必要的网络隔离。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.17</td>
+<td>网络安全</td>
+<td>网络日志留存(≥180天)</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>网络设备日志留存时长需人工核查日志服务器配置，不适用于单机核查。</td>
+<td>网络设备日志应留存不少于180天。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.18</td>
+<td>网络安全</td>
+<td>IDS/IPS部署</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>入侵检测/防御系统的部署与规则更新需人工现场核查。</td>
+<td>在网络关键节点部署并维护IDS/IPS。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.19</td>
+<td>网络安全</td>
+<td>存储网络访问控制</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>存储网络(SAN/NAS)的访问控制策略需人工登录存储设备核查。</td>
+<td>对存储网络实施严格的访问控制。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.20</td>
+<td>网络安全</td>
+<td>网络设备冗余</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>核心网络设备的冗余部署情况需现场核查。</td>
+<td>核心网络设备应采用冗余部署避免单点故障。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.21</td>
+<td>网络安全</td>
+<td>网络设备口令策略</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>网络设备管理口令的复杂度与更新策略需人工登录设备核查。</td>
+<td>网络设备管理口令应满足复杂度要求并定期更换。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.22</td>
+<td>网络安全</td>
+<td>无线网络安全</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>无线接入点的加密方式与准入控制需现场核查。</td>
+<td>无线网络应采用WPA2/WPA3加密并实施准入控制。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第5章</td>
+<td>5.23</td>
+<td>网络安全</td>
+<td>网络安全域间访问审计</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>跨安全域访问的审计记录需人工核查网络审计系统。</td>
+<td>对跨安全域的访问行为进行审计记录。</td>
+<td>《配置核查作业指导书》第5章 网络安全（指导书本章原文未细分小节编号，以下网络设备类核查项供参考，均标记不适用）</td>
+</tr>
+<tr>
+<td>第10章</td>
+<td>10.1_m</td>
+<td>密码与传输安全</td>
+<td>密钥签发与证书管控</td>
+<td style="color:#757575;font-weight:bold;">不适用</td>
+<td>密钥协商认证、证书签发与管控体系需结合PKI/密钥管理系统人工核查，不适用于单机系统核查。</td>
+<td>建立密钥/证书全生命周期管控体系（签发、更新、吊销）。</td>
+<td>《配置核查作业指导书》第10章 协议安全审计（指导书本章原文未细分小节编号，审计协议的机密性、完整性、认可性、不可否认性）</td>
+</tr>
+</table>
+<p><b>四、通过（6 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.1</td>
+<td>系统安全</td>
+<td>补丁安装情况</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>yum 未发现可更新软件包，且距上次系统更新 0 天（90天内），补丁状态较新。</td>
+<td>定期检查并安装系统安全补丁。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.1：操作系统、数据库管理系统、中间件等平台软件应及时安装补丁程序</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.6</td>
+<td>系统安全</td>
+<td>远程管理加密强度（SSH）</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>sshd_config 显式配置了加密算法且未含已知弱算法：Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm@openssh.com,aes256-gcm@openssh.com,chacha20-poly1305@openssh.com</td>
+<td>定期核查 SSH 加密套件配置，避免使用弱算法。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.6：操作系统远程管理应开放唯一管理服务，指定管理终端并采取传输加密保护措施</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.26</td>
+<td>系统安全</td>
+<td>安全日志容量与留存</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>日志服务（rsyslog/syslog-ng）与 logrotate 轮转机制存在，/var/log 当前占用 592K。</td>
+<td>确保日志留存时长满足合规要求（通常不少于6个月）。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.26：检查是否有防病毒日志、补丁日志、记录相关信息，记录信息的完整、有效</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.4</td>
+<td>用户安全</td>
+<td>账户唯一性</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>/etc/passwd 中未发现重复UID，账户具备唯一性。</td>
+<td>持续避免创建共享账户，人员离职及时删除/锁定账户。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.4：用户计算机应具有互不相同的用户名和口令</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.16</td>
+<td>用户安全</td>
+<td>补丁是否为最新版本</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>当前内核版本：6.18.33.2-microsoft-standard-WSL2。距上次系统更新 0 天，未超过3个月。</td>
+<td>跟踪厂商安全公告，及时升级到推荐的最新补丁版本。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.16：检查被试装备中操作系统、数据库以及应用软件等是否完成补丁修复和升级到最新版本</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.14</td>
+<td>用户安全</td>
+<td>用户行为审计</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>检测到系统级用户行为日志机制（auditd/secure/auth.log）。</td>
+<td>确保用户登录、操作行为日志被完整记录并留存。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.14：应具备用户行为审计能力；审计日志应至少保留xx天</td>
+</tr>
+</table>
+</body>
+</html>

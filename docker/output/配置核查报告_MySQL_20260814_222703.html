@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>MySQL 配置核查报告</title>
+<style>
+body{font-family:"Microsoft YaHei",Arial,sans-serif;margin:20px;color:#222;}
+h1{color:#1a3c6e;}
+.meta{background:#f0f4f8;padding:10px 15px;border-radius:6px;margin-bottom:15px;}
+.summary{display:flex;gap:15px;margin-bottom:20px;}
+.card{flex:1;padding:12px;border-radius:6px;text-align:center;color:#fff;}
+.card.pass{background:#2e7d32;} .card.fail{background:#c62828;}
+.card.manual{background:#ef6c00;} .card.na{background:#757575;}
+table{border-collapse:collapse;width:100%;font-size:13px;}
+th,td{border:1px solid #ccc;padding:6px 8px;vertical-align:top;}
+th{background:#1a3c6e;color:#fff;position:sticky;top:0;}
+tr:nth-child(even){background:#f7f9fb;}
+</style>
+</head>
+<body>
+<h1>MySQL 数据库配置核查报告</h1>
+<div class="meta">
+<div>连接：root@127.0.0.1:3307　版本：10.3.39-MariaDB-log</div>
+<div>主机名：5f5d6dcd29ef　核查时间：2026-08-14 22:27:04</div>
+<div>参考标准：配置核查作业指导书正式版2026_4_1 / 配置核查表_v2.0.0.xlsx</div>
+</div>
+<div class="summary">
+<div class="card pass">合规<br>6</div>
+<div class="card fail">不合规<br>2</div>
+<div class="card manual">需人工核查<br>11</div>
+<div class="card na">不适用<br>0</div>
+</div>
+<h2>一、未通过（2 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.10</td>
+<td>系统安全-数据库</td>
+<td>数据库访问控制</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>数据库端口监听在 0.0.0.0/::（对外暴露）：LISTEN   0        80                   127.0.0.1:3307            0.0.0.0:*       users:(("mysqld",pid=6226,fd=23))                                              。bind_address=127.0.0.1。</td>
+<td>将 bind-address 改为内网地址或 127.0.0.1，配合防火墙限制访问来源。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.10：数据库管理系统应具有自主访问控制功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.24</td>
+<td>系统安全-数据库</td>
+<td>日志审计留存180天</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>binlog 保留时长约 99 天（&lt;180天）。</td>
+<td>设置 expire_logs_days&gt;=180 或 binlog_expire_logs_seconds&gt;=15552000。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.24：应具备日志审计能力，审计日志至少保留180天</td>
+</tr>
+</table>
+<h2>二、需人工核查（11 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.1</td>
+<td>系统安全-数据库</td>
+<td>数据库补丁程序</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>MySQL 当前版本：10.3.39-MariaDB-log。请人工核对是否为该大版本最新补丁版本（对比 MySQL 官方版本发布页）。</td>
+<td>及时升级到最新稳定补丁版本，并留存升级记录。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.1：操作系统、数据库管理系统、中间件等平台软件应及时安装补丁程序</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.9</td>
+<td>系统安全-数据库</td>
+<td>数据库权限最小化</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>未发现表级/列级细粒度授权记录，请人工确认是否已按最小权限原则分配账户权限。</td>
+<td>按最小权限原则，使用表级/列级 GRANT 分配权限。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.9：数据库管理系统应具有基于表级增删改查等细粒度访问和管理授权功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.11</td>
+<td>系统安全-数据库</td>
+<td>数据库备份策略</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>log_bin=ON（支持 PITR 恢复），但未在常见 crontab 位置发现自动备份任务，请人工确认备份策略。</td>
+<td>建立定期全量备份（mysqldump/mariabackup），结合 binlog 实现可恢复。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.11：数据库管理系统应具有备份和恢复功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.13</td>
+<td>系统安全-数据库</td>
+<td>数据库与业务隔离</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据分类独立存储需结合业务架构人工核查：确认数据库是否与其它应用共享实例、敏感数据与非敏感数据是否分库/分表/分实例存储。</td>
+<td>敏感数据与普通数据分类独立存储，必要时物理或网络隔离。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.13：数据库管理系统的数据应和其它应用的数据分类独立存储</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.15</td>
+<td>系统安全-数据库</td>
+<td>数据库远程访问控制</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>未发现 root@'%' 等远程登录账户，bind_address=127.0.0.1，请人工确认是否已限制超管远程登录来源。</td>
+<td>通过防火墙/账户 Host 限制数据库远程访问来源。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.15：应具备数据库管理系统超级管理员远程登录限制能力</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.16</td>
+<td>系统安全-数据库</td>
+<td>输入验证/SQL注入防护</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据库输入（参数）检查属应用层能力（参数化查询/预编译语句），需人工或工具（如 sqlmap/AWVS）核查应用系统是否使用参数化查询防 SQL 注入。</td>
+<td>应用层使用 PreparedStatement 参数化查询，避免拼接 SQL。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.16：应具备数据库管理系统输入（参数）检查能力</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.21</td>
+<td>系统安全-数据库</td>
+<td>数据库操作审计</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>未检测到审计插件，行级/列级审计需人工核查是否具备该能力。</td>
+<td>启用审计插件，配置行级/列级审计策略。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.21：数据库管理系统应具有行级或列级审计功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.22</td>
+<td>系统安全-数据库</td>
+<td>数据库审计日志留存</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>独立安全监控与审计措施（第三方审计平台/旁路审计）需人工核查部署情况。</td>
+<td>部署独立审计监控，审计日志与业务数据分离存储。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.22：数据库管理系统应采取单独、安全监控、审计措施</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.25</td>
+<td>系统安全-数据库</td>
+<td>边界保护抗攻击防篡改</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据库边界保护（防火墙/WAF/网络隔离/防篡改）需结合网络架构人工核查。</td>
+<td>部署边界防护设备，限制数据库暴露面，防攻击、防篡改。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.25：检查是否具备边界保护能力，是否可以抗攻击、防篡改</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.26</td>
+<td>系统安全-数据库</td>
+<td>防病毒/补丁日志记录</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>未检测到独立错误日志文件（log_error=未设置），请人工核查日志记录完整性。</td>
+<td>配置 log_error 到独立文件，保留完整运行/补丁日志。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.26：检查是否有防病毒日志、补丁日志、记录相关信息，记录信息的完整、有效</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.16</td>
+<td>系统安全-数据库</td>
+<td>补丁修复升级到最新</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>MySQL 当前版本：10.3.39-MariaDB-log。请人工核对是否已升级到最新版本并留存补丁升级记录。</td>
+<td>定期升级到最新版本，记录补丁升级情况。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.16：检查被试装备中操作系统、数据库以及应用软件等是否完成补丁修复和升级到最新版本</td>
+</tr>
+</table>
+<h2>四、通过（6 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.7</td>
+<td>系统安全-数据库</td>
+<td>数据库账户管理</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>未发现匿名账户或空口令账户。口令策略：validate_password 长度=未启用，强度=未启用。</td>
+<td>持续定期核查账户，删除/锁定冗余与弱口令账户。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.7：数据库管理系统应删除冗余帐户，应设置不少于8个字符且字母大小写、数字及特殊字符混合编制的账户口令</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.8</td>
+<td>系统安全-数据库</td>
+<td>数据库存储过程管理</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>未发现用户自定义函数(UDF)；存储过程/函数总数：2。</td>
+<td>持续控制存储过程与 UDF 数量，仅保留业务必需项。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.8：数据库管理系统应删除冗余存储过程</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.12</td>
+<td>系统安全-数据库</td>
+<td>数据库审计插件</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>general_log=ON（已开启通用查询日志，可记录 SQL 操作）。</td>
+<td>建议升级为专用审计插件，审计粒度更细、开销更小。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.12：数据库管理系统应具有表级审计、告警和阻断功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.19</td>
+<td>系统安全-数据库</td>
+<td>数据库默认账户/端口</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>未发现默认端口/空口令问题（端口=3307，root 无空口令）。</td>
+<td>持续保持非默认端口与加固后的账户口令。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.19：应更换数据库管理系统的默认服务端口、管理员用户名和口令</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.20</td>
+<td>系统安全-数据库</td>
+<td>数据库安全策略</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>检测到安全策略配置：口令策略=未启用；secure_file_priv=/var/lib/mysql-files/；sql_mode=STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION。</td>
+<td>完善安全基线：启用 validate_password、限制 secure_file_priv、收紧 sql_mode。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.20：数据库管理系统应配置安全策略</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.23</td>
+<td>系统安全-数据库</td>
+<td>应用与数据库账户分离</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>未发现 '%' 通配账户，且网络监听受限（skip_networking=OFF，bind_address=127.0.0.1）。</td>
+<td>持续确保数据库仅为应用服务器提供访问。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.23：数据库管理系统仅为应用服务器提供访问服务</td>
+</tr>
+</table>
+</body>
+</html>

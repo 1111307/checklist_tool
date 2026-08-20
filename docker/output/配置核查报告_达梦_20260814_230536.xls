@@ -1,0 +1,216 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<!--[if gte mso 9]>
+<xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+<x:Name>达梦配置核查报告</x:Name>
+<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml>
+<![endif]-->
+<style>
+table{border-collapse:collapse;}
+th,td{border:1px solid #999;padding:4px 6px;font-family:"Microsoft YaHei",Arial;font-size:12px;mso-number-format:"\@";}
+th{background:#1a3c6e;color:#fff;font-weight:bold;}
+</style>
+</head>
+<body>
+<p>达梦数据库配置核查报告　连接：SYSDBA@127.0.0.1:5236　版本：DM Database Server 64 V8　核查时间：2026-08-14 23:05:37</p>
+<p>合规：3　不合规：5　需人工核查：11　不适用：0</p>
+<p><b>一、未通过（5 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.7</td>
+<td>系统安全-数据库</td>
+<td>数据库账户管理</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>口令策略 PWD_POLICY=2（&lt;15，未启用完整口令复杂度：长度/大小写/数字/特殊字符）。</td>
+<td>设置 PWD_POLICY&gt;=15，启用完整口令复杂度策略。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.7：数据库管理系统应删除冗余帐户，应设置不少于8个字符且字母大小写、数字及特殊字符混合编制的账户口令</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.12</td>
+<td>系统安全-数据库</td>
+<td>数据库审计插件</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>达梦审计未开启（ENABLE_AUDIT=0）。</td>
+<td>开启数据库审计功能。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.12：数据库管理系统应具有表级审计、告警和阻断功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.19</td>
+<td>系统安全-数据库</td>
+<td>数据库默认账户/端口</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>仍使用默认端口 5236；仍使用默认管理员账户 SYSDBA</td>
+<td>修改默认端口，禁用/加固默认账户。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.19：应更换数据库管理系统的默认服务端口、管理员用户名和口令</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.20</td>
+<td>系统安全-数据库</td>
+<td>数据库安全策略</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>安全策略不完整：PWD_POLICY=2，ENABLE_AUDIT=0。</td>
+<td>配置口令复杂度、审计、加密等安全策略。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.20：数据库管理系统应配置安全策略</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.25</td>
+<td>系统安全-数据库</td>
+<td>边界保护抗攻击防篡改</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>未检测到本机防火墙规则，数据库缺乏边界保护。</td>
+<td>部署防火墙/WAF 限制暴露面。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.25：检查是否具备边界保护能力，是否可以抗攻击、防篡改</td>
+</tr>
+</table>
+<p><b>二、需人工核查（11 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.1</td>
+<td>系统安全-数据库</td>
+<td>数据库补丁程序</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>达梦当前版本：DM Database Server 64 V8。请人工核对是否为最新补丁版本（对比达梦官方版本发布）。</td>
+<td>及时升级到最新补丁版本。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.1：操作系统、数据库管理系统、中间件等平台软件应及时安装补丁程序</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.8</td>
+<td>系统安全-数据库</td>
+<td>数据库存储过程管理</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>存储过程/函数总数：1020。请人工确认是否存在冗余或高危存储过程。</td>
+<td>删除冗余存储过程，遵循最小功能原则。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.8：数据库管理系统应删除冗余存储过程</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.10</td>
+<td>系统安全-数据库</td>
+<td>数据库访问控制</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>未在默认端口 5236 检测到监听，可能使用自定义端口，需人工确认监听地址。</td>
+<td>确认数据库实际监听端口与地址。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.10：数据库管理系统应具有自主访问控制功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.11</td>
+<td>系统安全-数据库</td>
+<td>数据库备份策略</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>未在常见 crontab 位置发现达梦备份任务（dmrman/BACKUP），请人工核实备份策略。</td>
+<td>建立定期备份（dmrman/BACKUP DATABASE）。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.11：数据库管理系统应具有备份和恢复功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.13</td>
+<td>系统安全-数据库</td>
+<td>数据库与业务隔离</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据分类独立存储需结合业务架构人工核查（分库/分表/分实例存储）。</td>
+<td>敏感数据与普通数据分类独立存储。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.13：数据库管理系统的数据应和其它应用的数据分类独立存储</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.15</td>
+<td>系统安全-数据库</td>
+<td>数据库远程访问控制</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据库未对外暴露监听，达梦默认限制 SYSDBA 远程登录，请人工确认超管远程登录限制。</td>
+<td>限制超管远程登录来源。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.15：应具备数据库管理系统超级管理员远程登录限制能力</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.16</td>
+<td>系统安全-数据库</td>
+<td>输入验证/SQL注入防护</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>数据库输入（参数）检查属应用层能力，需人工/工具核查应用是否使用参数化查询防 SQL 注入。</td>
+<td>应用层使用参数化查询。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.16：应具备数据库管理系统输入（参数）检查能力</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.21</td>
+<td>系统安全-数据库</td>
+<td>数据库操作审计</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>达梦支持审计，行级/列级审计粒度需人工确认审计策略是否覆盖敏感行/列。</td>
+<td>配置审计策略覆盖敏感行/列。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.21：数据库管理系统应具有行级或列级审计功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.22</td>
+<td>系统安全-数据库</td>
+<td>数据库审计日志留存</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>独立安全监控与审计措施需人工核查部署情况。</td>
+<td>部署独立监控/审计平台。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.22：数据库管理系统应采取单独、安全监控、审计措施</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.24</td>
+<td>系统安全-数据库</td>
+<td>日志审计留存180天</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>达梦审计日志留存时长需人工核查是否满足180天（审计日志配置在 dm.ini / 审计归档）。</td>
+<td>配置审计日志留存不少于180天。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.24：应具备日志审计能力，审计日志至少保留180天</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.16</td>
+<td>系统安全-数据库</td>
+<td>补丁修复升级到最新</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>达梦当前版本：DM Database Server 64 V8。请人工核对是否已升级到最新版本。</td>
+<td>定期升级到最新版本。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.16：检查被试装备中操作系统、数据库以及应用软件等是否完成补丁修复和升级到最新版本</td>
+</tr>
+</table>
+<p><b>四、通过（3 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.9</td>
+<td>系统安全-数据库</td>
+<td>数据库权限最小化</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>存在对象级（表/列）授权 767 条，已按细粒度授权。</td>
+<td>持续按最小权限原则，使用表级/列级授权。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.9：数据库管理系统应具有基于表级增删改查等细粒度访问和管理授权功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.23</td>
+<td>系统安全-数据库</td>
+<td>应用与数据库账户分离</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>数据库未对外暴露监听（未检测到），访问受限。</td>
+<td>持续确保数据库仅为应用服务器提供访问。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.23：数据库管理系统仅为应用服务器提供访问服务</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.26</td>
+<td>系统安全-数据库</td>
+<td>防病毒/补丁日志记录</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>检测到达梦日志目录：/opt/dmdbms/log。</td>
+<td>确保日志完整记录、留存满足要求。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.26：检查是否有防病毒日志、补丁日志、记录相关信息，记录信息的完整、有效</td>
+</tr>
+</table>
+</body>
+</html>

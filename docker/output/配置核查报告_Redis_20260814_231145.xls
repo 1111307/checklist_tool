@@ -1,0 +1,186 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<!--[if gte mso 9]>
+<xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+<x:Name>Redis配置核查报告</x:Name>
+<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml>
+<![endif]-->
+<style>
+table{border-collapse:collapse;}
+th,td{border:1px solid #999;padding:4px 6px;font-family:"Microsoft YaHei",Arial;font-size:12px;mso-number-format:"\@";}
+th{background:#1a3c6e;color:#fff;font-weight:bold;}
+</style>
+</head>
+<body>
+<p>Redis 配置核查报告　连接：127.0.0.1:6380　版本：7.2.14　核查时间：2026-08-14 23:11:47</p>
+<p>合规：9　不合规：1　需人工核查：6　不适用：0</p>
+<p><b>一、未通过（1 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.8</td>
+<td>系统安全-数据库</td>
+<td>数据库存储过程管理</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>以下高危命令未禁用/重命名： FLUSHALL FLUSHDB EVAL SHUTDOWN</td>
+<td>在配置中 rename-command 禁用 FLUSHALL/FLUSHDB/EVAL/SHUTDOWN 等危险命令。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.8：数据库管理系统应删除冗余存储过程</td>
+</tr>
+</table>
+<p><b>二、需人工核查（6 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.1</td>
+<td>系统安全-数据库</td>
+<td>数据库补丁程序</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>当前 Redis 版本 7.2.14（仍在维护期）。请人工核对是否为最新补丁版本。</td>
+<td>及时升级到最新稳定版本。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.1：操作系统、数据库管理系统、中间件等平台软件应及时安装补丁程序</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.16</td>
+<td>系统安全-数据库</td>
+<td>输入验证/SQL注入防护</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>Redis 输入（参数）检查属应用层能力（键值校验、命令注入防护），需人工核查应用系统是否对输入做了校验。</td>
+<td>应用层对 Redis 键值输入做合法性校验，避免命令注入。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.16：应具备数据库管理系统输入（参数）检查能力</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.21</td>
+<td>系统安全-数据库</td>
+<td>数据库操作审计</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>Redis 无行级/列级审计概念，操作审计需结合 slowlog 与外部审计工具，请人工确认审计粒度。</td>
+<td>结合外部审计/监控平台记录敏感操作。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.21：数据库管理系统应具有行级或列级审计功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.22</td>
+<td>系统安全-数据库</td>
+<td>数据库审计日志留存</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>独立安全监控与审计措施（第三方监控平台）需人工核查部署情况。</td>
+<td>部署独立监控/审计平台，日志与业务分离存储。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.22：数据库管理系统应采取单独、安全监控、审计措施</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.25</td>
+<td>系统安全-数据库</td>
+<td>边界保护抗攻击防篡改</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>检测到本机防火墙（iptables 规则存在），但边界防护/WAF/网络隔离需结合网络架构人工核查。</td>
+<td>部署边界防护，限制 Redis 暴露面。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.25：检查是否具备边界保护能力，是否可以抗攻击、防篡改</td>
+</tr>
+<tr>
+<td>第2章</td>
+<td>2.16</td>
+<td>系统安全-数据库</td>
+<td>补丁修复升级到最新</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>当前 Redis 版本 7.2.14（仍在维护期）。请人工核对是否已升级到最新版本。</td>
+<td>定期升级到最新版本。</td>
+<td>《配置核查作业指导书》第2章 用户安全 2.16：检查被试装备中操作系统、数据库以及应用软件等是否完成补丁修复和升级到最新版本</td>
+</tr>
+</table>
+<p><b>四、通过（9 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.7</td>
+<td>系统安全-数据库</td>
+<td>数据库账户管理</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>已设置 requirepass 认证口令。</td>
+<td>持续使用强口令并定期更换。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.7：数据库管理系统应删除冗余帐户，应设置不少于8个字符且字母大小写、数字及特殊字符混合编制的账户口令</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.10</td>
+<td>系统安全-数据库</td>
+<td>数据库访问控制</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>protected-mode=yes，bind=127.0.0.1，访问受限。</td>
+<td>持续限制监听地址与访问来源。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.10：数据库管理系统应具有自主访问控制功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.11</td>
+<td>系统安全-数据库</td>
+<td>数据库备份策略</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>已配置 RDB 快照（save=900 1 300 10 60 10000）。</td>
+<td>结合 RDB/AOF 定期备份并异地存储。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.11：数据库管理系统应具有备份和恢复功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.12</td>
+<td>系统安全-数据库</td>
+<td>数据库审计插件</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>slowlog 已启用（slowlog-log-slower-than=10000）。</td>
+<td>结合慢日志与外部审计工具记录关键操作。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.12：数据库管理系统应具有表级审计、告警和阻断功能</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.15</td>
+<td>系统安全-数据库</td>
+<td>数据库远程访问控制</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>已设置认证口令，且访问受限（bind=127.0.0.1，protected-mode=yes）。</td>
+<td>持续限制 Redis 仅对可信终端开放。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.15：应具备数据库管理系统超级管理员远程登录限制能力</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.19</td>
+<td>系统安全-数据库</td>
+<td>数据库默认账户/端口</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>未发现默认端口/无口令问题（端口=6380，已设口令）。</td>
+<td>持续保持非默认端口与强口令。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.19：应更换数据库管理系统的默认服务端口、管理员用户名和口令</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.20</td>
+<td>系统安全-数据库</td>
+<td>数据库安全策略</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>检测到安全策略：maxmemory=104857600，危险命令重命名 0 项，protected-mode=yes。</td>
+<td>完善安全基线：内存上限、危险命令禁用、保护模式。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.20：数据库管理系统应配置安全策略</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.23</td>
+<td>系统安全-数据库</td>
+<td>应用与数据库账户分离</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>访问受限（bind=127.0.0.1，protected-mode=yes），仅为本机/可信来源提供访问。</td>
+<td>持续确保 Redis 仅为应用服务器提供访问。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.23：数据库管理系统仅为应用服务器提供访问服务</td>
+</tr>
+<tr>
+<td>第1章</td>
+<td>1.26</td>
+<td>系统安全-数据库</td>
+<td>防病毒/补丁日志记录</td>
+<td style="color:#2e7d32;font-weight:bold;">合规</td>
+<td>已配置日志文件：logfile=/var/log/redis/redis.log。</td>
+<td>持续确保日志完整记录、留存满足要求。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.26：检查是否有防病毒日志、补丁日志、记录相关信息，记录信息的完整、有效</td>
+</tr>
+</table>
+</body>
+</html>

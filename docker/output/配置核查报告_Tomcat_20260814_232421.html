@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Tomcat 配置核查报告</title>
+<style>
+body{font-family:"Microsoft YaHei",Arial,sans-serif;margin:20px;color:#222;}
+h1{color:#1a3c6e;}
+.meta{background:#f0f4f8;padding:10px 15px;border-radius:6px;margin-bottom:15px;}
+.summary{display:flex;gap:15px;margin-bottom:20px;}
+.card{flex:1;padding:12px;border-radius:6px;text-align:center;color:#fff;}
+.card.pass{background:#2e7d32;} .card.fail{background:#c62828;}
+.card.manual{background:#ef6c00;} .card.na{background:#757575;}
+table{border-collapse:collapse;width:100%;font-size:13px;}
+th,td{border:1px solid #ccc;padding:6px 8px;vertical-align:top;}
+th{background:#1a3c6e;color:#fff;position:sticky;top:0;}
+tr:nth-child(even){background:#f7f9fb;}
+</style>
+</head>
+<body>
+<h1>Tomcat 中间件配置核查报告</h1>
+<div class="meta">
+<div>版本：9.0.118　主机名：5f5d6dcd29ef　核查时间：2026-08-14 23:24:21</div>
+<div>参考标准：配置核查作业指导书正式版2026_4_1 / 配置核查表_v2.0.0.xlsx</div>
+</div>
+<div class="summary">
+<div class="card pass">合规<br>0</div>
+<div class="card fail">不合规<br>1</div>
+<div class="card manual">需人工核查<br>1</div>
+<div class="card na">不适用<br>0</div>
+</div>
+<h2>一、未通过（1 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.14</td>
+<td>系统安全</td>
+<td>中间件安全加固</td>
+<td style="color:#c62828;font-weight:bold;">不合规</td>
+<td>Tomcat 存在以下安全加固缺失：存在默认应用(host-manager manager )；</td>
+<td>按缺失项逐条加固中间件配置。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.14：中间件应采取限制运行权限和使用安全管理通道等安全加固措施</td>
+</tr>
+</table>
+<h2>二、需人工核查（1 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>
+<tr>
+<td>第1章</td>
+<td>1.1</td>
+<td>系统安全</td>
+<td>中间件补丁程序</td>
+<td style="color:#ef6c00;font-weight:bold;">需人工核查</td>
+<td>Tomcat 当前版本 9.0.118，请人工核对是否为最新补丁版本。</td>
+<td>及时升级到最新稳定版本。</td>
+<td>《配置核查作业指导书》第1章 系统安全 1.1：操作系统、数据库管理系统、中间件等平台软件应及时安装补丁程序</td>
+</tr>
+</table>
+</body>
+</html>
