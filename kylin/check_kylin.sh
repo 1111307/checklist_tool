@@ -629,6 +629,29 @@ check_2_4_uniqueaccounts() {
     fi
 }
 
+check_2_3_apppass() {
+    # 指导书 2.3：用户应用口令（OS 层信号：空口令账户 / 图形界面自动登录）
+    if [ ! -r /etc/shadow ]; then
+        add_result "2.3" "用户安全" "应用口令与认证登录" "manual" "无法读取 /etc/shadow，请以 root/sudo 运行后核查空口令账户与自动登录配置。" "第2章" "确保所有账户设置口令并通过认证后使用信息服务。"
+        return
+    fi
+    local empty_users autologin
+    empty_users="$(awk -F: '($2 == "") {print $1}' /etc/shadow 2>/dev/null | head -5 | tr '\n' ' ')"
+    autologin=""
+    if ls /etc/lightdm/*.conf >/dev/null 2>&1; then
+        autologin="$(grep -hEi '^[[:space:]]*autologin-(user|session)[[:space:]]*=[[:space:]]*[^[:space:]#]+' /etc/lightdm/*.conf 2>/dev/null | head -2)"
+    fi
+    [ -z "$autologin" ] && [ -f /etc/sddm.conf ] && autologin="$(grep -Ei '^[[:space:]]*autologin' /etc/sddm.conf 2>/dev/null | grep -vi '^[[:space:]]*#' | head -2)"
+    [ -z "$autologin" ] && ls /etc/gdm*/custom.conf >/dev/null 2>&1 && autologin="$(grep -hEi '^[[:space:]]*AutomaticLoginEnable(d)?[[:space:]]*=[[:space:]]*true' /etc/gdm*/custom.conf 2>/dev/null | head -2)"
+    if [ -n "$empty_users" ]; then
+        add_result "2.3" "用户安全" "应用口令与认证登录" "fail" "/etc/shadow 发现空口令账户：${empty_users}，可无口令登录。" "第2章" "为空口令账户设置口令：passwd 用户名。"
+    elif [ -n "$autologin" ]; then
+        add_result "2.3" "用户安全" "应用口令与认证登录" "fail" "图形界面启用了自动登录（${autologin}），登录无需口令认证。" "第2章" "关闭 lightdm/sddm/gdm 的 autologin/AutomaticLogin 配置。"
+    else
+        add_result "2.3" "用户安全" "应用口令与认证登录" "pass" "未发现空口令账户与自动登录配置，账户均需口令认证。" "第2章" "应用层接入同样启用口令认证，杜绝绕过认证使用信息服务。"
+    fi
+}
+
 check_2_5_redundantservices() {
     local enabled
     enabled="$(run_cmd 'systemctl list-unit-files --state=enabled --type=service 2>/dev/null | wc -l')"
@@ -836,6 +859,27 @@ check_3_5_logprotection() {
         add_result "3.5" "数据安全" "日志读写控制/轮转/完整性保护" "fail" "$detail 日志目录权限过宽，存在未授权读写风险。" "第3章" "收紧/var/log权限至750，配置logrotate轮转与完整性校验。"
     else
         add_result "3.5" "数据安全" "日志读写控制/轮转/完整性保护" "manual" "$detail 日志加密（LUKS/磁盘加密）与TM级数据存储加密需人工确认，脱敏变换配置需人工核查。" "第3章" "对日志采取读写控制、加密、变换、完整性校验，TM级数据存储加密。"
+    fi
+}
+
+check_3_6_dlp() {
+    # 指导书 3.6.3(3)：终端 DLP/管控客户端联动核查（边界设备侧仍需人工核实）
+    local hit pkgs
+    hit=""
+    if command -v pgrep >/dev/null 2>&1; then
+        hit="$(pgrep -a -i -f 'dlp|edr|endpoint|天御|终端安全' 2>/dev/null | head -3)"
+    fi
+    [ -z "$hit" ] && hit="$(ps aux 2>/dev/null | grep -iE 'dlp|edr|endpoint|天御|终端安全' | grep -v grep | head -3)"
+    pkgs=""
+    if command -v rpm >/dev/null 2>&1; then
+        pkgs="$(rpm -qa 2>/dev/null | grep -iE 'dlp|edr|天御' | head -3 | tr '\n' ' ')"
+    elif command -v dpkg >/dev/null 2>&1; then
+        pkgs="$(dpkg -l 2>/dev/null | grep -iE 'dlp|edr|天御' | awk '{print $2}' | head -3 | tr '\n' ' ')"
+    fi
+    if [ -n "$hit" ] || [ -n "$pkgs" ]; then
+        add_result "3.6" "数据安全" "边界防泄漏(DLP)终端联动" "pass" "检测到 DLP/终端管控客户端：${hit:-}${pkgs}。边界设备内容过滤与敏感内容识别策略仍需人工核实。" "第3章" "持续核查 DLP 覆盖主要外发通道并留存告警拦截日志。"
+    else
+        add_result "3.6" "数据安全" "边界防泄漏(DLP)终端联动" "fail" "本机未检测到 DLP/终端管控客户端进程或安装包；仅依赖本机防火墙/杀毒按指导书 3.6.2 不宜判定符合。" "第3章" "部署统一 DLP/终端管控客户端，并在边界设备启用内容过滤与敏感内容识别策略。"
     fi
 }
 
@@ -1362,12 +1406,12 @@ add_manual_checks() {
     add_result "1.26_m" "系统安全" "日志留存与更新记录完整性" "manual" "系统更新日志、安全日志的完整留存情况需人工二次确认（自动化核查仅覆盖当前可读取部分）。" "第1章" "确保更新日志、安全事件日志按制度要求完整留存，不被提前清理。"
 
     # ---- 第2章 补充 ----
-    add_result "2.3" "用户安全" "移动端应用锁屏与口令验证" "na" "本机为服务器/工作站操作系统，移动端应用锁屏及口令验证保护不适用于本检查对象。" "第2章" "如涉及移动端接入，应启用应用锁屏及口令验证保护。"
+    # 2.3 已由 check_2_3_apppass 真实检测（空口令/自动登录）
     add_result "2.11_m" "用户安全" "口令认证硬件Key（双因子）" "na" "是否采用硬件Key等双因子认证方式需结合具体业务系统评估，本次系统级核查不适用。" "第2章" "对高权限账户建议启用硬件Key等双因子认证方式。"
 
     # ---- 第3章 补充（数据安全）----
     add_result "3.4" "数据安全" "涉密载体物理销毁(消磁/粉碎/溶解)" "manual" "确定销毁的涉密载体应采取消磁、粉碎、溶解、化浆、熔化等物理销毁，属管理流程层需人工核查销毁档案与影像。无OS层方法。" "第3章" "涉密载体销毁应双人操作、全程监控、留存销毁档案。"
-    add_result "3.6" "数据安全" "数据边界防泄漏(DLP)" "na" "数据边界防泄漏/防篡改措施属于业务/网络边界层面，本次系统核查不适用。" "第3章" "在数据边界部署防泄漏(DLP)与防篡改措施。"
+    # 3.6 已由 check_3_6_dlp 真实检测（终端 DLP 客户端联动）
     add_result "3.12" "数据安全" "数据采集是否超出业务需求" "manual" "数据采集范围是否超出业务需求需人工核查。指导书方法：sc query查采集/同步服务、数据库表/字段与业务清单比对、采集日志抽查来源频率。" "第3章" "数据采集应限定在业务必要范围内。"
     add_result "3.14" "数据安全" "数据访问分级+审计+大数据统一管控" "manual" "大数据访问统一管控需覆盖OS层+大数据平台层+数据库层。指导书v2.1 3.14.3补充：大数据平台(HDFS ACL:hdfs dfs -getfacl; Hive权限:beeline -e \"SHOW GRANT\"; Apache Ranger策略页面; Kerberos:klist)、统一管控(ss -tlnp | grep ':50070\\|:10000\\|:8020'确认无直连旁路)、数据库审计覆盖大数据查询。" "第3章" "对大数据访问提供统一管控和访问控制。"
 
@@ -1706,6 +1750,7 @@ check_1_23_dbappsep
 
 # ---------- 第2章 用户安全 ----------
 check_2_1_passwordexpiry
+check_2_3_apppass
 check_2_4_uniqueaccounts
 check_2_5_redundantservices
 check_2_2_userpatch
@@ -1724,6 +1769,7 @@ check_2_14_useraudit
 # ---------- 第3章 数据安全 ----------
 check_3_1_encryption
 check_3_5_logprotection
+check_3_6_dlp
 check_3_10_shares
 check_3_8_storagepartition
 check_3_2_transferaudit

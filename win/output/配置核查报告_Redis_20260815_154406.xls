@@ -1,0 +1,40 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta http-equiv="Content-Type" content="text/html; charset=GBK">
+<style>td,th{border:1px solid #bbb;padding:4px 6px}th.hd{background:#007bff;color:#fff}</style></head><body>
+<table cellspacing="0">
+<tr><td colspan="7"><b>Redis 配置核查报告</b></td></tr>
+<tr><td colspan="7">连接：127.0.0.1:6380  版本：8.10.0</td></tr>
+<tr><th class="hd">编号</th><th class="hd">类别</th><th class="hd">检查项</th><th class="hd">状态</th><th class="hd">详情</th><th class="hd">修复建议</th><th class="hd">章节</th></tr>
+<tr><td>1.1</td><td>系统安全-数据库</td><td>数据库补丁程序</td>
+<td>需人工核查</td><td>Redis 版本 8.10.0（仍在维护期），请人工核对最新补丁。</td><td>及时升级到最新稳定版本。</td><td>第1章</td></tr>
+<tr><td>1.7</td><td>系统安全-数据库</td><td>数据库账户管理</td>
+<td>通过</td><td>已设置 requirepass 认证口令。</td><td>持续使用强口令并定期更换。</td><td>第1章</td></tr>
+<tr><td>1.8</td><td>系统安全-数据库</td><td>数据库存储过程管理</td>
+<td>未通过</td><td>以下高危命令未禁用：FLUSHALL FLUSHDB EVAL SHUTDOWN</td><td>rename-command 禁用高危命令。</td><td>第1章</td></tr>
+<tr><td>1.10</td><td>系统安全-数据库</td><td>数据库访问控制</td>
+<td>通过</td><td>protected-mode=yes，bind=127.0.0.1 -::1，访问受限。</td><td>持续限制监听地址。</td><td>第1章</td></tr>
+<tr><td>1.11</td><td>系统安全-数据库</td><td>数据库备份策略</td>
+<td>通过</td><td>已配置 RDB 快照（save=3600 1 300 100 60 10000）。</td><td>结合 RDB/AOF 定期备份。</td><td>第1章</td></tr>
+<tr><td>1.12</td><td>系统安全-数据库</td><td>数据库审计插件</td>
+<td>通过</td><td>slowlog 已启用。</td><td>结合慢日志与外部审计。</td><td>第1章</td></tr>
+<tr><td>1.15</td><td>系统安全-数据库</td><td>数据库远程访问控制</td>
+<td>通过</td><td>已设口令且访问受限。</td><td>持续限制远程来源。</td><td>第1章</td></tr>
+<tr><td>1.16</td><td>系统安全-数据库</td><td>输入验证/SQL注入防护</td>
+<td>需人工核查</td><td>Redis 输入检查属应用层能力，需人工核查。</td><td>应用层校验输入。</td><td>第1章</td></tr>
+<tr><td>1.19</td><td>系统安全-数据库</td><td>数据库默认账户/端口</td>
+<td>通过</td><td>未发现默认端口/无口令问题。</td><td>持续保持。</td><td>第1章</td></tr>
+<tr><td>1.20</td><td>系统安全-数据库</td><td>数据库安全策略</td>
+<td>通过</td><td>检测到安全策略（maxmemory=0，protected-mode=yes）。</td><td>完善安全基线。</td><td>第1章</td></tr>
+<tr><td>1.21</td><td>系统安全-数据库</td><td>数据库操作审计</td>
+<td>需人工核查</td><td>Redis 无行级/列级审计，需结合外部审计工具。</td><td>结合外部审计。</td><td>第1章</td></tr>
+<tr><td>1.22</td><td>系统安全-数据库</td><td>数据库审计日志留存</td>
+<td>需人工核查</td><td>独立监控审计需人工核查。</td><td>部署独立监控。</td><td>第1章</td></tr>
+<tr><td>1.23</td><td>系统安全-数据库</td><td>应用与数据库账户分离</td>
+<td>通过</td><td>访问受限（bind=127.0.0.1 -::1）。</td><td>持续确保仅应用服务器访问。</td><td>第1章</td></tr>
+<tr><td>1.25</td><td>系统安全-数据库</td><td>边界保护抗攻击防篡改</td>
+<td>需人工核查</td><td>检测到 Windows 防火墙启用，但边界防护需人工核查。</td><td>部署边界防护。</td><td>第1章</td></tr>
+<tr><td>1.26</td><td>系统安全-数据库</td><td>防病毒/补丁日志记录</td>
+<td>通过</td><td>已配置日志文件：logfile</td><td>确保日志完整。</td><td>第1章</td></tr>
+<tr><td>2.16</td><td>系统安全-数据库</td><td>补丁修复升级到最新</td>
+<td>需人工核查</td><td>Redis 版本 8.10.0，请人工核对最新。</td><td>定期升级。</td><td>第2章</td></tr>
+</table></body></html>

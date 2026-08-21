@@ -1,0 +1,46 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta http-equiv="Content-Type" content="text/html; charset=GBK">
+<style>td,th{border:1px solid #bbb;padding:4px 6px}th.hd{background:#007bff;color:#fff}</style></head><body>
+<table cellspacing="0">
+<tr><td colspan="7"><b>MySQL 数据库配置核查报告</b></td></tr>
+<tr><td colspan="7">连接：root@127.0.0.1:3307  版本：12.3.2-MariaDB-log<br></td></tr>
+<tr><th class="hd">编号</th><th class="hd">类别</th><th class="hd">检查项</th><th class="hd">状态</th><th class="hd">详情</th><th class="hd">修复建议</th><th class="hd">章节</th></tr>
+<tr><td>1.1</td><td>系统安全-数据库</td><td>数据库补丁程序</td>
+<td>需人工核查</td><td>当前版本 12.3.2-MariaDB-log<br>（仍在维护期）。请人工核对是否为最新补丁版本。</td><td>及时升级到最新稳定补丁版本。</td><td>第1章</td></tr>
+<tr><td>1.7</td><td>系统安全-数据库</td><td>数据库账户管理</td>
+<td>通过</td><td>未发现匿名账户或空口令账户。</td><td>持续定期核查账户。</td><td>第1章</td></tr>
+<tr><td>1.8</td><td>系统安全-数据库</td><td>数据库存储过程管理</td>
+<td>通过</td><td>未发现高风险 UDF。</td><td>持续控制存储过程与 UDF 数量。</td><td>第1章</td></tr>
+<tr><td>1.9</td><td>系统安全-数据库</td><td>数据库权限最小化</td>
+<td>通过</td><td>未发现危险全局权限账户。</td><td>持续最小权限。</td><td>第1章</td></tr>
+<tr><td>1.10</td><td>系统安全-数据库</td><td>数据库访问控制</td>
+<td>需人工核查</td><td>bind_address=，请人工确认监听范围。</td><td>限制监听地址。</td><td>第1章</td></tr>
+<tr><td>1.11</td><td>系统安全-数据库</td><td>数据库备份策略</td>
+<td>需人工核查</td><td>log_bin=ON，但需人工确认定期备份计划。</td><td>建立定期备份并验证可恢复。</td><td>第1章</td></tr>
+<tr><td>1.12</td><td>系统安全-数据库</td><td>数据库审计插件</td>
+<td>通过</td><td>general_log=ON。</td><td>升级为专用审计插件。</td><td>第1章</td></tr>
+<tr><td>1.13</td><td>系统安全-数据库</td><td>数据库与业务隔离</td>
+<td>需人工核查</td><td>数据分类独立存储需人工核查。</td><td>分类独立存储。</td><td>第1章</td></tr>
+<tr><td>1.15</td><td>系统安全-数据库</td><td>数据库远程访问控制</td>
+<td>需人工核查</td><td>请人工确认超管远程限制。</td><td>限制来源。</td><td>第1章</td></tr>
+<tr><td>1.16</td><td>系统安全-数据库</td><td>输入验证/SQL注入防护</td>
+<td>需人工核查</td><td>属应用层能力，需人工核查。</td><td>应用层参数化查询。</td><td>第1章</td></tr>
+<tr><td>1.19</td><td>系统安全-数据库</td><td>数据库默认账户/端口</td>
+<td>通过</td><td>未发现默认端口/空口令。</td><td>持续保持。</td><td>第1章</td></tr>
+<tr><td>1.20</td><td>系统安全-数据库</td><td>数据库安全策略</td>
+<td>通过</td><td>检测到安全策略（validate_password=，secure_file_priv=C:\\）。</td><td>完善策略。</td><td>第1章</td></tr>
+<tr><td>1.21</td><td>系统安全-数据库</td><td>数据库操作审计</td>
+<td>需人工核查</td><td>行/列级审计需人工确认。</td><td>配置审计策略。</td><td>第1章</td></tr>
+<tr><td>1.22</td><td>系统安全-数据库</td><td>数据库审计日志留存</td>
+<td>需人工核查</td><td>独立监控需人工核查。</td><td>部署独立监控。</td><td>第1章</td></tr>
+<tr><td>1.23</td><td>系统安全-数据库</td><td>应用与数据库账户分离</td>
+<td>需人工核查</td><td>请人工确认。</td><td>限制访问。</td><td>第1章</td></tr>
+<tr><td>1.24</td><td>系统安全-数据库</td><td>日志审计留存180天</td>
+<td>需人工核查</td><td>请人工核实留存时长。</td><td>配置留存。</td><td>第1章</td></tr>
+<tr><td>1.25</td><td>系统安全-数据库</td><td>边界保护抗攻击防篡改</td>
+<td>需人工核查</td><td>检测到防火墙启用，边界防护需人工核查。</td><td>部署边界防护。</td><td>第1章</td></tr>
+<tr><td>1.26</td><td>系统安全-数据库</td><td>防病毒/补丁日志记录</td>
+<td>通过</td><td>错误日志已配置：C:\\Users\\ryan.xiong\\scoop\\apps\\mariadb\\current\\data\\DESKTOP-69GEJ2G.err</td><td>保持。</td><td>第1章</td></tr>
+<tr><td>2.16</td><td>系统安全-数据库</td><td>补丁修复升级到最新</td>
+<td>需人工核查</td><td>版本 12.3.2-MariaDB-log<br>，请人工核对最新。</td><td>定期升级。</td><td>第2章</td></tr>
+</table></body></html>

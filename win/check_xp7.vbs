@@ -90,6 +90,7 @@ Call Check_1_23_DbAppSep()
 
 ' ---------- 第2章 用户安全 ----------
 Call Check_2_1_PasswordExpiry()
+Call Check_2_3_AppPass()
 Call Check_2_4_UniqueAccounts()
 Call Check_2_5_RedundantServices()
 Call Check_2_2_UserPatch()
@@ -108,6 +109,7 @@ Call Check_2_14_UserAudit()
 ' ---------- 第3章 数据安全 ----------
 Call Check_3_1_Encryption()
 Call Check_3_5_LogProtection()
+Call Check_3_6_DLP()
 Call Check_3_10_Shares()
 Call Check_3_8_StoragePartition()
 Call Check_3_2_DataTransfer()
@@ -2353,6 +2355,57 @@ End Sub
 ' 手动核查（第5-9章）
 ' ============================================================
 
+' ============================================================
+' 2.3 用户应用口令与认证（自动登录/空口令限制）
+' ============================================================
+Sub Check_2_3_AppPass()
+    Dim outAuto : outAuto = RunCmd("reg query ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"" /v AutoAdminLogon 2>nul")
+    Dim outBlank : outBlank = RunCmd("reg query HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v LimitBlankPasswordUse 2>nul")
+    Dim autoOn : autoOn = False
+    If InStr(outAuto, "0x1") > 0 Then autoOn = True
+    Dim blankBlocked : blankBlocked = False
+    If InStr(outBlank, "0x1") > 0 Then blankBlocked = True
+    If autoOn Then
+        Call AddResult("2.3", "用户安全", "应用口令与认证登录（自动登录/空口令）", _
+                       "fail", "注册表 AutoAdminLogon=1，系统启动后自动登录，无需口令认证。", _
+                       "第2章 第2.3节", "删除 Winlogon 下 AutoAdminLogon/DefaultPassword 配置，确保登录需口令认证。")
+    ElseIf Not blankBlocked Then
+        Call AddResult("2.3", "用户安全", "应用口令与认证登录（自动登录/空口令）", _
+                       "fail", "注册表 LimitBlankPasswordUse 未设为 1，空口令账户可用于网络登录。", _
+                       "第2章 第2.3节", "设置 HKLM\SYSTEM\CurrentControlSet\Control\Lsa\LimitBlankPasswordUse=1。")
+    Else
+        Call AddResult("2.3", "用户安全", "应用口令与认证登录（自动登录/空口令）", _
+                       "pass", "未发现自动登录配置，空口令账户已被限制网络登录。", _
+                       "第2章 第2.3节", "")
+    End If
+End Sub
+
+' ============================================================
+' 3.6 边界防泄漏（终端 DLP/管控客户端联动）
+' ============================================================
+Sub Check_3_6_DLP()
+    Dim procs : procs = LCase(RunCmd("tasklist 2>nul"))
+    Dim regOut : regOut = LCase(RunCmdCached("reg query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall /s /v DisplayName 2>nul") & RunCmdCached("reg query HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall /s /v DisplayName 2>nul"))
+    Dim kws : kws = Array("dlp", "edr", "endpoint", "sangfor", "nsfocus", "topsec", "qianxin", "tianqing", "zhijia")
+    Dim hit : hit = ""
+    Dim k
+    For Each k In kws
+        If InStr(procs, k) > 0 Or InStr(regOut, k) > 0 Then
+            hit = k
+            Exit For
+        End If
+    Next
+    If hit <> "" Then
+        Call AddResult("3.6", "数据安全", "边界防泄漏(DLP)终端联动", _
+                       "pass", "检测到 DLP/终端管控客户端信号（关键词：" & hit & "）。边界设备内容过滤与敏感内容识别策略仍需人工核实。", _
+                       "第3章 第3.6节", "持续核查 DLP 覆盖主要外发通道并留存告警拦截日志。")
+    Else
+        Call AddResult("3.6", "数据安全", "边界防泄漏(DLP)终端联动", _
+                       "fail", "本机未检测到 DLP/终端管控客户端进程或安装记录；仅依赖本机防火墙/杀毒按指导书 3.6.2 不宜判定符合。", _
+                       "第3章 第3.6节", "部署统一 DLP/终端管控客户端，并在边界设备启用内容过滤与敏感内容识别策略。")
+    End If
+End Sub
+
 Sub AddManualChecks()
     ' ---------- 手动核查项 ----------
     Call AddResult("1.26_m","系统安全","防病毒日志/补丁日志记录完整有效（人工确认）","manual","请现场核查防病毒和Windows Update日志记录是否完整有效","第1章 第1.26节","参照作业指导书对应章节进行现场核查")
@@ -2416,10 +2469,8 @@ Sub AddManualChecks()
     Call AddResult("4.28","应用安全","应有效防护并阻断SQL注入/XSS/DoS等应用层攻击","manual","需人工核查。指导书方法：curl 查安全头，curl 构造 SQLi/XSS/DoS 观察返回","第4章 第4.28节","")
     Call AddResult("4.29","应用安全","对用户登录和权限统一管理控制","manual","需人工核查。指导书方法：检查 IAM/CAS/OAuth2.0/SSO 统一认证接入与权限变更记录","第4章 第4.29节","")
     Call AddResult("4.31","应用安全","应满足请求并分会话数/带宽/单用户连接限制","manual","需人工核查。指导书方法：检查中间件并发会话数/带宽/单用户连接限制配置","第4章 第4.31节","")
-    Call AddResult("2.3","用户安全","用户应用接入应用考勤，通过身份认证使用应用信息接入","na","请核查业务系统统一身份认证机制","第2章 第2.3节","")
     Call AddResult("2.11_m","用户安全","口令认证采用身份认证或专用的硬件或软件","na","请结合硬件USB Key/密码卡/指纹，超出本脚本范围","第2章 第2.11节","")
     Call AddResult("3.4","数据安全","确保涉密数据的传输/存储/备份等过程安全传输","manual","需人工核查涉密载体物理销毁（消磁/粉碎/溶解等）档案与影像记录","第3章 第3.4节","")
-    Call AddResult("3.6","数据安全","网络边界具备信息防泄露/防篡改等数据防泄露","na","请核查边界设备DLP配置","第3章 第3.6节","")
     Call AddResult("3.12","数据安全","数据采集未超出业务必要范围","manual","需人工核查。指导书方法：sc query 查采集/同步服务，比对数据库表字段与业务清单，抽查采集日志来源频率","第3章 第3.12节","")
     Call AddResult("3.14","数据安全","涉密分类提供统一管控和访问控制，应为最小化","manual","需人工核查大数据访问统一管控（OS层+大数据平台层+数据库层）与最小化授权","第3章 第3.14节","")
     Call AddResult("10.1_m","协议安全审计","涉密协议认证/通信口令/密钥分发管理","na","请核查密钥签名/证书管控和通信日志留存情况","第10章 第10.1节","")

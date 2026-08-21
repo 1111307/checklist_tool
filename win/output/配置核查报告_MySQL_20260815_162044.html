@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="GBK">
+<title>MySQL 配置核查报告</title>
+<style>body{font-family:'Microsoft YaHei',Arial,sans-serif;margin:20px;background:#f5f5f5}
+h1{color:#333;text-align:center}h2{margin-top:30px}
+.sum{background:white;padding:20px;margin:20px 0;border-radius:5px}
+.pass{color:#28a745}.fail{color:#dc3545}.manual{color:#e67e00}.na{color:#6c757d}
+table{width:100%;border-collapse:collapse;background:white;margin:20px 0}
+th,td{padding:8px;text-align:left;border-bottom:1px solid #ddd}
+th{background:#007bff;color:white}
+.det{white-space:pre-wrap;word-wrap:break-word;max-width:400px}
+.rec{background:#fff3cd;padding:8px;border-left:3px solid #ffc107}
+.ch{color:#666;font-size:.9em}</style></head><body>
+<h1>MySQL 数据库配置核查报告</h1>
+<p style="text-align:center;color:#666">连接：root@127.0.0.1:3307　版本：12.3.2-MariaDB-log<br>　核查时间：2026/8/15 16:20:44</p>
+<div class="sum"><h2>核查摘要</h2>
+<p><strong>总核查项：</strong>19 项</p>
+<p class="pass"><strong>通过：</strong>7 项</p>
+<p class="fail"><strong>未通过：</strong>0 项</p>
+<p class="manual"><strong>需人工核查：</strong>12 项</p>
+<p class="na"><strong>不适用：</strong>0 项</p>
+</div>
+<h2 class="manual">需人工核查项目（12 项）</h2>
+<table><tr><th>编号</th><th>类别</th><th>检查项</th><th>核查要求</th><th>章节</th></tr>
+<tr><td>1.1</td><td>系统安全-数据库</td><td>数据库补丁程序</td>
+<td class="det">当前版本 12.3.2-MariaDB-log<br>（仍在维护期）。请人工核对是否为最新补丁版本。</td><td class="ch">第1章</td></tr>
+<tr><td>1.10</td><td>系统安全-数据库</td><td>数据库访问控制</td>
+<td class="det">bind_address=，请人工确认监听范围。</td><td class="ch">第1章</td></tr>
+<tr><td>1.11</td><td>系统安全-数据库</td><td>数据库备份策略</td>
+<td class="det">log_bin=ON，但需人工确认定期备份计划。</td><td class="ch">第1章</td></tr>
+<tr><td>1.13</td><td>系统安全-数据库</td><td>数据库与业务隔离</td>
+<td class="det">数据分类独立存储需人工核查。</td><td class="ch">第1章</td></tr>
+<tr><td>1.15</td><td>系统安全-数据库</td><td>数据库远程访问控制</td>
+<td class="det">请人工确认超管远程限制。</td><td class="ch">第1章</td></tr>
+<tr><td>1.16</td><td>系统安全-数据库</td><td>输入验证/SQL注入防护</td>
+<td class="det">属应用层能力，需人工核查。</td><td class="ch">第1章</td></tr>
+<tr><td>1.21</td><td>系统安全-数据库</td><td>数据库操作审计</td>
+<td class="det">行/列级审计需人工确认。</td><td class="ch">第1章</td></tr>
+<tr><td>1.22</td><td>系统安全-数据库</td><td>数据库审计日志留存</td>
+<td class="det">独立监控需人工核查。</td><td class="ch">第1章</td></tr>
+<tr><td>1.23</td><td>系统安全-数据库</td><td>应用与数据库账户分离</td>
+<td class="det">请人工确认。</td><td class="ch">第1章</td></tr>
+<tr><td>1.24</td><td>系统安全-数据库</td><td>日志审计留存180天</td>
+<td class="det">请人工核实留存时长。</td><td class="ch">第1章</td></tr>
+<tr><td>1.25</td><td>系统安全-数据库</td><td>边界保护抗攻击防篡改</td>
+<td class="det">检测到防火墙启用，边界防护需人工核查。</td><td class="ch">第1章</td></tr>
+<tr><td>2.16</td><td>系统安全-数据库</td><td>补丁修复升级到最新</td>
+<td class="det">版本 12.3.2-MariaDB-log<br>，请人工核对最新。</td><td class="ch">第2章</td></tr>
+</table>
+<h2 class="pass">通过项目（7 项）</h2>
+<table><tr><th>编号</th><th>类别</th><th>检查项</th><th>详情</th><th>章节</th></tr>
+<tr><td>1.7</td><td>系统安全-数据库</td><td>数据库账户管理</td>
+<td class="det">未发现匿名账户或空口令账户。</td><td class="ch">第1章</td></tr>
+<tr><td>1.8</td><td>系统安全-数据库</td><td>数据库存储过程管理</td>
+<td class="det">未发现高风险 UDF。</td><td class="ch">第1章</td></tr>
+<tr><td>1.9</td><td>系统安全-数据库</td><td>数据库权限最小化</td>
+<td class="det">未发现危险全局权限账户。</td><td class="ch">第1章</td></tr>
+<tr><td>1.12</td><td>系统安全-数据库</td><td>数据库审计插件</td>
+<td class="det">general_log=ON。</td><td class="ch">第1章</td></tr>
+<tr><td>1.19</td><td>系统安全-数据库</td><td>数据库默认账户/端口</td>
+<td class="det">未发现默认端口/空口令。</td><td class="ch">第1章</td></tr>
+<tr><td>1.20</td><td>系统安全-数据库</td><td>数据库安全策略</td>
+<td class="det">检测到安全策略（validate_password=，secure_file_priv=C:\\）。</td><td class="ch">第1章</td></tr>
+<tr><td>1.26</td><td>系统安全-数据库</td><td>防病毒/补丁日志记录</td>
+<td class="det">错误日志已配置：C:\\Users\\ryan.xiong\\scoop\\apps\\mariadb\\current\\data\\DESKTOP-69GEJ2G.err</td><td class="ch">第1章</td></tr>
+</table>
+</body></html>

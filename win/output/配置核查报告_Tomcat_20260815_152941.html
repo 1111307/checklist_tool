@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="GBK">
+<title>Tomcat 配置核查报告</title>
+<style>body{font-family:'Microsoft YaHei',Arial,sans-serif;margin:20px;background:#f5f5f5}
+h1{color:#333;text-align:center}h2{margin-top:30px}
+.sum{background:white;padding:20px;margin:20px 0;border-radius:5px}
+.pass{color:#28a745}.fail{color:#dc3545}.manual{color:#e67e00}.na{color:#6c757d}
+table{width:100%;border-collapse:collapse;background:white;margin:20px 0}
+th,td{padding:8px;text-align:left;border-bottom:1px solid #ddd}
+th{background:#007bff;color:white}
+.det{white-space:pre-wrap;word-wrap:break-word;max-width:400px}
+.rec{background:#fff3cd;padding:8px;border-left:3px solid #ffc107}
+.ch{color:#666;font-size:.9em}</style></head><body>
+<h1>Tomcat 中间件配置核查报告</h1>
+<p style="text-align:center;color:#666">版本：Apache Tomcat/11.0.24　核查时间：2026/8/15 15:29:41</p>
+<div class="sum"><h2>核查摘要</h2>
+<p><strong>总核查项：</strong>8 项</p>
+<p class="pass"><strong>通过：</strong>0 项</p>
+<p class="fail"><strong>未通过：</strong>3 项</p>
+<p class="manual"><strong>需人工核查：</strong>5 项</p>
+<p class="na"><strong>不适用：</strong>0 项</p>
+</div>
+<h2 class="fail">未通过项目（3 项）</h2>
+<table><tr><th>编号</th><th>类别</th><th>检查项</th><th>详情</th><th>修复建议</th><th>章节</th></tr>
+<tr><td>1.14</td><td>系统安全</td><td>中间件安全加固</td>
+<td class="det">Tomcat 存在安全加固缺失：存在默认应用(manager host-manager docs examples)；</td><td class="rec">按缺失项逐条加固。</td><td class="ch">第1章</td></tr>
+<tr><td>4.22</td><td>应用安全</td><td>更改默认服务发布端口</td>
+<td class="det">仍使用默认 8080 端口发布服务。</td><td class="rec">更改默认 8080 端口。</td><td class="ch">第4章</td></tr>
+<tr><td>4.23</td><td>应用安全</td><td>管理端口与应用端口分离</td>
+<td class="det">管理端口（shutdown）仍为默认 8005，应更改。</td><td class="rec">更改默认 shutdown 端口。</td><td class="ch">第4章</td></tr>
+</table>
+<h2 class="manual">需人工核查项目（5 项）</h2>
+<table><tr><th>编号</th><th>类别</th><th>检查项</th><th>核查要求</th><th>章节</th></tr>
+<tr><td>1.1</td><td>系统安全</td><td>中间件补丁程序</td>
+<td class="det">Tomcat 当前版本 Apache Tomcat/11.0.24，请人工核对最新补丁。</td><td class="ch">第1章</td></tr>
+<tr><td>4.5</td><td>应用安全</td><td>防DDoS攻击能力</td>
+<td class="det">Tomcat 无内置 DDoS 防护，需结合前置防火墙/WAF，请人工核查。</td><td class="ch">第4章</td></tr>
+<tr><td>4.6</td><td>应用安全</td><td>Web防护措施</td>
+<td class="det">Tomcat 需前置 WAF 防护，请人工核查是否已部署。</td><td class="ch">第4章</td></tr>
+<tr><td>4.8</td><td>应用安全</td><td>网页防篡改</td>
+<td class="det">未检测到防篡改工具（AIDE/tripwire），请人工核查。</td><td class="ch">第4章</td></tr>
+<tr><td>4.9</td><td>应用安全</td><td>防范SQL注入/XSS</td>
+<td class="det">SQL 注入/跨站脚本防护属应用层能力，需结合 WAF 与代码审计人工核查。</td><td class="ch">第4章</td></tr>
+</table>
+</body></html>
