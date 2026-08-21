@@ -447,6 +447,26 @@ End Sub
 ' ============================================================
 ' 生成 HTML 报告
 ' ============================================================
+Function JsonEsc(s)
+    Dim t : t = s
+    If IsNull(t) Then t = ""
+    t = Replace(t, "\", "\\")
+    t = Replace(t, """", "\""")
+    t = Replace(t, vbCrLf, " ")
+    t = Replace(t, vbCr, " ")
+    t = Replace(t, vbLf, " ")
+    t = Replace(t, vbTab, " ")
+    JsonEsc = t
+End Function
+
+Function PctOf(a, t)
+    If t = 0 Then
+        PctOf = "0.0"
+    Else
+        PctOf = CStr(Round(a * 100 / t, 1))
+    End If
+End Function
+
 Sub GenerateHTML()
     Dim outDir : outDir = "output"
     If Not oFSO.FolderExists(outDir) Then oFSO.CreateFolder(outDir)
@@ -470,80 +490,151 @@ Sub GenerateHTML()
             nNA = nNA + 1
         End If
     Next
+    Dim p_pass, p_fail, p_manual, p_na
+    p_pass = PctOf(nPass, rCount) : p_fail = PctOf(nFail, rCount)
+    p_manual = PctOf(nManual, rCount) : p_na = PctOf(nNA, rCount)
 
-    ts.WriteLine "<!DOCTYPE html><html lang=""zh-CN""><head><meta charset=""GBK"">"
-    ts.WriteLine "<title>MySQL 配置核查报告</title>"
-    ts.WriteLine "<style>body{font-family:'Microsoft YaHei',Arial,sans-serif;margin:20px;background:#f5f5f5}"
-    ts.WriteLine "h1{color:#333;text-align:center}h2{margin-top:30px}"
-    ts.WriteLine ".sum{background:white;padding:20px;margin:20px 0;border-radius:5px}"
-    ts.WriteLine ".pass{color:#28a745}.fail{color:#dc3545}.manual{color:#e67e00}.na{color:#6c757d}"
-    ts.WriteLine "table{width:100%;border-collapse:collapse;background:white;margin:20px 0}"
-    ts.WriteLine "th,td{padding:8px;text-align:left;border-bottom:1px solid #ddd}"
-    ts.WriteLine "th{background:#007bff;color:white}"
-    ts.WriteLine ".det{white-space:pre-wrap;word-wrap:break-word;max-width:400px}"
-    ts.WriteLine ".rec{background:#fff3cd;padding:8px;border-left:3px solid #ffc107}"
-    ts.WriteLine ".ch{color:#666;font-size:.9em}</style></head><body>"
-    ts.WriteLine "<h1>MySQL 数据库配置核查报告</h1>"
-    ts.WriteLine "<p style=""text-align:center;color:#666"">连接：" & HtmlEsc(MYSQL_USER & "@" & MYSQL_HOST & ":" & MYSQL_PORT) & "　版本：" & HtmlEsc(DB_VERSION) & "　核查时间：" & CStr(Now()) & "</p>"
-    ts.WriteLine "<div class=""sum""><h2>核查摘要</h2>"
-    ts.WriteLine "<p><strong>总核查项：</strong>" & rCount & " 项</p>"
-    ts.WriteLine "<p class=""pass""><strong>通过：</strong>" & nPass & " 项</p>"
-    ts.WriteLine "<p class=""fail""><strong>未通过：</strong>" & nFail & " 项</p>"
-    ts.WriteLine "<p class=""manual""><strong>需人工核查：</strong>" & nManual & " 项</p>"
-    ts.WriteLine "<p class=""na""><strong>不适用：</strong>" & nNA & " 项</p>"
+    ' DATA 数组（JSON）：rChapter 形如「第2章 第2.3节」，拆为 ch / guide
+    Dim dataStr : dataStr = ""
+    Dim chPart, guidePart, spPos
+    For i = 0 To rCount - 1
+        If i > 0 Then dataStr = dataStr & ","
+        chPart = CStr(rChapter(i)) : guidePart = ""
+        spPos = InStr(chPart, " ")
+        If spPos > 0 Then
+            guidePart = Trim(Mid(chPart, spPos + 1))
+            chPart = Left(chPart, spPos - 1)
+        End If
+        dataStr = dataStr & "{""ch"":""" & JsonEsc(chPart) & """,""id"":""" & JsonEsc(rID(i)) & """,""cat"":""" & JsonEsc(rCat(i)) & """,""title"":""" & JsonEsc(rTitle(i)) & """,""status"":""" & JsonEsc(rStatus(i)) & """,""detail"":""" & JsonEsc(rDetail(i)) & """,""rec"":""" & JsonEsc(rRec(i)) & """,""guide"":""" & JsonEsc(guidePart) & """}"
+    Next
+
+    ts.WriteLine "<style>"
+    ts.WriteLine ":root{--bg:#f5f7fa;--card:#fff;--ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;--brand:#0f3057;--brand2:#1a3c6e;--pass:#15803d;--pass-bg:#ecfdf5;--pass-br:#bbf7d0;--fail:#b91c1c;--fail-bg:#fef2f2;--fail-br:#fecaca;--manual:#b45309;--manual-bg:#fffbeb;--manual-br:#fde68a;--na:#4b5563;--na-bg:#f3f4f6;--na-br:#e5e7eb;}"
+    ts.WriteLine "*{box-sizing:border-box;}"
+    ts.WriteLine "body{margin:0;font:14px/1.65 ""Segoe UI"",""Microsoft YaHei"",system-ui,sans-serif;color:var(--ink);background:var(--bg);}"
+    ts.WriteLine ".wrap{max-width:1240px;margin:0 auto;padding:24px 20px 60px;}"
+    ts.WriteLine "header{background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 60%,#2563eb 130%);color:#fff;border-radius:12px;padding:26px 30px;margin-bottom:20px;}"
+    ts.WriteLine "header h1{margin:0 0 6px;font-size:22px;letter-spacing:.5px;}"
+    ts.WriteLine "header .sub{opacity:.85;font-size:13px;}"
+    ts.WriteLine ".meta{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.25);font-size:13px;}"
+    ts.WriteLine ".meta div{opacity:.95;}"
+    ts.WriteLine ".meta b{font-weight:600;opacity:.75;margin-right:6px;}"
+    ts.WriteLine ".dash{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}"
+    ts.WriteLine ".stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 16px 14px;position:relative;overflow:hidden;cursor:pointer;transition:transform .15s, box-shadow .15s;}"
+    ts.WriteLine ".stat:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(15,48,87,.10);}"
+    ts.WriteLine ".stat .num{font-size:34px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;}"
+    ts.WriteLine ".stat .lbl{color:var(--muted);font-size:13px;margin-top:2px;}"
+    ts.WriteLine ".stat .bar{height:4px;border-radius:2px;margin-top:12px;background:var(--line);}"
+    ts.WriteLine ".stat .bar i{display:block;height:100%;border-radius:2px;}"
+    ts.WriteLine ".stat.s-pass .num{color:var(--pass);} .stat.s-pass .bar i{background:var(--pass);}"
+    ts.WriteLine ".stat.s-fail .num{color:var(--fail);} .stat.s-fail .bar i{background:var(--fail);}"
+    ts.WriteLine ".stat.s-manual .num{color:var(--manual);} .stat.s-manual .bar i{background:var(--manual);}"
+    ts.WriteLine ".stat.s-na .num{color:var(--na);} .stat.s-na .bar i{background:var(--na);}"
+    ts.WriteLine ".stat .pct{position:absolute;right:14px;top:16px;font-size:12px;color:var(--muted);}"
+    ts.WriteLine ".toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;}"
+    ts.WriteLine ".toolbar input[type=text]{flex:1;min-width:200px;padding:9px 14px;border:1px solid var(--line);border-radius:8px;font-size:13px;outline:none;background:var(--card);}"
+    ts.WriteLine ".toolbar input[type=text]:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12);}"
+    ts.WriteLine ".filters{display:flex;gap:6px;flex-wrap:wrap;}"
+    ts.WriteLine ".fbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 14px;border-radius:20px;font-size:13px;cursor:pointer;transition:all .15s;}"
+    ts.WriteLine ".fbtn:hover{border-color:#2563eb;color:#2563eb;}"
+    ts.WriteLine ".fbtn.on{background:var(--brand);border-color:var(--brand);color:#fff;}"
+    ts.WriteLine ".count{color:var(--muted);font-size:12px;margin-left:4px;}"
+    ts.WriteLine ".panel{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;}"
+    ts.WriteLine "table{border-collapse:collapse;width:100%;font-size:13px;}"
+    ts.WriteLine "thead th{background:#f8fafc;color:#334155;text-align:left;font-weight:600;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap;position:sticky;top:0;z-index:5;}"
+    ts.WriteLine "tbody td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}"
+    ts.WriteLine "tbody tr:hover{background:#f8fafc;}"
+    ts.WriteLine "td.id{font-family:Consolas,monospace;font-weight:600;white-space:nowrap;}"
+    ts.WriteLine "td.cat{white-space:nowrap;color:var(--muted);}"
+    ts.WriteLine "td.title{min-width:180px;}"
+    ts.WriteLine ".badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid;}"
+    ts.WriteLine ".badge-pass{color:var(--pass);background:var(--pass-bg);border-color:var(--pass-br);}"
+    ts.WriteLine ".badge-fail{color:var(--fail);background:var(--fail-bg);border-color:var(--fail-br);}"
+    ts.WriteLine ".badge-manual{color:var(--manual);background:var(--manual-bg);border-color:var(--manual-br);}"
+    ts.WriteLine ".badge-na{color:var(--na);background:var(--na-bg);border-color:var(--na-br);}"
+    ts.WriteLine "td.detail,td.rec{color:#374151;max-width:320px;}"
+    ts.WriteLine ".guide{color:var(--muted);font-size:12px;max-width:260px;}"
+    ts.WriteLine ".empty{padding:60px;text-align:center;color:var(--muted);}"
+    ts.WriteLine "footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}"
+    ts.WriteLine "@media(max-width:900px){.dash{grid-template-columns:repeat(2,1fr);}}"
+    ts.WriteLine "@media print{.toolbar{display:none;} .panel{border:none;} body{background:#fff;}}"
+    ts.WriteLine "</style>"
+    ts.WriteLine "</head>"
+    ts.WriteLine "<body>"
+    ts.WriteLine "<div class=""wrap"">"
+    ts.WriteLine "<header>"
+    ts.WriteLine "  <h1>MySQL 数据库配置核查报告</h1>"
+    ts.WriteLine "  <div class=""sub"">参考标准：配置核查作业指导书正式版2026_4_1</div>"
+    ts.WriteLine "  <div class=""meta"">"
+    ts.WriteLine "    <div>连接：" & HtmlEsc(MYSQL_USER & "@" & MYSQL_HOST & ":" & MYSQL_PORT) & "　版本：" & HtmlEsc(DB_VERSION) & "　核查时间：" & CStr(Now()) & "</div>"
+    ts.WriteLine "  </div>"
+    ts.WriteLine "</header>"
+    ts.WriteLine "<div class=""dash"">"
+    ts.WriteLine "  <div class=""stat s-pass"" onclick=""fset('pass')""><div class=""num"">" & nPass & "</div><div class=""lbl"">合规</div><div class=""bar""><i style=""width:" & p_pass & "%""></i></div><div class=""pct"">" & p_pass & "%</div></div>"
+    ts.WriteLine "  <div class=""stat s-fail"" onclick=""fset('fail')""><div class=""num"">" & nFail & "</div><div class=""lbl"">不合规</div><div class=""bar""><i style=""width:" & p_fail & "%""></i></div><div class=""pct"">" & p_fail & "%</div></div>"
+    ts.WriteLine "  <div class=""stat s-manual"" onclick=""fset('manual')""><div class=""num"">" & nManual & "</div><div class=""lbl"">需人工核查</div><div class=""bar""><i style=""width:" & p_manual & "%""></i></div><div class=""pct"">" & p_manual & "%</div></div>"
+    ts.WriteLine "  <div class=""stat s-na"" onclick=""fset('na')""><div class=""num"">" & nNA & "</div><div class=""lbl"">不适用</div><div class=""bar""><i style=""width:" & p_na & "%""></i></div><div class=""pct"">" & p_na & "%</div></div>"
     ts.WriteLine "</div>"
-
-    If nFail > 0 Then
-        ts.WriteLine "<h2 class=""fail"">未通过项目（" & nFail & " 项）</h2>"
-        ts.WriteLine "<table><tr><th>编号</th><th>类别</th><th>检查项</th><th>详情</th><th>修复建议</th><th>章节</th></tr>"
-        For i = 0 To rCount - 1
-            If rStatus(i) = "fail" Then
-                ts.WriteLine "<tr><td>" & HtmlEsc(rID(i)) & "</td><td>" & HtmlEsc(rCat(i)) & "</td><td>" & HtmlEsc(rTitle(i)) & "</td>"
-                ts.WriteLine "<td class=""det"">" & HtmlEsc(rDetail(i)) & "</td><td class=""rec"">" & HtmlEsc(rRec(i)) & "</td><td class=""ch"">" & HtmlEsc(rChapter(i)) & "</td></tr>"
-            End If
-        Next
-        ts.WriteLine "</table>"
-    End If
-
-    If nManual > 0 Then
-        ts.WriteLine "<h2 class=""manual"">需人工核查项目（" & nManual & " 项）</h2>"
-        ts.WriteLine "<table><tr><th>编号</th><th>类别</th><th>检查项</th><th>核查要求</th><th>章节</th></tr>"
-        For i = 0 To rCount - 1
-            If rStatus(i) = "manual" Then
-                ts.WriteLine "<tr><td>" & HtmlEsc(rID(i)) & "</td><td>" & HtmlEsc(rCat(i)) & "</td><td>" & HtmlEsc(rTitle(i)) & "</td>"
-                ts.WriteLine "<td class=""det"">" & HtmlEsc(rDetail(i)) & "</td><td class=""ch"">" & HtmlEsc(rChapter(i)) & "</td></tr>"
-            End If
-        Next
-        ts.WriteLine "</table>"
-    End If
-
-    If nNA > 0 Then
-        ts.WriteLine "<h2 class=""na"">不适用项目（" & nNA & " 项）</h2>"
-        ts.WriteLine "<table><tr><th>编号</th><th>类别</th><th>检查项</th><th>说明</th><th>章节</th></tr>"
-        For i = 0 To rCount - 1
-            If rStatus(i) = "na" Then
-                ts.WriteLine "<tr><td>" & HtmlEsc(rID(i)) & "</td><td>" & HtmlEsc(rCat(i)) & "</td><td>" & HtmlEsc(rTitle(i)) & "</td>"
-                ts.WriteLine "<td class=""det"">" & HtmlEsc(rDetail(i)) & "</td><td class=""ch"">" & HtmlEsc(rChapter(i)) & "</td></tr>"
-            End If
-        Next
-        ts.WriteLine "</table>"
-    End If
-
-    If nPass > 0 Then
-        ts.WriteLine "<h2 class=""pass"">通过项目（" & nPass & " 项）</h2>"
-        ts.WriteLine "<table><tr><th>编号</th><th>类别</th><th>检查项</th><th>详情</th><th>章节</th></tr>"
-        For i = 0 To rCount - 1
-            If rStatus(i) = "pass" Then
-                ts.WriteLine "<tr><td>" & HtmlEsc(rID(i)) & "</td><td>" & HtmlEsc(rCat(i)) & "</td><td>" & HtmlEsc(rTitle(i)) & "</td>"
-                ts.WriteLine "<td class=""det"">" & HtmlEsc(rDetail(i)) & "</td><td class=""ch"">" & HtmlEsc(rChapter(i)) & "</td></tr>"
-            End If
-        Next
-        ts.WriteLine "</table>"
-    End If
-
-    ts.WriteLine "</body></html>"
+    ts.WriteLine "<div class=""toolbar"">"
+    ts.WriteLine "  <input id=""q"" type=""text"" placeholder=""搜索编号 / 核查项 / 详情…"">"
+    ts.WriteLine "  <div class=""filters"">"
+    ts.WriteLine "    <button class=""fbtn on"" data-f=""all"">全部<span class=""count"">" & rCount & "</span></button>"
+    ts.WriteLine "    <button class=""fbtn"" data-f=""fail"">不合规<span class=""count"">" & nFail & "</span></button>"
+    ts.WriteLine "    <button class=""fbtn"" data-f=""manual"">需人工<span class=""count"">" & nManual & "</span></button>"
+    ts.WriteLine "    <button class=""fbtn"" data-f=""pass"">合规<span class=""count"">" & nPass & "</span></button>"
+    ts.WriteLine "    <button class=""fbtn"" data-f=""na"">不适用<span class=""count"">" & nNA & "</span></button>"
+    ts.WriteLine "  </div>"
+    ts.WriteLine "</div>"
+    ts.WriteLine "<div class=""panel"">"
+    ts.WriteLine "<table id=""tbl"">"
+    ts.WriteLine "<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr></thead>"
+    ts.WriteLine "<tbody id=""tb""></tbody>"
+    ts.WriteLine "</table>"
+    ts.WriteLine "<div class=""empty"" id=""empty"" style=""display:none"">没有匹配的核查项</div>"
+    ts.WriteLine "</div>"
+    ts.WriteLine "<footer>本报告由配置核查工具自动生成 · " & CStr(Now()) & "</footer>"
+    ts.WriteLine "</div>"
+    ts.WriteLine "<script>"
+    ts.WriteLine "var DATA = [" & dataStr & "];"
+    ts.WriteLine "var ST = {pass:""合规"", fail:""不合规"", manual:""需人工核查"", na:""不适用""};"
+    ts.WriteLine "var curF = ""all"";"
+    ts.WriteLine "function esc(s){var d=document.createElement(""div"");d.textContent=s==null?"""":s;return d.innerHTML;}"
+    ts.WriteLine "function render(){"
+    ts.WriteLine "  var q = document.getElementById(""q"").value.trim().toLowerCase();"
+    ts.WriteLine "  var tb = document.getElementById(""tb""); tb.innerHTML = """";"
+    ts.WriteLine "  var n = 0;"
+    ts.WriteLine "  DATA.forEach(function(x){"
+    ts.WriteLine "    if(curF!=""all"" && x.status!=curF) return;"
+    ts.WriteLine "    if(q && (x.id+"" ""+x.title+"" ""+x.detail+"" ""+x.cat+"" ""+x.ch).toLowerCase().indexOf(q)<0) return;"
+    ts.WriteLine "    n++;"
+    ts.WriteLine "    var tr = document.createElement(""tr"");"
+    ts.WriteLine "    tr.innerHTML = ""<td>""+esc(x.ch)+""</td><td class='id'>""+esc(x.id)+""</td><td class='cat'>""+esc(x.cat)+""</td>""+"
+    ts.WriteLine "      ""<td class='title'>""+esc(x.title)+""</td>""+"
+    ts.WriteLine "      ""<td><span class='badge badge-""+x.status+""'>""+ST[x.status]+""</span></td>""+"
+    ts.WriteLine "      ""<td class='detail'>""+esc(x.detail)+""</td>""+"
+    ts.WriteLine "      ""<td class='rec'>""+esc(x.rec)+""</td>""+"
+    ts.WriteLine "      ""<td class='guide'>""+esc(x.guide)+""</td>"";"
+    ts.WriteLine "    tb.appendChild(tr);"
+    ts.WriteLine "  });"
+    ts.WriteLine "  document.getElementById(""empty"").style.display = n? ""none"":""block"";"
+    ts.WriteLine "}"
+    ts.WriteLine "function fset(f){"
+    ts.WriteLine "  curF = f;"
+    ts.WriteLine "  var bs = document.querySelectorAll("".fbtn"");"
+    ts.WriteLine "  for(var i=0;i<bs.length;i++){ bs[i].className = ""fbtn"" + (bs[i].getAttribute(""data-f"")==f ? "" on"" : """"); }"
+    ts.WriteLine "  render();"
+    ts.WriteLine "}"
+    ts.WriteLine "(function(){"
+    ts.WriteLine "  var bs = document.querySelectorAll("".fbtn"");"
+    ts.WriteLine "  for(var i=0;i<bs.length;i++){ bs[i].onclick = (function(b){ return function(){ fset(b.getAttribute(""data-f"")); }; })(bs[i]); }"
+    ts.WriteLine "})();"
+    ts.WriteLine "document.getElementById(""q"").addEventListener(""input"", render);"
+    ts.WriteLine "render();"
+    ts.WriteLine "</script>"
+    ts.WriteLine "</body>"
+    ts.WriteLine "</html>"
     ts.Close
-    WScript.Echo "[OK] HTML报告已生成：" & reportPath
+    WScript.Echo "[OK] 报告生成完成：" & reportPath
 End Sub
 
 ' ============================================================

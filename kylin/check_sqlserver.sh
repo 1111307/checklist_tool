@@ -127,52 +127,204 @@ print_summary() {
     echo "  合规(pass)：$pass    不合规(fail)：$fail    需人工核查(manual)：$manual    不适用(na)：$na"
 }
 
+json_esc() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/ }"
+    s="${s//$'\r'/}"
+    s="${s//$'\t'/ }"
+    printf '%s' "$s"
+}
+
+report_rows_json() {
+    local i first=1
+    printf '['
+    for ((i=1; i<=R_COUNT; i++)); do
+        [ "$first" -eq 1 ] || printf ','
+        first=0
+        printf '{"ch":"%s","id":"%s","cat":"%s","title":"%s","status":"%s","detail":"%s","rec":"%s","guide":"%s"}' \
+            "$(json_esc "${R_CHAPTER[$i]}")" "$(json_esc "${R_ID[$i]}")" "$(json_esc "${R_CAT[$i]}")" \
+            "$(json_esc "${R_TITLE[$i]}")" "$(json_esc "${R_STATUS[$i]}")" "$(json_esc "${R_DETAIL[$i]}")" \
+            "$(json_esc "${R_REC[$i]}")" "$(json_esc "${R_GUIDE[$i]}")"
+    done
+    printf ']'
+}
+
+REPORT_TAG="SQLServer"
+REPORT_TITLE="SQL Server 数据库配置核查报告"
+report_meta_html() {
+    echo "<div>连接：$(html_esc "$MSSQL_USER@$MSSQL_HOST:$MSSQL_PORT")　版本：$(html_esc "${DB_VERSION:-未连接}")</div>"
+    echo "<div>主机名：$(hostname 2>/dev/null)　核查时间：$(date '+%Y-%m-%d %H:%M:%S')</div>"
+    echo "<div>参考标准：配置核查作业指导书正式版2026_4_1 / 配置核查表_v2.0.0.xlsx</div>"
+}
+
 generate_html() {
-    local outfile="$OUT_DIR/配置核查报告_SQLServer_${STAMP}.html"
+    local outfile="$OUT_DIR/配置核查报告${REPORT_TAG:+_$REPORT_TAG}_${STAMP}.html"
     local pass=0 fail=0 manual=0 na=0 i
     for ((i=1; i<=R_COUNT; i++)); do
-        case "${R_STATUS[$i]}" in pass) pass=$((pass+1));; fail) fail=$((fail+1));; manual) manual=$((manual+1));; na) na=$((na+1));; esac
+        case "${R_STATUS[$i]}" in
+            pass) pass=$((pass+1));;
+            fail) fail=$((fail+1));;
+            manual) manual=$((manual+1));;
+            na) na=$((na+1));;
+        esac
     done
+    local total=$R_COUNT
+    local ppass pfail pmanual pna
+    ppass="$(awk -v a="$pass" -v t="$total" 'BEGIN{if(t==0) printf "0.0"; else printf "%.1f", a*100/t}')"
+    pfail="$(awk -v a="$fail" -v t="$total" 'BEGIN{if(t==0) printf "0.0"; else printf "%.1f", a*100/t}')"
+    pmanual="$(awk -v a="$manual" -v t="$total" 'BEGIN{if(t==0) printf "0.0"; else printf "%.1f", a*100/t}')"
+    pna="$(awk -v a="$na" -v t="$total" 'BEGIN{if(t==0) printf "0.0"; else printf "%.1f", a*100/t}')"
     {
         cat <<HTMLHEAD
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>SQL Server 配置核查报告</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${REPORT_TITLE}</title>
 <style>
-body{font-family:"Microsoft YaHei",Arial,sans-serif;margin:20px;color:#222;}
-h1{color:#1a3c6e;}
-.meta{background:#f0f4f8;padding:10px 15px;border-radius:6px;margin-bottom:15px;}
-.summary{display:flex;gap:15px;margin-bottom:20px;}
-.card{flex:1;padding:12px;border-radius:6px;text-align:center;color:#fff;}
-.card.pass{background:#2e7d32;} .card.fail{background:#c62828;}
-.card.manual{background:#ef6c00;} .card.na{background:#757575;}
+:root{
+  --bg:#f5f7fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#0f3057; --brand2:#1a3c6e;
+  --pass:#15803d; --pass-bg:#ecfdf5; --pass-br:#bbf7d0;
+  --fail:#b91c1c; --fail-bg:#fef2f2; --fail-br:#fecaca;
+  --manual:#b45309; --manual-bg:#fffbeb; --manual-br:#fde68a;
+  --na:#4b5563; --na-bg:#f3f4f6; --na-br:#e5e7eb;
+}
+*{box-sizing:border-box;}
+body{margin:0;font:14px/1.65 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+.wrap{max-width:1240px;margin:0 auto;padding:24px 20px 60px;}
+header{background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 60%,#2563eb 130%);color:#fff;border-radius:12px;padding:26px 30px;margin-bottom:20px;}
+header h1{margin:0 0 6px;font-size:22px;letter-spacing:.5px;}
+header .sub{opacity:.85;font-size:13px;}
+.meta{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.25);font-size:13px;}
+.meta div{opacity:.95;}
+.meta b{font-weight:600;opacity:.75;margin-right:6px;}
+.dash{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 16px 14px;position:relative;overflow:hidden;cursor:pointer;transition:transform .15s, box-shadow .15s;}
+.stat:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(15,48,87,.10);}
+.stat .num{font-size:34px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;}
+.stat .lbl{color:var(--muted);font-size:13px;margin-top:2px;}
+.stat .bar{height:4px;border-radius:2px;margin-top:12px;background:var(--line);}
+.stat .bar i{display:block;height:100%;border-radius:2px;}
+.stat.s-pass .num{color:var(--pass);} .stat.s-pass .bar i{background:var(--pass);}
+.stat.s-fail .num{color:var(--fail);} .stat.s-fail .bar i{background:var(--fail);}
+.stat.s-manual .num{color:var(--manual);} .stat.s-manual .bar i{background:var(--manual);}
+.stat.s-na .num{color:var(--na);} .stat.s-na .bar i{background:var(--na);}
+.stat .pct{position:absolute;right:14px;top:16px;font-size:12px;color:var(--muted);}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;}
+.toolbar input[type=text]{flex:1;min-width:200px;padding:9px 14px;border:1px solid var(--line);border-radius:8px;font-size:13px;outline:none;background:var(--card);}
+.toolbar input[type=text]:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+.filters{display:flex;gap:6px;flex-wrap:wrap;}
+.fbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 14px;border-radius:20px;font-size:13px;cursor:pointer;transition:all .15s;}
+.fbtn:hover{border-color:#2563eb;color:#2563eb;}
+.fbtn.on{background:var(--brand);border-color:var(--brand);color:#fff;}
+.count{color:var(--muted);font-size:12px;margin-left:4px;}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
 table{border-collapse:collapse;width:100%;font-size:13px;}
-th,td{border:1px solid #ccc;padding:6px 8px;vertical-align:top;}
-th{background:#1a3c6e;color:#fff;position:sticky;top:0;}
-tr:nth-child(even){background:#f7f9fb;}
+thead th{background:#f8fafc;color:#334155;text-align:left;font-weight:600;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap;position:sticky;top:0;z-index:5;}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+tbody tr:hover{background:#f8fafc;}
+td.id{font-family:Consolas,monospace;font-weight:600;white-space:nowrap;}
+td.cat{white-space:nowrap;color:var(--muted);}
+td.title{min-width:180px;}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid;}
+.badge-pass{color:var(--pass);background:var(--pass-bg);border-color:var(--pass-br);}
+.badge-fail{color:var(--fail);background:var(--fail-bg);border-color:var(--fail-br);}
+.badge-manual{color:var(--manual);background:var(--manual-bg);border-color:var(--manual-br);}
+.badge-na{color:var(--na);background:var(--na-bg);border-color:var(--na-br);}
+td.detail,td.rec{color:#374151;max-width:320px;}
+.guide{color:var(--muted);font-size:12px;max-width:260px;}
+.empty{padding:60px;text-align:center;color:var(--muted);}
+footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}
+@media(max-width:900px){.dash{grid-template-columns:repeat(2,1fr);}}
+@media print{.toolbar{display:none;} .panel{border:none;} body{background:#fff;}}
 </style>
 </head>
 <body>
-<h1>SQL Server 数据库配置核查报告</h1>
-<div class="meta">
-<div>连接：$(html_esc "$MSSQL_USER@$MSSQL_HOST:$MSSQL_PORT")　版本：$(html_esc "${DB_VERSION:-未连接}")</div>
-<div>主机名：$(hostname 2>/dev/null)　核查时间：$(date '+%Y-%m-%d %H:%M:%S')</div>
-<div>参考标准：配置核查作业指导书正式版2026_4_1 / 配置核查表_v2.0.0.xlsx</div>
-</div>
-<div class="summary">
-<div class="card pass">合规<br>$pass</div>
-<div class="card fail">不合规<br>$fail</div>
-<div class="card manual">需人工核查<br>$manual</div>
-<div class="card na">不适用<br>$na</div>
-</div>
+<div class="wrap">
+<header>
+  <h1>${REPORT_TITLE}</h1>
+  <div class="sub">参考标准：配置核查作业指导书正式版2026_4_1</div>
+  <div class="meta">
 HTMLHEAD
-        if [ "$fail" -gt 0 ]; then echo "<h2>一、未通过（$fail 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>"; build_table_rows_by_status fail; echo "</table>"; fi
-        if [ "$manual" -gt 0 ]; then echo "<h2>二、需人工核查（$manual 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>"; build_table_rows_by_status manual; echo "</table>"; fi
-        if [ "$na" -gt 0 ]; then echo "<h2>三、不适用（$na 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>"; build_table_rows_by_status na; echo "</table>"; fi
-        if [ "$pass" -gt 0 ]; then echo "<h2>四、通过（$pass 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>"; build_table_rows_by_status pass; echo "</table>"; fi
+        report_meta_html
+        cat <<HTMLMID
+  </div>
+</header>
+
+<div class="dash">
+  <div class="stat s-pass" onclick="fset('pass')"><div class="num">$pass</div><div class="lbl">合规</div><div class="bar"><i style="width:$ppass%"></i></div><div class="pct">$ppass%</div></div>
+  <div class="stat s-fail" onclick="fset('fail')"><div class="num">$fail</div><div class="lbl">不合规</div><div class="bar"><i style="width:$pfail%"></i></div><div class="pct">$pfail%</div></div>
+  <div class="stat s-manual" onclick="fset('manual')"><div class="num">$manual</div><div class="lbl">需人工核查</div><div class="bar"><i style="width:$pmanual%"></i></div><div class="pct">$pmanual%</div></div>
+  <div class="stat s-na" onclick="fset('na')"><div class="num">$na</div><div class="lbl">不适用</div><div class="bar"><i style="width:$pna%"></i></div><div class="pct">$pna%</div></div>
+</div>
+
+<div class="toolbar">
+  <input id="q" type="text" placeholder="搜索编号 / 核查项 / 详情…">
+  <div class="filters">
+    <button class="fbtn on" data-f="all">全部<span class="count">$total</span></button>
+    <button class="fbtn" data-f="fail">不合规<span class="count">$fail</span></button>
+    <button class="fbtn" data-f="manual">需人工<span class="count">$manual</span></button>
+    <button class="fbtn" data-f="pass">合规<span class="count">$pass</span></button>
+    <button class="fbtn" data-f="na">不适用<span class="count">$na</span></button>
+  </div>
+</div>
+
+<div class="panel">
+<table id="tbl">
+<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr></thead>
+<tbody id="tb"></tbody>
+</table>
+<div class="empty" id="empty" style="display:none">没有匹配的核查项</div>
+</div>
+
+<footer>本报告由配置核查工具自动生成 · $(date '+%Y-%m-%d %H:%M:%S')</footer>
+</div>
+
+<script>
+var DATA = 
+HTMLMID
+        report_rows_json
         cat <<HTMLFOOT
+;
+var ST = {pass:"合规", fail:"不合规", manual:"需人工核查", na:"不适用"};
+var curF = "all";
+function esc(s){var d=document.createElement("div");d.textContent=s==null?"":s;return d.innerHTML;}
+function render(){
+  var q = document.getElementById("q").value.trim().toLowerCase();
+  var tb = document.getElementById("tb"); tb.innerHTML = "";
+  var n = 0;
+  DATA.forEach(function(x){
+    if(curF!="all" && x.status!=curF) return;
+    if(q && (x.id+" "+x.title+" "+x.detail+" "+x.cat+" "+x.ch).toLowerCase().indexOf(q)<0) return;
+    n++;
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td>"+esc(x.ch)+"</td><td class='id'>"+esc(x.id)+"</td><td class='cat'>"+esc(x.cat)+"</td>"+
+      "<td class='title'>"+esc(x.title)+"</td>"+
+      "<td><span class='badge badge-"+x.status+"'>"+ST[x.status]+"</span></td>"+
+      "<td class='detail'>"+esc(x.detail)+"</td>"+
+      "<td class='rec'>"+esc(x.rec)+"</td>"+
+      "<td class='guide'>"+esc(x.guide)+"</td>";
+    tb.appendChild(tr);
+  });
+  document.getElementById("empty").style.display = n? "none":"block";
+}
+function fset(f){
+  curF = f;
+  var bs = document.querySelectorAll(".fbtn");
+  for(var i=0;i<bs.length;i++){ bs[i].className = "fbtn" + (bs[i].getAttribute("data-f")==f ? " on" : ""); }
+  render();
+}
+(function(){
+  var bs = document.querySelectorAll(".fbtn");
+  for(var i=0;i<bs.length;i++){ bs[i].onclick = (function(b){ return function(){ fset(b.getAttribute("data-f")); }; })(bs[i]); }
+})();
+document.getElementById("q").addEventListener("input", render);
+render();
+</script>
 </body>
 </html>
 HTMLFOOT
