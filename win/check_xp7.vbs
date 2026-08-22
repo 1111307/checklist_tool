@@ -38,7 +38,7 @@ is7OrAbove  = (osBuild >= 7600)
 
 WScript.Echo "================================================================"
 WScript.Echo "  配置核查工具 - Windows XP/7 版（无需Python）"
-WScript.Echo "  参考标准：配置核查作业指导书正式版2026_4_1"
+WScript.Echo "  参考标准：配置核查作业指导书v2.2"
 WScript.Echo "================================================================"
 If osCaption <> "" Then WScript.Echo "  系统：" & osCaption
 WScript.Echo ""
@@ -2834,7 +2834,7 @@ Sub GenerateHTML()
     ts.WriteLine "<div class=""wrap"">"
     ts.WriteLine "<header>"
     ts.WriteLine "  <h1>配置核查报告（Windows XP/7版）</h1>"
-    ts.WriteLine "  <div class=""sub"">参考标准：配置核查作业指导书正式版2026_4_1</div>"
+    ts.WriteLine "  <div class=""sub"">参考标准：配置核查作业指导书v2.2</div>"
     ts.WriteLine "  <div class=""meta"">"
     ts.WriteLine "    <div>生成时间：" & CStr(Now()) & "，系统：" & HtmlEsc(osCaption) & "</div>"
     ts.WriteLine "  </div>"

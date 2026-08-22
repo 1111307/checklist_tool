@@ -270,7 +270,7 @@ DISQL = FindDisql()
 
 WScript.Echo "================================================================"
 WScript.Echo "  配置核查工具 - 达梦数据库(DM8) 版（Windows/VBScript）"
-WScript.Echo "  参考标准：配置核查作业指导书正式版2026_4_1"
+WScript.Echo "  参考标准：配置核查作业指导书v2.2"
 WScript.Echo "================================================================"
 WScript.Echo "  连接：" & DM_USER & "@" & DM_HOST & ":" & DM_PORT
 
@@ -484,7 +484,7 @@ Sub GenerateHTML()
     ts.WriteLine "<div class=""wrap"">"
     ts.WriteLine "<header>"
     ts.WriteLine "  <h1>达梦数据库配置核查报告</h1>"
-    ts.WriteLine "  <div class=""sub"">参考标准：配置核查作业指导书正式版2026_4_1</div>"
+    ts.WriteLine "  <div class=""sub"">参考标准：配置核查作业指导书v2.2</div>"
     ts.WriteLine "  <div class=""meta"">"
     ts.WriteLine "    <div>连接：" & HtmlEsc(DM_USER & "@" & DM_HOST & ":" & DM_PORT) & "　版本：" & HtmlEsc(DB_VERSION) & "　核查时间：" & CStr(Now()) & "</div>"
     ts.WriteLine "  </div>"

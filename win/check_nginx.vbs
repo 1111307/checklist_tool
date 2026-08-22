@@ -206,7 +206,7 @@ NGINX_CONF = FindNginxConf()
 
 WScript.Echo "================================================================"
 WScript.Echo "  配置核查工具 - Nginx 中间件版（Windows/VBScript）"
-WScript.Echo "  参考标准：配置核查作业指导书正式版2026_4_1"
+WScript.Echo "  参考标准：配置核查作业指导书v2.2"
 WScript.Echo "================================================================"
 
 If NGINX_BIN = "" Then
@@ -378,7 +378,7 @@ Sub GenerateHTML()
     ts.WriteLine "<div class=""wrap"">"
     ts.WriteLine "<header>"
     ts.WriteLine "  <h1>Nginx 中间件配置核查报告</h1>"
-    ts.WriteLine "  <div class=""sub"">参考标准：配置核查作业指导书正式版2026_4_1</div>"
+    ts.WriteLine "  <div class=""sub"">参考标准：配置核查作业指导书v2.2</div>"
     ts.WriteLine "  <div class=""meta"">"
     ts.WriteLine "    <div>版本：" & HtmlEsc(NGINX_VERSION) & "　核查时间：" & CStr(Now()) & "</div>"
     ts.WriteLine "  </div>"

@@ -3,7 +3,7 @@
 # 配置核查工具 - 中标麒麟/银河麒麟版（无需Python，纯Bash实现）
 # 适用系统：中标麒麟 NeoKylin（yum/rpm，多基于CentOS/RHEL）
 #           银河麒麟 Kylin OS（apt/dpkg，多基于Ubuntu/Debian）
-# 参考标准：配置核查作业指导书正式版2026_4_1
+# 参考标准：配置核查作业指导书v2.2
 # 运行方式：sudo bash run.sh 或 sudo bash check_kylin.sh
 # 输出文件：output/配置核查报告_日期时间.html /.xls
 # ============================================================
@@ -21,7 +21,7 @@ STAMP="$(date +%Y%m%d_%H%M%S)"
 R_ID=(); R_CAT=(); R_TITLE=(); R_STATUS=(); R_DETAIL=(); R_CHAPTER=(); R_REC=(); R_GUIDE=()
 R_COUNT=0
 
-# 《配置核查作业指导书正式版2026_4_1》目录页码与条款原文对照表（按核查编号查询）
+# 《配置核查作业指导书v2.2》目录页码与条款原文对照表（按核查编号查询）
 # 用于在报告中提示测试人员应翻阅指导书哪一页、对照哪一条原文表述
 guide_ref() {
     local chap="${1%%.*}" cname="" clause="" title=""
@@ -238,7 +238,7 @@ IS_ROOT=0
 
 echo "================================================================"
 echo "  配置核查工具 - 中标麒麟/银河麒麟版（无需Python）"
-echo "  参考标准：配置核查作业指导书正式版2026_4_1"
+echo "  参考标准：配置核查作业指导书v2.2"
 echo "================================================================"
 echo "  系统：$OS_NAME $OS_VER  ($KYLIN_TYPE)"
 echo "  内核：$KERNEL_VER"
@@ -1604,7 +1604,7 @@ report_meta_html() {
     echo "<div>系统：$(html_esc "$OS_NAME $OS_VER")　（$(html_esc "$KYLIN_TYPE")）</div>"
     echo "<div>主机名：$(html_esc "$HOSTNAME_STR")　内核：$(html_esc "$KERNEL_VER")</div>"
     echo "<div>核查时间：$(date '+%Y-%m-%d %H:%M:%S')</div>"
-    echo "<div>参考标准：配置核查作业指导书正式版2026_4_1</div>"
+    echo "<div>参考标准：配置核查作业指导书v2.2</div>"
 }
 
 generate_html() {
@@ -1695,7 +1695,7 @@ footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}
 <div class="wrap">
 <header>
   <h1>${REPORT_TITLE}</h1>
-  <div class="sub">参考标准：配置核查作业指导书正式版2026_4_1</div>
+  <div class="sub">参考标准：配置核查作业指导书v2.2</div>
   <div class="meta">
 HTMLHEAD
         report_meta_html

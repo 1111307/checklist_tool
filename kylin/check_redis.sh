@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # 配置核查工具 - Redis 版（无需Python，纯Bash实现）
-# 参考标准：配置核查作业指导书正式版2026_4_1
+# 参考标准：配置核查作业指导书v2.2
 #           配置核查表_v2.0.0.xlsx（数据库列：Redis 共16项）
 # 运行方式：sudo bash check_redis.sh
 # 连接方式：默认 redis-cli 连接 127.0.0.1:6379；可用环境变量覆盖：
@@ -158,7 +158,7 @@ REPORT_TITLE="Redis 配置核查报告"
 report_meta_html() {
     echo "<div>连接：$(html_esc "$REDIS_HOST:$REDIS_PORT")　版本：$(html_esc "${DB_VERSION:-未连接}")</div>"
     echo "<div>主机名：$(hostname 2>/dev/null)　核查时间：$(date '+%Y-%m-%d %H:%M:%S')</div>"
-    echo "<div>参考标准：配置核查作业指导书正式版2026_4_1 / 配置核查表_v2.0.0.xlsx</div>"
+    echo "<div>参考标准：配置核查作业指导书v2.2 / 配置核查表_v2.0.0.xlsx</div>"
 }
 
 generate_html() {
@@ -249,7 +249,7 @@ footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}
 <div class="wrap">
 <header>
   <h1>${REPORT_TITLE}</h1>
-  <div class="sub">参考标准：配置核查作业指导书正式版2026_4_1</div>
+  <div class="sub">参考标准：配置核查作业指导书v2.2</div>
   <div class="meta">
 HTMLHEAD
         report_meta_html
@@ -541,7 +541,7 @@ check_2_16_patchlatest() {
 
 echo "================================================================"
 echo "  配置核查工具 - Redis 版（无需Python）"
-echo "  参考标准：配置核查作业指导书正式版2026_4_1"
+echo "  参考标准：配置核查作业指导书v2.2"
 echo "================================================================"
 echo "  连接：$REDIS_HOST:$REDIS_PORT"
 echo ""

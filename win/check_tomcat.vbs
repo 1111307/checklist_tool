@@ -196,7 +196,7 @@ If CATALINA_HOME <> "" Then SERVER_XML = CATALINA_HOME & "\conf\server.xml"
 
 WScript.Echo "================================================================"
 WScript.Echo "  配置核查工具 - Tomcat 中间件版（Windows/VBScript）"
-WScript.Echo "  参考标准：配置核查作业指导书正式版2026_4_1"
+WScript.Echo "  参考标准：配置核查作业指导书v2.2"
 WScript.Echo "================================================================"
 
 If SERVER_XML = "" Or Not oFSO.FileExists(SERVER_XML) Then
@@ -368,7 +368,7 @@ Sub GenerateHTML()
     ts.WriteLine "<div class=""wrap"">"
     ts.WriteLine "<header>"
     ts.WriteLine "  <h1>Tomcat 中间件配置核查报告</h1>"
-    ts.WriteLine "  <div class=""sub"">参考标准：配置核查作业指导书正式版2026_4_1</div>"
+    ts.WriteLine "  <div class=""sub"">参考标准：配置核查作业指导书v2.2</div>"
     ts.WriteLine "  <div class=""meta"">"
     ts.WriteLine "    <div>版本：" & HtmlEsc(TOMCAT_VERSION) & "　核查时间：" & CStr(Now()) & "</div>"
     ts.WriteLine "  </div>"
