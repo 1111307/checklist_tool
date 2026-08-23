@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>配置核查 · 人工核查台</title>
+<style>
+:root{
+  --bg:#f5f7fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#0f3057; --brand2:#1a3c6e;
+  --pass:#15803d; --pass-bg:#ecfdf5; --pass-br:#bbf7d0;
+  --fail:#b91c1c; --fail-bg:#fef2f2; --fail-br:#fecaca;
+  --manual:#b45309; --manual-bg:#fffbeb; --manual-br:#fde68a;
+  --na:#4b5563; --na-bg:#f3f4f6; --na-br:#e5e7eb;
+  --todo:#2563eb; --todo-bg:#eff6ff; --todo-br:#bfdbfe;
+}
+*{box-sizing:border-box;}
+body{margin:0;font:14px/1.65 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 20px 80px;}
+header{background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 60%,#2563eb 130%);color:#fff;border-radius:12px;padding:26px 30px;margin-bottom:20px;}
+header h1{margin:0 0 6px;font-size:22px;}
+header .sub{opacity:.85;font-size:13px;}
+.info{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 18px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.25);}
+.info label{display:flex;flex-direction:column;gap:4px;font-size:12px;opacity:.9;}
+.info input{border:none;border-radius:8px;padding:9px 12px;font-size:14px;outline:none;background:rgba(255,255,255,.94);color:var(--ink);}
+.info input::placeholder{color:#9ca3af;}
+.dash{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 14px 12px;text-align:center;}
+.stat .num{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;}
+.stat .lbl{color:var(--muted);font-size:12px;margin-top:2px;}
+.stat.s-pass .num{color:var(--pass);} .stat.s-fail .num{color:var(--fail);}
+.stat.s-manual .num{color:var(--manual);} .stat.s-na .num{color:var(--na);}
+.stat.s-todo .num{color:var(--todo);}
+.progress{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-bottom:20px;}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,#2563eb,#15803d);transition:width .3s;}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;}
+.toolbar input[type=text]{flex:1;min-width:180px;padding:9px 14px;border:1px solid var(--line);border-radius:8px;font-size:13px;outline:none;background:var(--card);}
+.toolbar input[type=text]:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;transition:all .15s;}
+.btn:hover{border-color:#2563eb;color:#2563eb;}
+.btn-primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;}
+.btn-primary:hover{background:var(--brand2);color:#fff;}
+.btn-warn{color:var(--fail);border-color:var(--fail-br);}
+.btn-warn:hover{border-color:var(--fail);color:var(--fail);}
+.saved{font-size:12px;color:var(--muted);}
+.chapter{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+.chapter>h2{margin:0;padding:14px 18px;font-size:16px;cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#f8fafc;}
+.chapter>h2:hover{background:#f1f5f9;}
+.chapter>h2 .cnt{font-size:12px;color:var(--muted);font-weight:400;}
+.batch{display:flex;gap:5px;}
+.bb{border:1px solid var(--line);border-radius:14px;padding:2px 11px;font-size:12px;cursor:pointer;background:#fff;user-select:none;transition:all .12s;font-weight:600;}
+.bb:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(15,48,87,.12);}
+.bb[data-st=pass]{color:var(--pass);border-color:var(--pass-br);} .bb[data-st=pass]:hover{background:var(--pass-bg);}
+.bb[data-st=fail]{color:var(--fail);border-color:var(--fail-br);} .bb[data-st=fail]:hover{background:var(--fail-bg);}
+.bb[data-st=manual]{color:var(--manual);border-color:var(--manual-br);} .bb[data-st=manual]:hover{background:var(--manual-bg);}
+.bb[data-st=na]{color:var(--na);border-color:var(--na-br);} .bb[data-st=na]:hover{background:var(--na-bg);}
+.chapter .items{padding:6px 12px 12px;}
+.item{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px;background:#fff;}
+.item.done-pass{border-color:var(--pass-br);background:var(--pass-bg);}
+.item.done-fail{border-color:var(--fail-br);background:var(--fail-bg);}
+.item.done-manual{border-color:var(--manual-br);background:var(--manual-bg);}
+.item.done-na{border-color:var(--na-br);background:var(--na-bg);}
+.item .head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;}
+.item .id{font-family:Consolas,monospace;font-weight:700;}
+.item .cat{color:var(--muted);font-size:12px;border:1px solid var(--line);border-radius:10px;padding:0 8px;}
+.item .title{flex:1;min-width:240px;}
+.item .guide{font-size:12px;color:var(--muted);margin-top:2px;}
+.radios{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.rb{border:1px solid var(--line);border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;background:#fff;user-select:none;transition:all .12s;}
+.rb:hover{border-color:#94a3b8;}
+.rb.on-pass{background:var(--pass);border-color:var(--pass);color:#fff;font-weight:600;}
+.rb.on-fail{background:var(--fail);border-color:var(--fail);color:#fff;font-weight:600;}
+.rb.on-manual{background:var(--manual);border-color:var(--manual);color:#fff;font-weight:600;}
+.rb.on-na{background:var(--na);border-color:var(--na);color:#fff;font-weight:600;}
+.item textarea{width:100%;margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:13px/1.5 inherit;outline:none;resize:vertical;min-height:34px;background:rgba(255,255,255,.85);}
+.item textarea:focus{border-color:#2563eb;}
+.empty{padding:60px;text-align:center;color:var(--muted);}
+footer{margin-top:30px;text-align:center;color:var(--muted);font-size:12px;}
+@media(max-width:800px){.dash{grid-template-columns:repeat(3,1fr);}.info{grid-template-columns:1fr;}}
+@media print{.toolbar,.btn{display:none;}}
+/* ===== 导出报告复用样式 ===== */
+.meta{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.25);font-size:13px;}
+.meta div{opacity:.95;}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+table{border-collapse:collapse;width:100%;font-size:13px;}
+thead th{background:#f8fafc;color:#334155;text-align:left;font-weight:600;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap;}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+td.id{font-family:Consolas,monospace;font-weight:600;white-space:nowrap;}
+td.cat{white-space:nowrap;color:var(--muted);}
+td.title{min-width:180px;}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid;}
+.badge-pass{color:var(--pass);background:var(--pass-bg);border-color:var(--pass-br);}
+.badge-fail{color:var(--fail);background:var(--fail-bg);border-color:var(--fail-br);}
+.badge-manual{color:var(--manual);background:var(--manual-bg);border-color:var(--manual-br);}
+.badge-na{color:var(--na);background:var(--na-bg);border-color:var(--na-br);}
+td.detail,td.rec{color:#374151;max-width:320px;}
+.guide{color:var(--muted);font-size:12px;max-width:260px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>配置核查 · 人工核查台</h1>
+  <div class="sub">适用于无法运行自动核查脚本的环境 —— 逐项人工核对后导出标准核查报告（参考标准：配置核查作业指导书v2.2）</div>
+  <div class="info">
+    <label>被测系统 / 版本<input id="f-os" placeholder="如：Windows 7 专业版 SP1 / 银河麒麟 V10 SP1"></label>
+    <label>主机名 / IP<input id="f-host" placeholder="如：PC-ZHANG-01 / 192.168.1.20"></label>
+    <label>核查人<input id="f-user" placeholder="姓名"></label>
+    <label>核查日期<input id="f-date" type="date"></label>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="stat s-todo"><div class="num" id="n-todo">0</div><div class="lbl">未核查</div></div>
+  <div class="stat s-pass"><div class="num" id="n-pass">0</div><div class="lbl">合规</div></div>
+  <div class="stat s-fail"><div class="num" id="n-fail">0</div><div class="lbl">不合规</div></div>
+  <div class="stat s-manual"><div class="num" id="n-manual">0</div><div class="lbl">需人工后续</div></div>
+  <div class="stat s-na"><div class="num" id="n-na">0</div><div class="lbl">不适用</div></div>
+</div>
+<div class="progress"><i id="prog" style="width:0%"></i></div>
+
+<div class="toolbar">
+  <input id="q" type="text" placeholder="搜索编号 / 核查项…">
+  <button class="btn" id="expand-all">展开全部</button>
+  <button class="btn" id="collapse-all">收起全部</button>
+  <button class="btn btn-warn" id="clear-draft">清空重填</button>
+  <button class="btn btn-primary" id="export">导出报告 (HTML)</button>
+  <button class="btn btn-primary" id="export-xls">导出报告 (Excel)</button>
+  <span class="saved" id="saved-tip"></span>
+</div>
+
+<div id="chapters"></div>
+<div class="empty" id="empty" style="display:none">没有匹配的核查项</div>
+
+<footer>填写内容自动保存在本机浏览器（localStorage），关闭页面不丢失 · 报告导出为独立 HTML 文件（带时间戳）</footer>
+</div>
+
+<script>
+var ITEMS = [{"ch": "1 系统安全", "id": "1.1", "title": "操作系统、数据库管理系统、中间件等平台软件应及时安装补丁程序", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.1：操作系统、数据库管理系统、中间件等平台软件应及时安装补丁程序", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.2", "title": "操作系统应安装防病毒软件并及时升级", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.2：操作系统应安装防病毒软件并及时升级", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.3", "title": "操作系统应按需求裁剪服务和端口", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.3：操作系统应按需求裁剪服务和端口", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.4", "title": "操作系统应具备防火墙功能", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.4：操作系统应具备防火墙功能", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.5", "title": "操作系统应停用冗余网络设置", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.5：操作系统应停用冗余网络设置", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.6", "title": "操作系统远程管理应开放唯一管理服务,指定管理终端并采取传输加密保护措施", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.6：操作系统远程管理应开放唯一管理服务,指定管理终端并采取传输加密保护措施", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.7", "title": "数据库管理系统应删除冗余帐户,应设置不少于8个字符且字符采用字母大小写，数字及特殊字符混合编制的账户口令", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.7：数据库管理系统应删除冗余帐户,应设置不少于8个字符且字符采用字母大小写，数字及特殊字符混合编制的账户口令", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.8", "title": "数据库管理系统应删除冗余存储过程", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.8：数据库管理系统应删除冗余存储过程", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.9", "title": "数据库管理系统应具有基于表级增删改查等细粒度访问和管理授权功能", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.9：数据库管理系统应具有基于表级增删改查等细粒度访问和管理授权功能", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.10", "title": "数据库管理系统应具有自主访问控制功能", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.10：数据库管理系统应具有自主访问控制功能", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.11", "title": "数据库管理系统应具有备份和恢复功能", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.11：数据库管理系统应具有备份和恢复功能", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.12", "title": "数据库管理系统应具有表级审计、告警和阻断功能", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.12：数据库管理系统应具有表级审计、告警和阻断功能", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.13", "title": "数据库管理系统的数据应和其它应用的数据分类独立存储", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.13：数据库管理系统的数据应和其它应用的数据分类独立存储", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.14", "title": "中间件应采取限制运行权限和使用安全管理通道等安全加固措施", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.14：中间件应采取限制运行权限和使用安全管理通道等安全加固措施", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.15", "title": "应具备数据库管理系统超级管理员远程登录限制远程登陆限制能力", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.15：应具备数据库管理系统超级管理员远程登录限制远程登陆限制能力", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.16", "title": "应具备数据库管理系统输入（参数）检查能力", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.16：应具备数据库管理系统输入（参数）检查能力", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.17", "title": "应限制操作系统开放的远程管理服务或端口", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.17：应限制操作系统开放的远程管理服务或端口", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.18", "title": "应限制用户对服务器资源的最大或最小使用限度", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.18：应限制用户对服务器资源的最大或最小使用限度", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.19", "title": "应更换数据库管理系统的默认服务端口、管理员用户名和口令", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.19：应更换数据库管理系统的默认服务端口、管理员用户名和口令", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.20", "title": "数据库管理系统应配置安全策略", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.20：数据库管理系统应配置安全策略", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.21", "title": "数据库管理系统应具有行级或列级审计功能", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.21：数据库管理系统应具有行级或列级审计功能", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.22", "title": "数据库管理系统应采取单独、安全监控、审计指施", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.22：数据库管理系统应采取单独、安全监控、审计指施", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.23", "title": "数据库管理系统仅为应用服务器提供访问服务", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.23：数据库管理系统仅为应用服务器提供访问服务", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.24", "title": "应具备日志审计能力，审计日志至少保留180天", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.24：应具备日志审计能力，审计日志至少保留180天", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.25", "title": "检查是否具备边界保护能力,是否可以抗攻击，防纂改", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.25：检查是否具备边界保护能力,是否可以抗攻击，防纂改", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.26", "title": "检查是否有防病毒日志、补丁日志、记录相关信息记录信息的完整，有效", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.26：检查是否有防病毒日志、补丁日志、记录相关信息记录信息的完整，有效", "cat": "系统安全"}, {"ch": "1 系统安全", "id": "1.27", "title": "操作系统、数据库管理系统、中间件、办公软件等基础软件应采用具有完备的售后技术支持与服务的正版或定制软件", "guide": "《配置核查作业指导书v2.2》1 系统安全 1.27：操作系统、数据库管理系统、中间件、办公软件等基础软件应采用具有完备的售后技术支持与服务的正版或定制软件", "cat": "系统安全"}, {"ch": "2 用户安全", "id": "2.1", "title": "服务器和用户计算机应设置登录口令", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.1：服务器和用户计算机应设置登录口令", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.2", "title": "用户计算机应根据需要安装补丁程序", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.2：用户计算机应根据需要安装补丁程序", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.3", "title": "用户应设置用户应用口令，通过认证后使用信息服务", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.3：用户应设置用户应用口令，通过认证后使用信息服务", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.4", "title": "用户计算机应具有互不相同的用户名和口令", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.4：用户计算机应具有互不相同的用户名和口令", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.5", "title": "用户计算机应关闭冗余系统服务和端口", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.5：用户计算机应关闭冗余系统服务和端口", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.6", "title": "用户计算机应具备阻断和告警非法连接互联网的能力", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.6：用户计算机应具备阻断和告警非法连接互联网的能力", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.7", "title": "用户计算机应具有文件保护功能", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.7：用户计算机应具有文件保护功能", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.8", "title": "应采取终端管控措施、具有统一配置、安全加固、网络访问控制、外设接口管控、软件进程管控、无线模块禁用、防止IP地址和MAC地址非授权改动等功能", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.8：应采取终端管控措施、具有统一配置、安全加固、网络访问控制、外设接口管控、软件进程管控、无线模块禁用、防止IP地址和MAC地址非授权改动等功能", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.9", "title": "用户计算机应禁止安装与工作无关的软件", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.9：用户计算机应禁止安装与工作无关的软件", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.10", "title": "用户计算机USB接口应禁止私自连接对拷线和手机、媒体播放设备等个人移动电子设备", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.10：用户计算机USB接口应禁止私自连接对拷线和手机、媒体播放设备等个人移动电子设备", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.11", "title": "用户计算机登录应使用基于专用物理部件或生物特征的多因素身份认证方式，应设置超时锁屏，屏幕保护等待时间不超过5min,服务器应设置登录口令，口令超度不得少于10个字符，字符应采用字母大小写、数字及特殊字符混合编制，更换周期不超过30d", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.11：用户计算机登录应使用基于专用物理部件或生物特征的多因素身份认证方式，应设置超时锁屏，屏幕保护等待时间不超过5min,服务器应设置登录口令，口令超度不得少于10个字符，字符应采用字母大小写、数字及特殊字符混合编制，更换周期不超过30d", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.12", "title": "用户计算机应物理拆除Wi-Fi、红外、蓝牙等无线模块，确需使用Wi-Fi的应严格采用JY密码等措施保护", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.12：用户计算机应物理拆除Wi-Fi、红外、蓝牙等无线模块，确需使用Wi-Fi的应严格采用JY密码等措施保护", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.13", "title": "用户计算机应采取非法外联阻断、文件输出管控等措施", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.13：用户计算机应采取非法外联阻断、文件输出管控等措施", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.14", "title": "应具备用户行为审计能力；审计日志应至少保留xxd", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.14：应具备用户行为审计能力；审计日志应至少保留xxd", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.15", "title": "检查安全策略配置情况和设置功能", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.15：检查安全策略配置情况和设置功能", "cat": "用户安全"}, {"ch": "2 用户安全", "id": "2.16", "title": "检查被试装备中操作系统、数据库以及应用软件等是否完成补丁修复和升级到最新版本", "guide": "《配置核查作业指导书v2.2》2 用户安全 2.16：检查被试装备中操作系统、数据库以及应用软件等是否完成补丁修复和升级到最新版本", "cat": "用户安全"}, {"ch": "3 数据安全", "id": "3.1", "title": "集中存储的涉密数据应采取加密保护措施", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.1：集中存储的涉密数据应采取加密保护措施", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.2", "title": "用户计算机之间的数据交互、文件传输凳应统一管控和审计", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.2：用户计算机之间的数据交互、文件传输凳应统一管控和审计", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.3", "title": "涉密存储载体在降密级使用前或重大JS演训活动结束后，应采取数据写覆盖方法及时清除数据", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.3：涉密存储载体在降密级使用前或重大JS演训活动结束后，应采取数据写覆盖方法及时清除数据", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.4", "title": "对确定销毁的涉密载体，应采取消磁、粉碎、溶解、化浆和熔化等方法进行销毁", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.4：对确定销毁的涉密载体，应采取消磁、粉碎、溶解、化浆和熔化等方法进行销毁", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.5", "title": "网络、系统、应用和用户行为等日志应采取读写控制、加密、变换、完整性校验等保护措施，TM级数据存储1应采取加密保护措施", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.5：网络、系统、应用和用户行为等日志应采取读写控制、加密、变换、完整性校验等保护措施，TM级数据存储1应采取加密保护措施", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.6", "title": "网络边界应通过边界设备具备信息过滤、敏感内容识别等数据防泄漏能力", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.6：网络边界应通过边界设备具备信息过滤、敏感内容识别等数据防泄漏能力", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.7", "title": "数据存储系统管理登录至少采取验证码等增强措施，修改默认用户名和口令等默认设置，管理与访问应具有行为审计功能，审计日志应至少保留180天", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.7：数据存储系统管理登录至少采取验证码等增强措施，修改默认用户名和口令等默认设置，管理与访问应具有行为审计功能，审计日志应至少保留180天", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.8", "title": "数据存储系统应根据重要程度划分不同存储区快，并设置用户访问权限", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.8：数据存储系统应根据重要程度划分不同存储区快，并设置用户访问权限", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.9", "title": "检查数据传输过程是否按照要求进行加密，传输路径是否合理，是否统一管控、留有日志记录，是否具有防泄漏措施，是否存在安全风险", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.9：检查数据传输过程是否按照要求进行加密，传输路径是否合理，是否统一管控、留有日志记录，是否具有防泄漏措施，是否存在安全风险", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.10", "title": "检查数据共享是否合理，是否存在安全隐患", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.10：检查数据共享是否合理，是否存在安全隐患", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.11", "title": "检查对数据的访问是否按照权限分级访问，是否对访问行为进行审计", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.11：检查对数据的访问是否按照权限分级访问，是否对访问行为进行审计", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.12", "title": "检查数据采集是否超出业务需求范围", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.12：检查数据采集是否超出业务需求范围", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.13", "title": "检查数据各环节处理是否满足密级相应的保密要求", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.13：检查数据各环节处理是否满足密级相应的保密要求", "cat": "数据安全"}, {"ch": "3 数据安全", "id": "3.14", "title": "检查对数据的访问是否按照权限分级访问，是否对访问行为进行审计，对大数据的访问是否提供同一管控和访问控制", "guide": "《配置核查作业指导书v2.2》3 数据安全 3.14：检查对数据的访问是否按照权限分级访问，是否对访问行为进行审计，对大数据的访问是否提供同一管控和访问控制", "cat": "数据安全"}, {"ch": "4 应用安全", "id": "4.1", "title": "应用系统软件应采取备份措施", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.1：应用系统软件应采取备份措施", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.2", "title": "应用系统软件应及时安装补丁程序，且更新所用升级包应经过安全性测试", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.2：应用系统软件应及时安装补丁程序，且更新所用升级包应经过安全性测试", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.3", "title": "基于可信根对应用系统软件进行可信验证。可信性受到破坏后报警", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.3：基于可信根对应用系统软件进行可信验证。可信性受到破坏后报警", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.4", "title": "提供公共信息服务的服务器应应与涉密信息服务器分设，专用服务器应只提供专用服务", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.4：提供公共信息服务的服务器应应与涉密信息服务器分设，专用服务器应只提供专用服务", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.5", "title": "提供公共信息服务的服务器应具备防DDoS攻击能力", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.5：提供公共信息服务的服务器应具备防DDoS攻击能力", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.6", "title": "Web应用系统应采取Web安全防护措施", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.6：Web应用系统应采取Web安全防护措施", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.7", "title": "网站服务宜以静态页面形式发布", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.7：网站服务宜以静态页面形式发布", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.8", "title": "网站应采取网页防篡改措施，防止对信息内容的非法修改", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.8：网站应采取网页防篡改措施，防止对信息内容的非法修改", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.9", "title": "Web应用系统应具备防范SQL注入、跨站脚本等攻击能力", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.9：Web应用系统应具备防范SQL注入、跨站脚本等攻击能力", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.10", "title": "Web应用系统应具备执行代码有效验证能力", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.10：Web应用系统应具备执行代码有效验证能力", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.11", "title": "应具备用户授权访问控制能力", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.11：应具备用户授权访问控制能力", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.12", "title": "应具备访问应用最大并发会话连接数限制能力", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.12：应具备访问应用最大并发会话连接数限制能力", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.13", "title": "业务管理终端专设专用", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.13：业务管理终端专设专用", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.14", "title": "应具有基于用户角色的授权访问控制能力，访问控制主体的细粒度达到用户级或进程级，客体的细粒度应达到文件级、表和记录级、字段级", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.14：应具有基于用户角色的授权访问控制能力，访问控制主体的细粒度达到用户级或进程级，客体的细粒度应达到文件级、表和记录级、字段级", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.15", "title": "文电等文档专用业务处理系统应具有签名验证、密级标识等功能", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.15：文电等文档专用业务处理系统应具有签名验证、密级标识等功能", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.16", "title": "远程管理应采取加密保护措施", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.16：远程管理应采取加密保护措施", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.17", "title": "应支持管理员、安全员、审计员三权分立的职责划分，禁止设立超级管理员，并限制管理员、安全员、审计员的数量", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.17：应支持管理员、安全员、审计员三权分立的职责划分，禁止设立超级管理员，并限制管理员、安全员、审计员的数量", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.18", "title": "业务管理终端登录应采取网络地址限制措施", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.18：业务管理终端登录应采取网络地址限制措施", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.19", "title": "应具有结束会话、限定登录错误次数和自动退出等登录失败处理功能", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.19：应具有结束会话、限定登录错误次数和自动退出等登录失败处理功能", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.20", "title": "宜使用自主设计开发的网络服务、协议、接口等，增强应用安全", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.20：宜使用自主设计开发的网络服务、协议、接口等，增强应用安全", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.21", "title": "应具有基于专用物理部件或生物特征多因素的、与JD密码算法相结合的数字证书用户身份认证功能", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.21：应具有基于专用物理部件或生物特征多因素的、与JD密码算法相结合的数字证书用户身份认证功能", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.22", "title": "应更改Web应用系统默认服务发布端口", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.22：应更改Web应用系统默认服务发布端口", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.23", "title": "应分开设置管理端口与应用端口", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.23：应分开设置管理端口与应用端口", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.24", "title": "应用服务和数据存储应部署在不同的服务器上", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.24：应用服务和数据存储应部署在不同的服务器上", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.25", "title": "应具有对所有访问行为和管理行为的日志审计功能，支持多组合查询检索，可读性强，具有解释和展示功能，审计日志应只是保留180d", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.25：应具有对所有访问行为和管理行为的日志审计功能，支持多组合查询检索，可读性强，具有解释和展示功能，审计日志应只是保留180d", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.26", "title": "应经过代码级安全漏洞挖掘", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.26：应经过代码级安全漏洞挖掘", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.27", "title": "检查是否具备对人机接口输入、网络通信输入、文件输入的数据进行格式和长度检查的功能", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.27：检查是否具备对人机接口输入、网络通信输入、文件输入的数据进行格式和长度检查的功能", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.28", "title": "检查是否能够有效检测并防御SQL注入、网页篡改、跨站脚本、拒绝服务等应用层攻击", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.28：检查是否能够有效检测并防御SQL注入、网页篡改、跨站脚本、拒绝服务等应用层攻击", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.29", "title": "检查是否具有用户访问权限统一管理功能", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.29：检查是否具有用户访问权限统一管理功能", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.30", "title": "检查是否具备统一管理措施，是否对远程管理进行限制", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.30：检查是否具备统一管理措施，是否对远程管理进行限制", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.31", "title": "检查是否能够设置最大并发会话连接数、会话建立速率、单用户并发会话数", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.31：检查是否能够设置最大并发会话连接数、会话建立速率、单用户并发会话数", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.32", "title": "检查所有应用是否具备备份与恢复功能", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.32：检查所有应用是否具备备份与恢复功能", "cat": "应用安全"}, {"ch": "4 应用安全", "id": "4.33", "title": "检查应用软件是否基于国产自主可控软硬件自主开发", "guide": "《配置核查作业指导书v2.2》4 应用安全 4.33：检查应用软件是否基于国产自主可控软硬件自主开发", "cat": "应用安全"}, {"ch": "6 物理安全", "id": "6.1", "title": "使用的网络设备、服务器、终端等，应选用进入《全J计算机及网络设备集中采购目录》的产品", "guide": "《配置核查作业指导书v2.2》6 物理安全 6.1：使用的网络设备、服务器、终端等，应选用进入《全J计算机及网络设备集中采购目录》的产品", "cat": "物理安全"}, {"ch": "6 物理安全", "id": "6.2", "title": "使用的安全网关、防火墙等信息安全产品，应通过JD信息安全测评认证机构的认证", "guide": "《配置核查作业指导书v2.2》6 物理安全 6.2：使用的安全网关、防火墙等信息安全产品，应通过JD信息安全测评认证机构的认证", "cat": "物理安全"}, {"ch": "6 物理安全", "id": "6.3", "title": "机房应有序、规范、合理走线布线，明确互联网区域和内部区域，粘贴标识，区分不同线路", "guide": "《配置核查作业指导书v2.2》6 物理安全 6.3：机房应有序、规范、合理走线布线，明确互联网区域和内部区域，粘贴标识，区分不同线路", "cat": "物理安全"}, {"ch": "6 物理安全", "id": "6.4", "title": "机房应符合GB 2887-2011中4.6.1所规定的温湿度等要求", "guide": "《配置核查作业指导书v2.2》6 物理安全 6.4：机房应符合GB 2887-2011中4.6.1所规定的温湿度等要求", "cat": "物理安全"}, {"ch": "6 物理安全", "id": "6.5", "title": "机房应安装安防监控设备，对机房的人员进出、设备操作等进行监管", "guide": "《配置核查作业指导书v2.2》6 物理安全 6.5：机房应安装安防监控设备，对机房的人员进出、设备操作等进行监管", "cat": "物理安全"}, {"ch": "6 物理安全", "id": "6.6", "title": "机房应将涉密区域和互联网区域设置于不同场所", "guide": "《配置核查作业指导书v2.2》6 物理安全 6.6：机房应将涉密区域和互联网区域设置于不同场所", "cat": "物理安全"}, {"ch": "6 物理安全", "id": "6.7", "title": "在涉密网络中使用过的打印机、复印机、刻录机、扫描仪、存储载体等设备严禁在互联网中使用", "guide": "《配置核查作业指导书v2.2》6 物理安全 6.7：在涉密网络中使用过的打印机、复印机、刻录机、扫描仪、存储载体等设备严禁在互联网中使用", "cat": "物理安全"}, {"ch": "6 物理安全", "id": "6.8", "title": "应选用《JY关键软硬件自主可控产品名录》中的芯片类、计算机及外设类、网络设备类、安全防护设备类、存储设备类等产品", "guide": "《配置核查作业指导书v2.2》6 物理安全 6.8：应选用《JY关键软硬件自主可控产品名录》中的芯片类、计算机及外设类、网络设备类、安全防护设备类、存储设备类等产品", "cat": "物理安全"}, {"ch": "6 物理安全", "id": "6.9", "title": "与安全防护等级低的网络使用不同色系线缆进行严格隔离区分", "guide": "《配置核查作业指导书v2.2》6 物理安全 6.9：与安全防护等级低的网络使用不同色系线缆进行严格隔离区分", "cat": "物理安全"}, {"ch": "7 组织机构", "id": "7.1", "title": "应设置安全管理机构，保证系统安全措施的落实", "guide": "《配置核查作业指导书v2.2》7 组织机构 7.1：应设置安全管理机构，保证系统安全措施的落实", "cat": "组织机构"}, {"ch": "7 组织机构", "id": "7.2", "title": "应配备专职系统安全保密管理人员，负责系统安全措施的落实", "guide": "《配置核查作业指导书v2.2》7 组织机构 7.2：应配备专职系统安全保密管理人员，负责系统安全措施的落实", "cat": "组织机构"}, {"ch": "7 组织机构", "id": "7.3", "title": "应具有安全管理领导机构，督导系统安全措施的落实", "guide": "《配置核查作业指导书v2.2》7 组织机构 7.3：应具有安全管理领导机构，督导系统安全措施的落实", "cat": "组织机构"}, {"ch": "7 组织机构", "id": "7.4", "title": "应具有系统安全保密技术管理人员，具体负责安全保密技术措施的落实，保证系统安全运行", "guide": "《配置核查作业指导书v2.2》7 组织机构 7.4：应具有系统安全保密技术管理人员，具体负责安全保密技术措施的落实，保证系统安全运行", "cat": "组织机构"}, {"ch": "7 组织机构", "id": "7.5", "title": "应具有完善的应急响应体系，应对突发事件", "guide": "《配置核查作业指导书v2.2》7 组织机构 7.5：应具有完善的应急响应体系，应对突发事件", "cat": "组织机构"}, {"ch": "8 规章制度", "id": "8.1", "title": "应具有日常安全管理制度、入网审批制度和系统安全保密检查制度等", "guide": "《配置核查作业指导书v2.2》8 规章制度 8.1：应具有日常安全管理制度、入网审批制度和系统安全保密检查制度等", "cat": "规章制度"}, {"ch": "8 规章制度", "id": "8.2", "title": "应具有安全管理操作规程、安全监控操作规程、安全审计操作规程、应急响应操作规程等", "guide": "《配置核查作业指导书v2.2》8 规章制度 8.2：应具有安全管理操作规程、安全监控操作规程、安全审计操作规程、应急响应操作规程等", "cat": "规章制度"}, {"ch": "8 规章制度", "id": "8.3", "title": "应具有日常系统备份制度和存储载体使用管理制度", "guide": "《配置核查作业指导书v2.2》8 规章制度 8.3：应具有日常系统备份制度和存储载体使用管理制度", "cat": "规章制度"}, {"ch": "8 规章制度", "id": "8.4", "title": "应具有脆弱性分析等规程", "guide": "《配置核查作业指导书v2.2》8 规章制度 8.4：应具有脆弱性分析等规程", "cat": "规章制度"}, {"ch": "9 管理实施", "id": "9.1", "title": "应具有应急响应预案，当发生危及系统安全的事件时应根据操作规程及时采取措施，符合应急预案启动条件时按预案开展应急措施", "guide": "《配置核查作业指导书v2.2》9 管理实施 9.1：应具有应急响应预案，当发生危及系统安全的事件时应根据操作规程及时采取措施，符合应急预案启动条件时按预案开展应急措施", "cat": "管理实施"}, {"ch": "9 管理实施", "id": "9.2", "title": "计算机信息系统安全保密管理人员应能对网络中的网络安全防护设备进行统一配置、管理，并能实现安全管理中心与网络安全防护设备之间的响应", "guide": "《配置核查作业指导书v2.2》9 管理实施 9.2：计算机信息系统安全保密管理人员应能对网络中的网络安全防护设备进行统一配置、管理，并能实现安全管理中心与网络安全防护设备之间的响应", "cat": "管理实施"}, {"ch": "9 管理实施", "id": "9.3", "title": "应具有与实际情况相符且完整的安全保密策略文档和安全保密技术及产品配置的详细记录", "guide": "《配置核查作业指导书v2.2》9 管理实施 9.3：应具有与实际情况相符且完整的安全保密策略文档和安全保密技术及产品配置的详细记录", "cat": "管理实施"}, {"ch": "9 管理实施", "id": "9.4", "title": "安全保密技术管理人员应对每日网络和系统运行情况实施安全审计，每月组织本级网络的安全性检测，编写安全审计与评估报告，并形成记录，系统配置发生变化的情况下应及时组织安全检测评估", "guide": "《配置核查作业指导书v2.2》9 管理实施 9.4：安全保密技术管理人员应对每日网络和系统运行情况实施安全审计，每月组织本级网络的安全性检测，编写安全审计与评估报告，并形成记录，系统配置发生变化的情况下应及时组织安全检测评估", "cat": "管理实施"}, {"ch": "10 协议安全审计", "id": "10.1", "title": "审计协议的机密性、完整性、认可性、不可否认性", "guide": "《配置核查作业指导书v2.2》10 协议安全审计 10.1：审计协议的机密性、完整性、认可性、不可否认性", "cat": "协议安全审计"}];
+var ST = {pass:"合规", fail:"不合规", manual:"需人工核查", na:"不适用"};
+var KEY = "checklist_manual_draft_v1";
+
+/* ---------- 草稿 ---------- */
+var draft = {};
+try { draft = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e){ draft = {}; }
+if (!draft.meta) draft.meta = {};
+if (!draft.results) draft.results = {};
+var saveTimer = null;
+function saveDraft(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    draft.meta = {
+      os: g("f-os").value, host: g("f-host").value,
+      user: g("f-user").value, date: g("f-date").value
+    };
+    localStorage.setItem(KEY, JSON.stringify(draft));
+    g("saved-tip").textContent = "已自动保存 " + new Date().toTimeString().slice(0,5);
+  }, 400);
+}
+
+/* ---------- 渲染 ---------- */
+function g(id){ return document.getElementById(id); }
+var chEls = {};
+function esc(s){ var d=document.createElement("div"); d.textContent=s==null?"":s; return d.innerHTML; }
+
+function build(){
+  var byCh = {};
+  ITEMS.forEach(function(it){ (byCh[it.ch] = byCh[it.ch] || []).push(it); });
+  var host = g("chapters");
+  Object.keys(byCh).forEach(function(ch){
+    var box = document.createElement("div");
+    box.className = "chapter";
+    var h2 = document.createElement("h2");
+    var left = document.createElement("span");
+    var cnt = document.createElement("span");
+    cnt.className = "cnt";
+    left.appendChild(document.createTextNode(ch + " "));
+    left.appendChild(cnt);
+    // 章级批量：一键把本章未核查项设为指定状态（已核查项不动）
+    var batch = document.createElement("span");
+    batch.className = "batch";
+    [["pass","✓ 合规","合规"],["fail","✗ 不合规","不合规"],["manual","? 需人工","需人工核查"],["na","— 不适用","不适用"]].forEach(function(cfg){
+      var b = document.createElement("span");
+      b.className = "bb"; b.dataset.st = cfg[0];
+      b.textContent = cfg[1];
+      b.title = "将本章【未核查】的项一键设为「" + cfg[2] + "」（已核查项不受影响）";
+      b.onclick = function(ev){
+        ev.stopPropagation();
+        var n = 0;
+        byCh[ch].forEach(function(it){
+          var r = draft.results[it.id];
+          if (!r || !r.status) {
+            draft.results[it.id] = {status: cfg[0], note: (r && r.note) || ""};
+            n++;
+          }
+        });
+        if (n > 0) {
+          applyItemUI(ch);
+          refreshStats(); refreshChapter(ch); saveDraft();
+        }
+      };
+      batch.appendChild(b);
+    });
+    h2.appendChild(left); h2.appendChild(batch);
+    h2.onclick = function(){ items.style.display = items.style.display==="none" ? "" : "none"; };
+    var items = document.createElement("div");
+    items.className = "items";
+    byCh[ch].forEach(function(it){ items.appendChild(buildItem(it, cnt)); });
+    box.appendChild(h2); box.appendChild(items);
+    host.appendChild(box);
+    chEls[ch] = {box: box, items: items, cnt: cnt, list: byCh[ch]};
+    refreshChapter(ch);
+  });
+}
+
+/* 刷新某章所有 item 的 UI 状态（radio 选中态与卡片底色） */
+function applyItemUI(ch){
+  chEls[ch].box.querySelectorAll(".item").forEach(function(el){
+    var r = draft.results[el.dataset.id] || {};
+    el.querySelectorAll(".rb").forEach(function(rb){
+      rb.className = "rb" + (r.status === rb.dataset.st ? " on-" + r.status : "");
+    });
+    applyState(el, r.status);
+  });
+}
+
+function buildItem(it){
+  var div = document.createElement("div");
+  div.className = "item";
+  div.dataset.id = it.id;
+  var r = draft.results[it.id] || {};
+  var head = document.createElement("div");
+  head.className = "head";
+  head.innerHTML =
+    '<span class="id">' + esc(it.id) + '</span>' +
+    '<span class="cat">' + esc(it.cat) + '</span>' +
+    '<span class="title">' + esc(it.title) + '</span>';
+  var guide = document.createElement("div");
+  guide.className = "guide";
+  guide.textContent = "参考：" + it.guide;
+  var radios = document.createElement("div");
+  radios.className = "radios";
+  ["pass","fail","manual","na"].forEach(function(st){
+    var b = document.createElement("span");
+    b.className = "rb" + (r.status===st ? " on-"+st : "");
+    b.textContent = ST[st];
+    b.dataset.st = st;
+    b.onclick = function(){
+      var cur = draft.results[it.id] || {};
+      cur.status = (cur.status===st ? undefined : st);
+      if (cur.status) draft.results[it.id] = cur; else if (cur.note) draft.results[it.id] = cur; else delete draft.results[it.id];
+      radios.querySelectorAll(".rb").forEach(function(x){ x.className = "rb" + (x.dataset.st===cur.status ? " on-"+st : ""); });
+      applyState(div, cur.status);
+      refreshStats(); refreshChapterOf(it.ch); saveDraft();
+    };
+    radios.appendChild(b);
+  });
+  var ta = document.createElement("textarea");
+  ta.placeholder = "核查详情 / 证据备注（如：配置文件路径、截图说明、人工确认依据…）";
+  ta.value = r.note || "";
+  ta.oninput = function(){
+    var cur = draft.results[it.id] || {};
+    if (ta.value.trim() || cur.status) { cur.note = ta.value; draft.results[it.id] = cur; }
+    saveDraft();
+  };
+  div.appendChild(head); div.appendChild(guide); div.appendChild(radios); div.appendChild(ta);
+  applyState(div, r.status);
+  return div;
+}
+
+function applyState(div, st){
+  div.className = "item" + (st ? " done-"+st : "");
+}
+
+function refreshChapterOf(ch){
+  if (chEls[ch]) refreshChapter(ch);
+}
+function refreshChapter(ch){
+  var c = chEls[ch], done = 0;
+  c.list.forEach(function(it){ if (draft.results[it.id] && draft.results[it.id].status) done++; });
+  c.cnt.textContent = done + " / " + c.list.length + " 已核";
+}
+function refreshStats(){
+  var c = {pass:0, fail:0, manual:0, na:0};
+  ITEMS.forEach(function(it){
+    var r = draft.results[it.id];
+    if (r && r.status) c[r.status]++;
+  });
+  g("n-pass").textContent = c.pass; g("n-fail").textContent = c.fail;
+  g("n-manual").textContent = c.manual; g("n-na").textContent = c.na;
+  g("n-todo").textContent = ITEMS.length - c.pass - c.fail - c.manual - c.na;
+  g("prog").style.width = ((c.pass+c.fail+c.manual+c.na) / ITEMS.length * 100).toFixed(1) + "%";
+}
+
+/* ---------- 搜索 ---------- */
+g("q").addEventListener("input", function(){
+  var q = this.value.trim().toLowerCase();
+  var anyVisible = false;
+  Object.keys(chEls).forEach(function(ch){
+    var chVisible = false;
+    chEls[ch].box.querySelectorAll(".item").forEach(function(el){
+      var it = null;
+      for (var i=0;i<ITEMS.length;i++) if (ITEMS[i].id === el.dataset.id) { it = ITEMS[i]; break; }
+      var hit = !q || (it && (it.id+" "+it.title).toLowerCase().indexOf(q) >= 0);
+      el.style.display = hit ? "" : "none";
+      if (hit) chVisible = true;
+    });
+    chEls[ch].box.style.display = chVisible ? "" : "none";
+    if (chVisible && q) chEls[ch].items.style.display = "";
+    if (chVisible) anyVisible = true;
+  });
+  g("empty").style.display = anyVisible ? "none" : "block";
+});
+
+/* ---------- 展开/收起/清空 ---------- */
+g("expand-all").onclick = function(){ Object.keys(chEls).forEach(function(c){ chEls[c].items.style.display=""; }); };
+g("collapse-all").onclick = function(){ Object.keys(chEls).forEach(function(c){ chEls[c].items.style.display="none"; }); };
+g("clear-draft").onclick = function(){
+  if (!confirm("确定清空全部已填结果与本机草稿？此操作不可恢复。")) return;
+  draft = {meta:{}, results:{}};
+  localStorage.removeItem(KEY);
+  g("f-os").value = g("f-host").value = g("f-user").value = ""; g("f-date").value = "";
+  build(); refreshStats();
+};
+
+/* ---------- 导出报告 ---------- */
+/* 公共：组装导出数据与时间戳 */
+function collectExport(){
+  var meta = draft.meta || {};
+  var unDone = ITEMS.filter(function(it){ return !(draft.results[it.id] && draft.results[it.id].status); });
+  if (unDone.length && !confirm("还有 " + unDone.length + " 项未核查，这些项将以「需人工核查」导出。继续吗？")) return null;
+  var rows = ITEMS.map(function(it){
+    var r = draft.results[it.id] || {};
+    return {
+      ch: it.ch, id: it.id, cat: it.cat, title: it.title,
+      status: r.status || "manual",
+      detail: r.note || (r.status ? "" : "（人工核查台导出时未填写，默认需人工核查）"),
+      rec: r.status === "fail" ? "请按指导书对应章节整改后复查。" : "",
+      guide: it.guide
+    };
+  });
+  var cnt = {pass:0, fail:0, manual:0, na:0};
+  rows.forEach(function(x){ cnt[x.status]++; });
+  var now = new Date();
+  var pad = function(n){ return n<10 ? "0"+n : ""+n; };
+  return {
+    rows: rows, cnt: cnt, meta: meta,
+    stamp: now.getFullYear() + pad(now.getMonth()+1) + pad(now.getDate()) + "_" + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds()),
+    timeStr: now.toLocaleString("zh-CN"),
+    metaLine: [meta.os || "未填写", meta.host || "", meta.user ? ("核查人：" + meta.user) : "", meta.date || ""].filter(Boolean).join("　")
+  };
+}
+/* 公共：Blob 下载 */
+function downloadBlob(content, filename, mime){
+  var blob = new Blob([content], {type: mime});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+}
+
+g("export").onclick = function(){
+  var d = collectExport();
+  if (!d) return;
+  function pct(a){ return d.rows.length ? (a*100/d.rows.length).toFixed(1) : "0.0"; }
+  var html = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1">'
+    + '<title>配置核查报告（人工核查）' + d.stamp + '</title>'
+    + document.querySelector("style").outerHTML
+    + '</head><body><div class="wrap">'
+    + '<header><h1>配置核查报告 · 人工核查</h1>'
+    + '<div class="sub">参考标准：配置核查作业指导书v2.2　|　核查方式：人工逐项核对（自动核查脚本不适用环境）</div>'
+    + '<div class="meta"><div>' + esc(d.metaLine) + '</div><div>导出时间：' + d.timeStr + '</div></div></header>'
+    + '<div class="dash">'
+    + '<div class="stat s-pass"><div class="num">'+d.cnt.pass+'</div><div class="lbl">合规</div><div class="bar"><i style="width:'+pct(d.cnt.pass)+'%"></i></div><div class="pct">'+pct(d.cnt.pass)+'%</div></div>'
+    + '<div class="stat s-fail"><div class="num">'+d.cnt.fail+'</div><div class="lbl">不合规</div><div class="bar"><i style="width:'+pct(d.cnt.fail)+'%"></i></div><div class="pct">'+pct(d.cnt.fail)+'%</div></div>'
+    + '<div class="stat s-manual"><div class="num">'+d.cnt.manual+'</div><div class="lbl">需人工核查</div><div class="bar"><i style="width:'+pct(d.cnt.manual)+'%"></i></div><div class="pct">'+pct(d.cnt.manual)+'%</div></div>'
+    + '<div class="stat s-na"><div class="num">'+d.cnt.na+'</div><div class="lbl">不适用</div><div class="bar"><i style="width:'+pct(d.cnt.na)+'%"></i></div><div class="pct">'+pct(d.cnt.na)+'%</div></div>'
+    + '</div>'
+    + '<div class="panel"><table id="tbl"><thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr></thead><tbody id="tb"></tbody></table></div>'
+    + '<footer>本报告由人工核查台导出 · ' + d.timeStr + '</footer></div>'
+    + '<script>'
+    + 'var DATA = ' + JSON.stringify(d.rows) + ';'
+    + 'var ST = {pass:"合规",fail:"不合规",manual:"需人工核查",na:"不适用"};'
+    + 'function esc(s){var d=document.createElement("div");d.textContent=s==null?"":s;return d.innerHTML;}'
+    + 'var tb=document.getElementById("tb");'
+    + 'DATA.forEach(function(x){var tr=document.createElement("tr");'
+    + 'tr.innerHTML="<td>"+esc(x.ch)+"</td><td class=\'id\'>"+esc(x.id)+"</td><td class=\'cat\'>"+esc(x.cat)+"</td><td class=\'title\'>"+esc(x.title)+"</td>"'
+    + '+"<td><span class=\'badge badge-"+x.status+"\'>"+ST[x.status]+"</span></td><td class=\'detail\'>"+esc(x.detail)+"</td><td class=\'rec\'>"+esc(x.rec)+"</td><td class=\'guide\'>"+esc(x.guide)+"</td>";'
+    + 'tb.appendChild(tr);});'
+    + '<\/script></body></html>';
+  downloadBlob(html, "配置核查报告_人工_" + d.stamp + ".html", "text/html;charset=utf-8");
+};
+
+/* Excel 导出：MSO-Excel HTML 格式 .xls（Excel/WPS 双击直开，与脚本报告同款，可被 merge_xlsx 汇总） */
+g("export-xls").onclick = function(){
+  var d = collectExport();
+  if (!d) return;
+  var xe = function(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
+  var parts = [];
+  parts.push('<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">');
+  parts.push('<head><meta charset="UTF-8">');
+  parts.push('<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>');
+  parts.push('<x:Name>配置核查报告</x:Name>');
+  parts.push('<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>');
+  parts.push('</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->');
+  parts.push('<style>table{border-collapse:collapse;}th,td{border:1px solid #999;padding:4px 6px;font-family:"Microsoft YaHei",Arial;font-size:12px;mso-number-format:"\\@";}th{background:#1a3c6e;color:#fff;font-weight:bold;}</style>');
+  parts.push('</head><body>');
+  parts.push('<p><b>配置核查报告 · 人工核查</b>　' + xe(d.metaLine) + '　导出时间：' + xe(d.timeStr) + '</p>');
+  parts.push('<p>参考标准：配置核查作业指导书v2.2　|　核查方式：人工逐项核对</p>');
+  parts.push('<p>合规：' + d.cnt.pass + '　不合规：' + d.cnt.fail + '　需人工核查：' + d.cnt.manual + '　不适用：' + d.cnt.na + '　合计：' + d.rows.length + '</p>');
+  parts.push('<table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>');
+  d.rows.forEach(function(x){
+    parts.push('<tr><td>' + xe(x.ch) + '</td><td>' + xe(x.id) + '</td><td>' + xe(x.cat) + '</td><td>' + xe(x.title)
+      + '</td><td>' + xe(ST[x.status]) + '</td><td>' + xe(x.detail) + '</td><td>' + xe(x.rec) + '</td><td>' + xe(x.guide) + '</td></tr>');
+  });
+  parts.push('</table></body></html>');
+  downloadBlob(parts.join(""), "配置核查报告_人工_" + d.stamp + ".xls", "application/vnd.ms-excel");
+};
+
+/* ---------- 初始化 ---------- */
+(function init(){
+  ["f-os","f-host","f-user","f-date"].forEach(function(id){
+    g(id).addEventListener("input", saveDraft);
+    if (draft.meta && draft.meta[{ "f-os":"os","f-host":"host","f-user":"user","f-date":"date" }[id]])
+      g(id).value = draft.meta[{ "f-os":"os","f-host":"host","f-user":"user","f-date":"date" }[id]];
+  });
+  build();
+  refreshStats();
+})();
+</script>
+</body>
+</html>

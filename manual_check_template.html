@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>配置核查 · 人工核查台</title>
+<style>
+:root{
+  --bg:#f5f7fa; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#0f3057; --brand2:#1a3c6e;
+  --pass:#15803d; --pass-bg:#ecfdf5; --pass-br:#bbf7d0;
+  --fail:#b91c1c; --fail-bg:#fef2f2; --fail-br:#fecaca;
+  --manual:#b45309; --manual-bg:#fffbeb; --manual-br:#fde68a;
+  --na:#4b5563; --na-bg:#f3f4f6; --na-br:#e5e7eb;
+  --todo:#2563eb; --todo-bg:#eff6ff; --todo-br:#bfdbfe;
+}
+*{box-sizing:border-box;}
+body{margin:0;font:14px/1.65 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 20px 80px;}
+header{background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 60%,#2563eb 130%);color:#fff;border-radius:12px;padding:26px 30px;margin-bottom:20px;}
+header h1{margin:0 0 6px;font-size:22px;}
+header .sub{opacity:.85;font-size:13px;}
+.info{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 18px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.25);}
+.info label{display:flex;flex-direction:column;gap:4px;font-size:12px;opacity:.9;}
+.info input{border:none;border-radius:8px;padding:9px 12px;font-size:14px;outline:none;background:rgba(255,255,255,.94);color:var(--ink);}
+.info input::placeholder{color:#9ca3af;}
+.dash{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 14px 12px;text-align:center;}
+.stat .num{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;}
+.stat .lbl{color:var(--muted);font-size:12px;margin-top:2px;}
+.stat.s-pass .num{color:var(--pass);} .stat.s-fail .num{color:var(--fail);}
+.stat.s-manual .num{color:var(--manual);} .stat.s-na .num{color:var(--na);}
+.stat.s-todo .num{color:var(--todo);}
+.progress{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-bottom:20px;}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,#2563eb,#15803d);transition:width .3s;}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;}
+.toolbar input[type=text]{flex:1;min-width:180px;padding:9px 14px;border:1px solid var(--line);border-radius:8px;font-size:13px;outline:none;background:var(--card);}
+.toolbar input[type=text]:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;transition:all .15s;}
+.btn:hover{border-color:#2563eb;color:#2563eb;}
+.btn-primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;}
+.btn-primary:hover{background:var(--brand2);color:#fff;}
+.btn-warn{color:var(--fail);border-color:var(--fail-br);}
+.btn-warn:hover{border-color:var(--fail);color:var(--fail);}
+.saved{font-size:12px;color:var(--muted);}
+.chapter{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+.chapter>h2{margin:0;padding:14px 18px;font-size:16px;cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#f8fafc;}
+.chapter>h2:hover{background:#f1f5f9;}
+.chapter>h2 .cnt{font-size:12px;color:var(--muted);font-weight:400;}
+.batch{display:flex;gap:5px;}
+.bb{border:1px solid var(--line);border-radius:14px;padding:2px 11px;font-size:12px;cursor:pointer;background:#fff;user-select:none;transition:all .12s;font-weight:600;}
+.bb:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(15,48,87,.12);}
+.bb[data-st=pass]{color:var(--pass);border-color:var(--pass-br);} .bb[data-st=pass]:hover{background:var(--pass-bg);}
+.bb[data-st=fail]{color:var(--fail);border-color:var(--fail-br);} .bb[data-st=fail]:hover{background:var(--fail-bg);}
+.bb[data-st=manual]{color:var(--manual);border-color:var(--manual-br);} .bb[data-st=manual]:hover{background:var(--manual-bg);}
+.bb[data-st=na]{color:var(--na);border-color:var(--na-br);} .bb[data-st=na]:hover{background:var(--na-bg);}
+.chapter .items{padding:6px 12px 12px;}
+.item{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px;background:#fff;}
+.item.done-pass{border-color:var(--pass-br);background:var(--pass-bg);}
+.item.done-fail{border-color:var(--fail-br);background:var(--fail-bg);}
+.item.done-manual{border-color:var(--manual-br);background:var(--manual-bg);}
+.item.done-na{border-color:var(--na-br);background:var(--na-bg);}
+.item .head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;}
+.item .id{font-family:Consolas,monospace;font-weight:700;}
+.item .cat{color:var(--muted);font-size:12px;border:1px solid var(--line);border-radius:10px;padding:0 8px;}
+.item .title{flex:1;min-width:240px;}
+.item .guide{font-size:12px;color:var(--muted);margin-top:2px;}
+.radios{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.rb{border:1px solid var(--line);border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;background:#fff;user-select:none;transition:all .12s;}
+.rb:hover{border-color:#94a3b8;}
+.rb.on-pass{background:var(--pass);border-color:var(--pass);color:#fff;font-weight:600;}
+.rb.on-fail{background:var(--fail);border-color:var(--fail);color:#fff;font-weight:600;}
+.rb.on-manual{background:var(--manual);border-color:var(--manual);color:#fff;font-weight:600;}
+.rb.on-na{background:var(--na);border-color:var(--na);color:#fff;font-weight:600;}
+.item textarea{width:100%;margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:13px/1.5 inherit;outline:none;resize:vertical;min-height:34px;background:rgba(255,255,255,.85);}
+.item textarea:focus{border-color:#2563eb;}
+.empty{padding:60px;text-align:center;color:var(--muted);}
+footer{margin-top:30px;text-align:center;color:var(--muted);font-size:12px;}
+@media(max-width:800px){.dash{grid-template-columns:repeat(3,1fr);}.info{grid-template-columns:1fr;}}
+@media print{.toolbar,.btn{display:none;}}
+/* ===== 导出报告复用样式 ===== */
+.meta{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.25);font-size:13px;}
+.meta div{opacity:.95;}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+table{border-collapse:collapse;width:100%;font-size:13px;}
+thead th{background:#f8fafc;color:#334155;text-align:left;font-weight:600;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap;}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+td.id{font-family:Consolas,monospace;font-weight:600;white-space:nowrap;}
+td.cat{white-space:nowrap;color:var(--muted);}
+td.title{min-width:180px;}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid;}
+.badge-pass{color:var(--pass);background:var(--pass-bg);border-color:var(--pass-br);}
+.badge-fail{color:var(--fail);background:var(--fail-bg);border-color:var(--fail-br);}
+.badge-manual{color:var(--manual);background:var(--manual-bg);border-color:var(--manual-br);}
+.badge-na{color:var(--na);background:var(--na-bg);border-color:var(--na-br);}
+td.detail,td.rec{color:#374151;max-width:320px;}
+.guide{color:var(--muted);font-size:12px;max-width:260px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>配置核查 · 人工核查台</h1>
+  <div class="sub">适用于无法运行自动核查脚本的环境 —— 逐项人工核对后导出标准核查报告（参考标准：配置核查作业指导书v2.2）</div>
+  <div class="info">
+    <label>被测系统 / 版本<input id="f-os" placeholder="如：Windows 7 专业版 SP1 / 银河麒麟 V10 SP1"></label>
+    <label>主机名 / IP<input id="f-host" placeholder="如：PC-ZHANG-01 / 192.168.1.20"></label>
+    <label>核查人<input id="f-user" placeholder="姓名"></label>
+    <label>核查日期<input id="f-date" type="date"></label>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="stat s-todo"><div class="num" id="n-todo">0</div><div class="lbl">未核查</div></div>
+  <div class="stat s-pass"><div class="num" id="n-pass">0</div><div class="lbl">合规</div></div>
+  <div class="stat s-fail"><div class="num" id="n-fail">0</div><div class="lbl">不合规</div></div>
+  <div class="stat s-manual"><div class="num" id="n-manual">0</div><div class="lbl">需人工后续</div></div>
+  <div class="stat s-na"><div class="num" id="n-na">0</div><div class="lbl">不适用</div></div>
+</div>
+<div class="progress"><i id="prog" style="width:0%"></i></div>
+
+<div class="toolbar">
+  <input id="q" type="text" placeholder="搜索编号 / 核查项…">
+  <button class="btn" id="expand-all">展开全部</button>
+  <button class="btn" id="collapse-all">收起全部</button>
+  <button class="btn btn-warn" id="clear-draft">清空重填</button>
+  <button class="btn btn-primary" id="export">导出报告 (HTML)</button>
+  <button class="btn btn-primary" id="export-xls">导出报告 (Excel)</button>
+  <span class="saved" id="saved-tip"></span>
+</div>
+
+<div id="chapters"></div>
+<div class="empty" id="empty" style="display:none">没有匹配的核查项</div>
+
+<footer>填写内容自动保存在本机浏览器（localStorage），关闭页面不丢失 · 报告导出为独立 HTML 文件（带时间戳）</footer>
+</div>
+
+<script>
+var ITEMS = __ITEMS__;
+var ST = {pass:"合规", fail:"不合规", manual:"需人工核查", na:"不适用"};
+var KEY = "checklist_manual_draft_v1";
+
+/* ---------- 草稿 ---------- */
+var draft = {};
+try { draft = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e){ draft = {}; }
+if (!draft.meta) draft.meta = {};
+if (!draft.results) draft.results = {};
+var saveTimer = null;
+function saveDraft(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    draft.meta = {
+      os: g("f-os").value, host: g("f-host").value,
+      user: g("f-user").value, date: g("f-date").value
+    };
+    localStorage.setItem(KEY, JSON.stringify(draft));
+    g("saved-tip").textContent = "已自动保存 " + new Date().toTimeString().slice(0,5);
+  }, 400);
+}
+
+/* ---------- 渲染 ---------- */
+function g(id){ return document.getElementById(id); }
+var chEls = {};
+function esc(s){ var d=document.createElement("div"); d.textContent=s==null?"":s; return d.innerHTML; }
+
+function build(){
+  var byCh = {};
+  ITEMS.forEach(function(it){ (byCh[it.ch] = byCh[it.ch] || []).push(it); });
+  var host = g("chapters");
+  Object.keys(byCh).forEach(function(ch){
+    var box = document.createElement("div");
+    box.className = "chapter";
+    var h2 = document.createElement("h2");
+    var left = document.createElement("span");
+    var cnt = document.createElement("span");
+    cnt.className = "cnt";
+    left.appendChild(document.createTextNode(ch + " "));
+    left.appendChild(cnt);
+    // 章级批量：一键把本章未核查项设为指定状态（已核查项不动）
+    var batch = document.createElement("span");
+    batch.className = "batch";
+    [["pass","✓ 合规","合规"],["fail","✗ 不合规","不合规"],["manual","? 需人工","需人工核查"],["na","— 不适用","不适用"]].forEach(function(cfg){
+      var b = document.createElement("span");
+      b.className = "bb"; b.dataset.st = cfg[0];
+      b.textContent = cfg[1];
+      b.title = "将本章【未核查】的项一键设为「" + cfg[2] + "」（已核查项不受影响）";
+      b.onclick = function(ev){
+        ev.stopPropagation();
+        var n = 0;
+        byCh[ch].forEach(function(it){
+          var r = draft.results[it.id];
+          if (!r || !r.status) {
+            draft.results[it.id] = {status: cfg[0], note: (r && r.note) || ""};
+            n++;
+          }
+        });
+        if (n > 0) {
+          applyItemUI(ch);
+          refreshStats(); refreshChapter(ch); saveDraft();
+        }
+      };
+      batch.appendChild(b);
+    });
+    h2.appendChild(left); h2.appendChild(batch);
+    h2.onclick = function(){ items.style.display = items.style.display==="none" ? "" : "none"; };
+    var items = document.createElement("div");
+    items.className = "items";
+    byCh[ch].forEach(function(it){ items.appendChild(buildItem(it, cnt)); });
+    box.appendChild(h2); box.appendChild(items);
+    host.appendChild(box);
+    chEls[ch] = {box: box, items: items, cnt: cnt, list: byCh[ch]};
+    refreshChapter(ch);
+  });
+}
+
+/* 刷新某章所有 item 的 UI 状态（radio 选中态与卡片底色） */
+function applyItemUI(ch){
+  chEls[ch].box.querySelectorAll(".item").forEach(function(el){
+    var r = draft.results[el.dataset.id] || {};
+    el.querySelectorAll(".rb").forEach(function(rb){
+      rb.className = "rb" + (r.status === rb.dataset.st ? " on-" + r.status : "");
+    });
+    applyState(el, r.status);
+  });
+}
+
+function buildItem(it){
+  var div = document.createElement("div");
+  div.className = "item";
+  div.dataset.id = it.id;
+  var r = draft.results[it.id] || {};
+  var head = document.createElement("div");
+  head.className = "head";
+  head.innerHTML =
+    '<span class="id">' + esc(it.id) + '</span>' +
+    '<span class="cat">' + esc(it.cat) + '</span>' +
+    '<span class="title">' + esc(it.title) + '</span>';
+  var guide = document.createElement("div");
+  guide.className = "guide";
+  guide.textContent = "参考：" + it.guide;
+  var radios = document.createElement("div");
+  radios.className = "radios";
+  ["pass","fail","manual","na"].forEach(function(st){
+    var b = document.createElement("span");
+    b.className = "rb" + (r.status===st ? " on-"+st : "");
+    b.textContent = ST[st];
+    b.dataset.st = st;
+    b.onclick = function(){
+      var cur = draft.results[it.id] || {};
+      cur.status = (cur.status===st ? undefined : st);
+      if (cur.status) draft.results[it.id] = cur; else if (cur.note) draft.results[it.id] = cur; else delete draft.results[it.id];
+      radios.querySelectorAll(".rb").forEach(function(x){ x.className = "rb" + (x.dataset.st===cur.status ? " on-"+st : ""); });
+      applyState(div, cur.status);
+      refreshStats(); refreshChapterOf(it.ch); saveDraft();
+    };
+    radios.appendChild(b);
+  });
+  var ta = document.createElement("textarea");
+  ta.placeholder = "核查详情 / 证据备注（如：配置文件路径、截图说明、人工确认依据…）";
+  ta.value = r.note || "";
+  ta.oninput = function(){
+    var cur = draft.results[it.id] || {};
+    if (ta.value.trim() || cur.status) { cur.note = ta.value; draft.results[it.id] = cur; }
+    saveDraft();
+  };
+  div.appendChild(head); div.appendChild(guide); div.appendChild(radios); div.appendChild(ta);
+  applyState(div, r.status);
+  return div;
+}
+
+function applyState(div, st){
+  div.className = "item" + (st ? " done-"+st : "");
+}
+
+function refreshChapterOf(ch){
+  if (chEls[ch]) refreshChapter(ch);
+}
+function refreshChapter(ch){
+  var c = chEls[ch], done = 0;
+  c.list.forEach(function(it){ if (draft.results[it.id] && draft.results[it.id].status) done++; });
+  c.cnt.textContent = done + " / " + c.list.length + " 已核";
+}
+function refreshStats(){
+  var c = {pass:0, fail:0, manual:0, na:0};
+  ITEMS.forEach(function(it){
+    var r = draft.results[it.id];
+    if (r && r.status) c[r.status]++;
+  });
+  g("n-pass").textContent = c.pass; g("n-fail").textContent = c.fail;
+  g("n-manual").textContent = c.manual; g("n-na").textContent = c.na;
+  g("n-todo").textContent = ITEMS.length - c.pass - c.fail - c.manual - c.na;
+  g("prog").style.width = ((c.pass+c.fail+c.manual+c.na) / ITEMS.length * 100).toFixed(1) + "%";
+}
+
+/* ---------- 搜索 ---------- */
+g("q").addEventListener("input", function(){
+  var q = this.value.trim().toLowerCase();
+  var anyVisible = false;
+  Object.keys(chEls).forEach(function(ch){
+    var chVisible = false;
+    chEls[ch].box.querySelectorAll(".item").forEach(function(el){
+      var it = null;
+      for (var i=0;i<ITEMS.length;i++) if (ITEMS[i].id === el.dataset.id) { it = ITEMS[i]; break; }
+      var hit = !q || (it && (it.id+" "+it.title).toLowerCase().indexOf(q) >= 0);
+      el.style.display = hit ? "" : "none";
+      if (hit) chVisible = true;
+    });
+    chEls[ch].box.style.display = chVisible ? "" : "none";
+    if (chVisible && q) chEls[ch].items.style.display = "";
+    if (chVisible) anyVisible = true;
+  });
+  g("empty").style.display = anyVisible ? "none" : "block";
+});
+
+/* ---------- 展开/收起/清空 ---------- */
+g("expand-all").onclick = function(){ Object.keys(chEls).forEach(function(c){ chEls[c].items.style.display=""; }); };
+g("collapse-all").onclick = function(){ Object.keys(chEls).forEach(function(c){ chEls[c].items.style.display="none"; }); };
+g("clear-draft").onclick = function(){
+  if (!confirm("确定清空全部已填结果与本机草稿？此操作不可恢复。")) return;
+  draft = {meta:{}, results:{}};
+  localStorage.removeItem(KEY);
+  g("f-os").value = g("f-host").value = g("f-user").value = ""; g("f-date").value = "";
+  build(); refreshStats();
+};
+
+/* ---------- 导出报告 ---------- */
+/* 公共：组装导出数据与时间戳 */
+function collectExport(){
+  var meta = draft.meta || {};
+  var unDone = ITEMS.filter(function(it){ return !(draft.results[it.id] && draft.results[it.id].status); });
+  if (unDone.length && !confirm("还有 " + unDone.length + " 项未核查，这些项将以「需人工核查」导出。继续吗？")) return null;
+  var rows = ITEMS.map(function(it){
+    var r = draft.results[it.id] || {};
+    return {
+      ch: it.ch, id: it.id, cat: it.cat, title: it.title,
+      status: r.status || "manual",
+      detail: r.note || (r.status ? "" : "（人工核查台导出时未填写，默认需人工核查）"),
+      rec: r.status === "fail" ? "请按指导书对应章节整改后复查。" : "",
+      guide: it.guide
+    };
+  });
+  var cnt = {pass:0, fail:0, manual:0, na:0};
+  rows.forEach(function(x){ cnt[x.status]++; });
+  var now = new Date();
+  var pad = function(n){ return n<10 ? "0"+n : ""+n; };
+  return {
+    rows: rows, cnt: cnt, meta: meta,
+    stamp: now.getFullYear() + pad(now.getMonth()+1) + pad(now.getDate()) + "_" + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds()),
+    timeStr: now.toLocaleString("zh-CN"),
+    metaLine: [meta.os || "未填写", meta.host || "", meta.user ? ("核查人：" + meta.user) : "", meta.date || ""].filter(Boolean).join("　")
+  };
+}
+/* 公共：Blob 下载 */
+function downloadBlob(content, filename, mime){
+  var blob = new Blob([content], {type: mime});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+}
+
+g("export").onclick = function(){
+  var d = collectExport();
+  if (!d) return;
+  function pct(a){ return d.rows.length ? (a*100/d.rows.length).toFixed(1) : "0.0"; }
+  var html = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1">'
+    + '<title>配置核查报告（人工核查）' + d.stamp + '</title>'
+    + document.querySelector("style").outerHTML
+    + '</head><body><div class="wrap">'
+    + '<header><h1>配置核查报告 · 人工核查</h1>'
+    + '<div class="sub">参考标准：配置核查作业指导书v2.2　|　核查方式：人工逐项核对（自动核查脚本不适用环境）</div>'
+    + '<div class="meta"><div>' + esc(d.metaLine) + '</div><div>导出时间：' + d.timeStr + '</div></div></header>'
+    + '<div class="dash">'
+    + '<div class="stat s-pass"><div class="num">'+d.cnt.pass+'</div><div class="lbl">合规</div><div class="bar"><i style="width:'+pct(d.cnt.pass)+'%"></i></div><div class="pct">'+pct(d.cnt.pass)+'%</div></div>'
+    + '<div class="stat s-fail"><div class="num">'+d.cnt.fail+'</div><div class="lbl">不合规</div><div class="bar"><i style="width:'+pct(d.cnt.fail)+'%"></i></div><div class="pct">'+pct(d.cnt.fail)+'%</div></div>'
+    + '<div class="stat s-manual"><div class="num">'+d.cnt.manual+'</div><div class="lbl">需人工核查</div><div class="bar"><i style="width:'+pct(d.cnt.manual)+'%"></i></div><div class="pct">'+pct(d.cnt.manual)+'%</div></div>'
+    + '<div class="stat s-na"><div class="num">'+d.cnt.na+'</div><div class="lbl">不适用</div><div class="bar"><i style="width:'+pct(d.cnt.na)+'%"></i></div><div class="pct">'+pct(d.cnt.na)+'%</div></div>'
+    + '</div>'
+    + '<div class="panel"><table id="tbl"><thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr></thead><tbody id="tb"></tbody></table></div>'
+    + '<footer>本报告由人工核查台导出 · ' + d.timeStr + '</footer></div>'
+    + '<script>'
+    + 'var DATA = ' + JSON.stringify(d.rows) + ';'
+    + 'var ST = {pass:"合规",fail:"不合规",manual:"需人工核查",na:"不适用"};'
+    + 'function esc(s){var d=document.createElement("div");d.textContent=s==null?"":s;return d.innerHTML;}'
+    + 'var tb=document.getElementById("tb");'
+    + 'DATA.forEach(function(x){var tr=document.createElement("tr");'
+    + 'tr.innerHTML="<td>"+esc(x.ch)+"</td><td class=\'id\'>"+esc(x.id)+"</td><td class=\'cat\'>"+esc(x.cat)+"</td><td class=\'title\'>"+esc(x.title)+"</td>"'
+    + '+"<td><span class=\'badge badge-"+x.status+"\'>"+ST[x.status]+"</span></td><td class=\'detail\'>"+esc(x.detail)+"</td><td class=\'rec\'>"+esc(x.rec)+"</td><td class=\'guide\'>"+esc(x.guide)+"</td>";'
+    + 'tb.appendChild(tr);});'
+    + '<\/script></body></html>';
+  downloadBlob(html, "配置核查报告_人工_" + d.stamp + ".html", "text/html;charset=utf-8");
+};
+
+/* Excel 导出：MSO-Excel HTML 格式 .xls（Excel/WPS 双击直开，与脚本报告同款，可被 merge_xlsx 汇总） */
+g("export-xls").onclick = function(){
+  var d = collectExport();
+  if (!d) return;
+  var xe = function(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
+  var parts = [];
+  parts.push('<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">');
+  parts.push('<head><meta charset="UTF-8">');
+  parts.push('<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>');
+  parts.push('<x:Name>配置核查报告</x:Name>');
+  parts.push('<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>');
+  parts.push('</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->');
+  parts.push('<style>table{border-collapse:collapse;}th,td{border:1px solid #999;padding:4px 6px;font-family:"Microsoft YaHei",Arial;font-size:12px;mso-number-format:"\\@";}th{background:#1a3c6e;color:#fff;font-weight:bold;}</style>');
+  parts.push('</head><body>');
+  parts.push('<p><b>配置核查报告 · 人工核查</b>　' + xe(d.metaLine) + '　导出时间：' + xe(d.timeStr) + '</p>');
+  parts.push('<p>参考标准：配置核查作业指导书v2.2　|　核查方式：人工逐项核对</p>');
+  parts.push('<p>合规：' + d.cnt.pass + '　不合规：' + d.cnt.fail + '　需人工核查：' + d.cnt.manual + '　不适用：' + d.cnt.na + '　合计：' + d.rows.length + '</p>');
+  parts.push('<table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>');
+  d.rows.forEach(function(x){
+    parts.push('<tr><td>' + xe(x.ch) + '</td><td>' + xe(x.id) + '</td><td>' + xe(x.cat) + '</td><td>' + xe(x.title)
+      + '</td><td>' + xe(ST[x.status]) + '</td><td>' + xe(x.detail) + '</td><td>' + xe(x.rec) + '</td><td>' + xe(x.guide) + '</td></tr>');
+  });
+  parts.push('</table></body></html>');
+  downloadBlob(parts.join(""), "配置核查报告_人工_" + d.stamp + ".xls", "application/vnd.ms-excel");
+};
+
+/* ---------- 初始化 ---------- */
+(function init(){
+  ["f-os","f-host","f-user","f-date"].forEach(function(id){
+    g(id).addEventListener("input", saveDraft);
+    if (draft.meta && draft.meta[{ "f-os":"os","f-host":"host","f-user":"user","f-date":"date" }[id]])
+      g(id).value = draft.meta[{ "f-os":"os","f-host":"host","f-user":"user","f-date":"date" }[id]];
+  });
+  build();
+  refreshStats();
+})();
+</script>
+</body>
+</html>
