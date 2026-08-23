@@ -125,7 +125,8 @@ td.detail,td.rec{color:#374151;max-width:320px;}
   <button class="btn" id="expand-all">展开全部</button>
   <button class="btn" id="collapse-all">收起全部</button>
   <button class="btn btn-warn" id="clear-draft">清空重填</button>
-  <button class="btn btn-primary" id="export">导出核查报告</button>
+  <button class="btn btn-primary" id="export">导出报告 (HTML)</button>
+  <button class="btn btn-primary" id="export-xls">导出报告 (Excel)</button>
   <span class="saved" id="saved-tip"></span>
 </div>
 
@@ -324,10 +325,11 @@ g("clear-draft").onclick = function(){
 };
 
 /* ---------- 导出报告 ---------- */
-g("export").onclick = function(){
+/* 公共：组装导出数据与时间戳 */
+function collectExport(){
   var meta = draft.meta || {};
   var unDone = ITEMS.filter(function(it){ return !(draft.results[it.id] && draft.results[it.id].status); });
-  if (unDone.length && !confirm("还有 " + unDone.length + " 项未核查，这些项将以「需人工核查」导出。继续吗？")) return;
+  if (unDone.length && !confirm("还有 " + unDone.length + " 项未核查，这些项将以「需人工核查」导出。继续吗？")) return null;
   var rows = ITEMS.map(function(it){
     var r = draft.results[it.id] || {};
     return {
@@ -340,32 +342,47 @@ g("export").onclick = function(){
   });
   var cnt = {pass:0, fail:0, manual:0, na:0};
   rows.forEach(function(x){ cnt[x.status]++; });
-  var total = rows.length;
-  function pct(a){ return total ? (a*100/total).toFixed(1) : "0.0"; }
   var now = new Date();
   var pad = function(n){ return n<10 ? "0"+n : ""+n; };
-  var stamp = now.getFullYear() + pad(now.getMonth()+1) + pad(now.getDate()) + "_" + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
-  var timeStr = now.toLocaleString("zh-CN");
-  var metaLine = esc([meta.os || "未填写", meta.host || "", meta.user ? ("核查人：" + meta.user) : "", meta.date || ""].filter(Boolean).join("　"));
+  return {
+    rows: rows, cnt: cnt, meta: meta,
+    stamp: now.getFullYear() + pad(now.getMonth()+1) + pad(now.getDate()) + "_" + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds()),
+    timeStr: now.toLocaleString("zh-CN"),
+    metaLine: [meta.os || "未填写", meta.host || "", meta.user ? ("核查人：" + meta.user) : "", meta.date || ""].filter(Boolean).join("　")
+  };
+}
+/* 公共：Blob 下载 */
+function downloadBlob(content, filename, mime){
+  var blob = new Blob([content], {type: mime});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+}
 
+g("export").onclick = function(){
+  var d = collectExport();
+  if (!d) return;
+  function pct(a){ return d.rows.length ? (a*100/d.rows.length).toFixed(1) : "0.0"; }
   var html = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">'
     + '<meta name="viewport" content="width=device-width, initial-scale=1">'
-    + '<title>配置核查报告（人工核查）' + stamp + '</title>'
+    + '<title>配置核查报告（人工核查）' + d.stamp + '</title>'
     + document.querySelector("style").outerHTML
     + '</head><body><div class="wrap">'
     + '<header><h1>配置核查报告 · 人工核查</h1>'
     + '<div class="sub">参考标准：配置核查作业指导书v2.2　|　核查方式：人工逐项核对（自动核查脚本不适用环境）</div>'
-    + '<div class="meta"><div>' + metaLine + '</div><div>导出时间：' + timeStr + '</div></div></header>'
+    + '<div class="meta"><div>' + esc(d.metaLine) + '</div><div>导出时间：' + d.timeStr + '</div></div></header>'
     + '<div class="dash">'
-    + '<div class="stat s-pass"><div class="num">'+cnt.pass+'</div><div class="lbl">合规</div><div class="bar"><i style="width:'+pct(cnt.pass)+'%"></i></div><div class="pct">'+pct(cnt.pass)+'%</div></div>'
-    + '<div class="stat s-fail"><div class="num">'+cnt.fail+'</div><div class="lbl">不合规</div><div class="bar"><i style="width:'+pct(cnt.fail)+'%"></i></div><div class="pct">'+pct(cnt.fail)+'%</div></div>'
-    + '<div class="stat s-manual"><div class="num">'+cnt.manual+'</div><div class="lbl">需人工核查</div><div class="bar"><i style="width:'+pct(cnt.manual)+'%"></i></div><div class="pct">'+pct(cnt.manual)+'%</div></div>'
-    + '<div class="stat s-na"><div class="num">'+cnt.na+'</div><div class="lbl">不适用</div><div class="bar"><i style="width:'+pct(cnt.na)+'%"></i></div><div class="pct">'+pct(cnt.na)+'%</div></div>'
+    + '<div class="stat s-pass"><div class="num">'+d.cnt.pass+'</div><div class="lbl">合规</div><div class="bar"><i style="width:'+pct(d.cnt.pass)+'%"></i></div><div class="pct">'+pct(d.cnt.pass)+'%</div></div>'
+    + '<div class="stat s-fail"><div class="num">'+d.cnt.fail+'</div><div class="lbl">不合规</div><div class="bar"><i style="width:'+pct(d.cnt.fail)+'%"></i></div><div class="pct">'+pct(d.cnt.fail)+'%</div></div>'
+    + '<div class="stat s-manual"><div class="num">'+d.cnt.manual+'</div><div class="lbl">需人工核查</div><div class="bar"><i style="width:'+pct(d.cnt.manual)+'%"></i></div><div class="pct">'+pct(d.cnt.manual)+'%</div></div>'
+    + '<div class="stat s-na"><div class="num">'+d.cnt.na+'</div><div class="lbl">不适用</div><div class="bar"><i style="width:'+pct(d.cnt.na)+'%"></i></div><div class="pct">'+pct(d.cnt.na)+'%</div></div>'
     + '</div>'
     + '<div class="panel"><table id="tbl"><thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr></thead><tbody id="tb"></tbody></table></div>'
-    + '<footer>本报告由人工核查台导出 · ' + timeStr + '</footer></div>'
+    + '<footer>本报告由人工核查台导出 · ' + d.timeStr + '</footer></div>'
     + '<script>'
-    + 'var DATA = ' + JSON.stringify(rows) + ';'
+    + 'var DATA = ' + JSON.stringify(d.rows) + ';'
     + 'var ST = {pass:"合规",fail:"不合规",manual:"需人工核查",na:"不适用"};'
     + 'function esc(s){var d=document.createElement("div");d.textContent=s==null?"":s;return d.innerHTML;}'
     + 'var tb=document.getElementById("tb");'
@@ -374,13 +391,33 @@ g("export").onclick = function(){
     + '+"<td><span class=\'badge badge-"+x.status+"\'>"+ST[x.status]+"</span></td><td class=\'detail\'>"+esc(x.detail)+"</td><td class=\'rec\'>"+esc(x.rec)+"</td><td class=\'guide\'>"+esc(x.guide)+"</td>";'
     + 'tb.appendChild(tr);});'
     + '<\/script></body></html>';
+  downloadBlob(html, "配置核查报告_人工_" + d.stamp + ".html", "text/html;charset=utf-8");
+};
 
-  var blob = new Blob([html], {type: "text/html;charset=utf-8"});
-  var a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "配置核查报告_人工_" + stamp + ".html";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+/* Excel 导出：MSO-Excel HTML 格式 .xls（Excel/WPS 双击直开，与脚本报告同款，可被 merge_xlsx 汇总） */
+g("export-xls").onclick = function(){
+  var d = collectExport();
+  if (!d) return;
+  var xe = function(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
+  var parts = [];
+  parts.push('<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">');
+  parts.push('<head><meta charset="UTF-8">');
+  parts.push('<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>');
+  parts.push('<x:Name>配置核查报告</x:Name>');
+  parts.push('<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>');
+  parts.push('</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->');
+  parts.push('<style>table{border-collapse:collapse;}th,td{border:1px solid #999;padding:4px 6px;font-family:"Microsoft YaHei",Arial;font-size:12px;mso-number-format:"\\@";}th{background:#1a3c6e;color:#fff;font-weight:bold;}</style>');
+  parts.push('</head><body>');
+  parts.push('<p><b>配置核查报告 · 人工核查</b>　' + xe(d.metaLine) + '　导出时间：' + xe(d.timeStr) + '</p>');
+  parts.push('<p>参考标准：配置核查作业指导书v2.2　|　核查方式：人工逐项核对</p>');
+  parts.push('<p>合规：' + d.cnt.pass + '　不合规：' + d.cnt.fail + '　需人工核查：' + d.cnt.manual + '　不适用：' + d.cnt.na + '　合计：' + d.rows.length + '</p>');
+  parts.push('<table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>');
+  d.rows.forEach(function(x){
+    parts.push('<tr><td>' + xe(x.ch) + '</td><td>' + xe(x.id) + '</td><td>' + xe(x.cat) + '</td><td>' + xe(x.title)
+      + '</td><td>' + xe(ST[x.status]) + '</td><td>' + xe(x.detail) + '</td><td>' + xe(x.rec) + '</td><td>' + xe(x.guide) + '</td></tr>');
+  });
+  parts.push('</table></body></html>');
+  downloadBlob(parts.join(""), "配置核查报告_人工_" + d.stamp + ".xls", "application/vnd.ms-excel");
 };
 
 /* ---------- 初始化 ---------- */
