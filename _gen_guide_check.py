@@ -18,7 +18,7 @@ for p in doc.paragraphs:
 
 # ---------- 2. 提取脚本覆盖：编号 -> {状态集合} ----------
 script_status = {}
-COMP = ['check_mysql','check_redis','check_dm','check_sqlserver','check_nginx','check_tomcat']
+COMP = ['check_mysql','check_redis','check_dm','check_sqlserver','check_nginx','check_tomcat','check_network']
 
 def load(fn, name, enc):
     data = open(fn, encoding=enc).read()
@@ -130,7 +130,7 @@ A('')
 A('### 2.1 验证对象')
 A('')
 A('- 指导书：《配置核查作业指导书》v2.2，共 10 章、' + str(total) + ' 个编号检查项。')
-A('- 核查工具：14 个脚本。操作系统核查 2 个（Windows、麒麟各 1），数据库与中间件核查 12 个，覆盖 MySQL、Redis、达梦 DM、SQL Server、Nginx、Tomcat，Windows 与麒麟各 6。')
+A('- 核查工具：15 个脚本。操作系统核查 2 个（Windows、麒麟各 1），数据库与中间件核查 12 个（MySQL、Redis、达梦 DM、SQL Server、Nginx、Tomcat，两平台各 6），网络设备核查 1 个（麒麟版 check_network.sh，采集-解析模式，覆盖第 5 章 23 项）。')
 A('')
 A('### 2.2 验证方法')
 A('')
@@ -168,7 +168,7 @@ A('## 五、差异与问题分析')
 A('')
 A('### 5.1 指导书缺项')
 A('')
-A('第 5 章「网络安全」已按核查表补写 23 个小节（5.1-5.23，含判定标准与网络设备核查方法，2026-08-23）。这些检查对象以网络设备、边界防护设备为主，单机脚本无法覆盖，脚本侧仍为 na 兜底，故按未实现统计，整改方向是纳入网络安全管理中心/设备台账的现场核查流程。')
+A('第 5 章「网络安全」23 项：指导书已按核查表补写小节；脚本侧新增麒麟版 check_network.sh（采集-解析模式：init 生成三厂商命令清单模板，运维在设备上采集回显后 check 解析判定 23 项），设备命令类可自动判定，文档台账与平台类仍需人工。Windows 侧网络设备核查暂无对应脚本，故该章按部分实现统计。')
 A('')
 A('### 5.2 部分实现项的原因分布')
 A('')

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>网络设备配置核查报告</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;--brand:#0f3057;--brand2:#1a3c6e;--pass:#15803d;--pass-bg:#ecfdf5;--pass-br:#bbf7d0;--fail:#b91c1c;--fail-bg:#fef2f2;--fail-br:#fecaca;--manual:#b45309;--manual-bg:#fffbeb;--manual-br:#fde68a;--na:#4b5563;--na-bg:#f3f4f6;--na-br:#e5e7eb;}
+*{box-sizing:border-box;}
+body{margin:0;font:14px/1.65 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+.wrap{max-width:1240px;margin:0 auto;padding:24px 20px 60px;}
+header{background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 60%,#2563eb 130%);color:#fff;border-radius:12px;padding:26px 30px;margin-bottom:20px;}
+header h1{margin:0 0 6px;font-size:22px;letter-spacing:.5px;}
+header .sub{opacity:.85;font-size:13px;}
+.meta{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.25);font-size:13px;}
+.meta div{opacity:.95;}
+.dash{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 16px 14px;position:relative;overflow:hidden;cursor:pointer;transition:transform .15s, box-shadow .15s;}
+.stat:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(15,48,87,.10);}
+.stat .num{font-size:34px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;}
+.stat .lbl{color:var(--muted);font-size:13px;margin-top:2px;}
+.stat .bar{height:4px;border-radius:2px;margin-top:12px;background:var(--line);}
+.stat .bar i{display:block;height:100%;border-radius:2px;}
+.stat.s-pass .num{color:var(--pass);} .stat.s-pass .bar i{background:var(--pass);}
+.stat.s-fail .num{color:var(--fail);} .stat.s-fail .bar i{background:var(--fail);}
+.stat.s-manual .num{color:var(--manual);} .stat.s-manual .bar i{background:var(--manual);}
+.stat.s-na .num{color:var(--na);} .stat.s-na .bar i{background:var(--na);}
+.stat .pct{position:absolute;right:14px;top:16px;font-size:12px;color:var(--muted);}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;}
+.toolbar input[type=text]{flex:1;min-width:200px;padding:9px 14px;border:1px solid var(--line);border-radius:8px;font-size:13px;outline:none;background:var(--card);}
+.toolbar input[type=text]:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+.filters{display:flex;gap:6px;flex-wrap:wrap;}
+.fbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 14px;border-radius:20px;font-size:13px;cursor:pointer;transition:all .15s;}
+.fbtn:hover{border-color:#2563eb;color:#2563eb;}
+.fbtn.on{background:var(--brand);border-color:var(--brand);color:#fff;}
+.count{color:var(--muted);font-size:12px;margin-left:4px;}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+table{border-collapse:collapse;width:100%;font-size:13px;}
+thead th{background:#f8fafc;color:#334155;text-align:left;font-weight:600;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap;position:sticky;top:0;z-index:5;}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+tbody tr:hover{background:#f8fafc;}
+td.id{font-family:Consolas,monospace;font-weight:600;white-space:nowrap;}
+td.cat{white-space:nowrap;color:var(--muted);}
+td.title{min-width:180px;}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid;}
+.badge-pass{color:var(--pass);background:var(--pass-bg);border-color:var(--pass-br);}
+.badge-fail{color:var(--fail);background:var(--fail-bg);border-color:var(--fail-br);}
+.badge-manual{color:var(--manual);background:var(--manual-bg);border-color:var(--manual-br);}
+.badge-na{color:var(--na);background:var(--na-bg);border-color:var(--na-br);}
+td.detail,td.rec{color:#374151;max-width:320px;}
+.guide{color:var(--muted);font-size:12px;max-width:260px;}
+.empty{padding:60px;text-align:center;color:var(--muted);}
+footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}
+@media(max-width:900px){.dash{grid-template-columns:repeat(2,1fr);}}
+@media print{.toolbar{display:none;} .panel{border:none;} body{background:#fff;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>网络设备配置核查报告</h1>
+  <div class="sub">参考标准：配置核查作业指导书v2.2　|　核查方式：设备命令回显解析（第5章 网络安全）</div>
+  <div class="meta">
+    <div>设备：1 台（核心交换机-01 ）</div>
+    <div>核查时间：2026-09-05 13:30:30</div>
+  </div>
+</header>
+<div class="dash">
+  <div class="stat s-pass" onclick="fset('pass')"><div class="num">11</div><div class="lbl">合规</div><div class="bar"><i style="width:47.8%"></i></div><div class="pct">47.8%</div></div>
+  <div class="stat s-fail" onclick="fset('fail')"><div class="num">0</div><div class="lbl">不合规</div><div class="bar"><i style="width:0.0%"></i></div><div class="pct">0.0%</div></div>
+  <div class="stat s-manual" onclick="fset('manual')"><div class="num">12</div><div class="lbl">需人工核查</div><div class="bar"><i style="width:52.2%"></i></div><div class="pct">52.2%</div></div>
+  <div class="stat s-na" onclick="fset('na')"><div class="num">0</div><div class="lbl">不适用</div><div class="bar"><i style="width:0.0%"></i></div><div class="pct">0.0%</div></div>
+</div>
+<div class="toolbar">
+  <input id="q" type="text" placeholder="搜索编号 / 核查项 / 详情…">
+  <div class="filters">
+    <button class="fbtn on" data-f="all">全部<span class="count">23</span></button>
+    <button class="fbtn" data-f="fail">不合规<span class="count">0</span></button>
+    <button class="fbtn" data-f="manual">需人工<span class="count">12</span></button>
+    <button class="fbtn" data-f="pass">合规<span class="count">11</span></button>
+    <button class="fbtn" data-f="na">不适用<span class="count">0</span></button>
+  </div>
+</div>
+<div class="panel">
+<table id="tbl">
+<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr></thead>
+<tbody id="tb"></tbody>
+</table>
+<div class="empty" id="empty" style="display:none">没有匹配的核查项</div>
+</div>
+<footer>本报告由配置核查工具自动生成 · 2026-09-05 13:30:30</footer>
+</div>
+<script>
+var DATA =
+[{"ch":"第5章","id":"5.1","cat":"网络安全","title":"跨网跨域数据交换按规定流程进行","status":"manual","detail":"文档流程类核查：调阅跨网跨域交换审批单与方案评审意见，比对设备侧交换通道与审批范围（见指导书 5.1 方法（4）日志抽查）。","rec":"跨网跨域交换须逐次审批并留存方案评审记录。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.1"},{"ch":"第5章","id":"5.2","cat":"网络安全","title":"无线网络构建按规定流程执行","status":"manual","detail":"文档流程类核查：查阅无线建设审批、方案评审，并在授权下探测是否存在未登记私建热点（见指导书 5.2 方法（4））。","rec":"无线组网须审批后实施，私建热点应立即清除。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.2"},{"ch":"第5章","id":"5.3","cat":"网络安全","title":"按最小化原则设计网络架构","status":"pass","detail":"回显发现 5 个 VLAN，已按业务划分。请结合 IP 地址规划表人工确认无整段闲置。","rec":"定期复核 VLAN 与 IP 规划的最小化。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.3"},{"ch":"第5章","id":"5.4","cat":"网络安全","title":"边界互联节点与路由最小化","status":"pass","detail":"动态路由协议共 0 种，未见明显冗余；路由业务归属仍需人工逐条确认。","rec":"定期清理无业务归属路由。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.4"},{"ch":"第5章","id":"5.5","cat":"网络安全","title":"按业务性质划分安全区域","status":"pass","detail":"发现 5 个 VLAN，具备区域划分基础。请比对安全区域划分图确认服务器/存储/嵌入式设备分区。","rec":"区域边界应配套隔离控制（ACL/防火墙）。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.5"},{"ch":"第5章","id":"5.6","cat":"网络安全","title":"网络设备最小化安全配置","status":"pass","detail":"未发现 telnet/ftp 服务启用。账户与 ACL 的最小化仍需按指导书 5.6 方法（4）（5）人工核对。","rec":"定期清理冗余账户与全放行策略。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.6"},{"ch":"第5章","id":"5.7","cat":"网络安全","title":"开放唯一网络管理服务并限制管理终端","status":"pass","detail":"SSH 管理服务启用且未见 telnet。管理终端来源限制（VTY ACL）需人工核对（见指导书 5.7 方法（3））。","rec":"VTY 线路绑定 ACL 仅放行管理网段。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.7"},{"ch":"第5章","id":"5.8","cat":"网络安全","title":"远程管理采用加密通道","status":"pass","detail":"SSH 版本为 2.0，未发现 telnet/http 明文管理。防火墙设备 HTTPS 证书请人工核对。","rec":"设备与防护设备管理均应走 SSH/HTTPS。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.8"},{"ch":"第5章","id":"5.9","cat":"网络安全","title":"同功能防护设备异构部署","status":"manual","detail":"需设备台账比对：同链路承担相同功能的设备应不同品牌/架构。可参考已采集的 display version 型号信息：HUAWEI Huawei S5720 ","rec":"关键链路同功能设备应异构，防共因失效。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.9"},{"ch":"第5章","id":"5.10","cat":"网络安全","title":"组播源/地址/成员控制","status":"pass","detail":"未发现组播路由表项（无表项或未启用组播业务）。","rec":"后续启用组播须先登记并配置边界过滤。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.10"},{"ch":"第5章","id":"5.11","cat":"网络安全","title":"重要网络与防护设备备份","status":"manual","detail":"未采集到双机热备状态（或该设备无热备）。请按指导书 5.11 核对备份制度、冷备与配置备份存档。","rec":"重要设备应有备份并演练恢复。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.11"},{"ch":"第5章","id":"5.12","cat":"网络安全","title":"远程传输两层加密保护","status":"manual","detail":"未采集到 IKE SA 回显（无 IPSec 隧道或未采集）。按传输加密方案人工核查层次组合。","rec":"补采 display ike sa 或核对加密机部署。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.12"},{"ch":"第5章","id":"5.13","cat":"网络安全","title":"网络安全管理中心与指定管理终端","status":"manual","detail":"管理类核查：实地查看管理中心与专用终端，登录管理平台核对纳管清单与终端 IP（见指导书 5.13）。","rec":"多类设备应经管理中心统一单独管理。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.13"},{"ch":"第5章","id":"5.14","cat":"网络安全","title":"与外部网络按等级物理/逻辑隔离","status":"manual","detail":"隔离类核查：核对隔离拓扑、实地查看物理隔离点；防火墙会话表（display firewall session table）可用于比对跨域通道，本次未采集到防火墙会话表。","rec":"隔离方式须与防护等级对应。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.14"},{"ch":"第5章","id":"5.15","cat":"网络安全","title":"边界防护设备的交换控制/告警/审计/阻断能力","status":"manual","detail":"能力类核查：登录防火墙/网闸查看白名单策略、告警配置与审计日志（见指导书 5.15 方法（2）-（5））。","rec":"边界应具备实时告警、审计、阻断与定位能力。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.15"},{"ch":"第5章","id":"5.16","cat":"网络安全","title":"全网细粒度访问控制","status":"pass","detail":"ACL 规则共 3 条，其中端口级规则特征 1 处，具备细粒度基础。五元组颗粒度与区域间覆盖需人工抽查（见指导书 5.16 方法（4）（5））。","rec":"区域间与主机间均应部署五元组级白名单策略。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.16"},{"ch":"第5章","id":"5.17","cat":"网络安全","title":"租用线路三层加密保护","status":"manual","detail":"未采集到 IKE SA。租用线路如存在，请按三层加密方案核查。","rec":"补采 display ike sa。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.17"},{"ch":"第5章","id":"5.18","cat":"网络安全","title":"802.1x 接入认证","status":"pass","detail":"802.1x 认证已启用。认证要素（端口+IP+MAC 绑定）需登录 Radius/准入平台人工核对（见指导书 5.18 方法（4））。","rec":"认证要素至少含端口、IP、MAC。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.18"},{"ch":"第5章","id":"5.19","cat":"网络安全","title":"用户计算机间逻辑隔离","status":"pass","detail":"发现端口隔离组特征 1 处，接入层已部署终端隔离。主机防火墙状态需在终端侧另行核查。","rec":"终端间应默认不可互访，互访经集中服务。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.19"},{"ch":"第5章","id":"5.20","cat":"网络安全","title":"全网行为审计且日志留存≥180天","status":"manual","detail":"平台类核查：登录行为审计/上网管理系统核对覆盖范围、最早可查日志时间与要素完整性（见指导书 5.20 方法（2）-（5））。","rec":"审计日志留存不少于 180 天且防删改。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.20"},{"ch":"第5章","id":"5.21","cat":"网络安全","title":"攻击/违规行为实时监视告警阻断","status":"manual","detail":"平台类核查：查看 IDS/IPS/态势感知的策略库、实时告警与处置闭环记录（见指导书 5.21 方法（2）-（5））。","rec":"应能实时告警、阻断并定位攻击源。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.21"},{"ch":"第5章","id":"5.22","cat":"网络安全","title":"数据存储系统管理网与应用网隔离","status":"manual","detail":"VLAN 回显可用于核对存储管理口/业务口分属不同 VLAN（见指导书 5.22 方法（3）（4））；请结合存储设备台账与连线照片确认。","rec":"存储管理流量与业务流量分网。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.22"},{"ch":"第5章","id":"5.23","cat":"网络安全","title":"网络设备配备合理必要性","status":"pass","detail":"端口状态：总 6 口中 2 口 DOWN（33%），未见大面积闲置。设备必要性仍需台账逐台核对。","rec":"定期清点设备用途。","guide":"《配置核查作业指导书v2.2》第5章 网络安全 5.23"}];
+var ST = {pass:"合规", fail:"不合规", manual:"需人工核查", na:"不适用"};
+var curF = "all";
+function esc(s){var d=document.createElement("div");d.textContent=s==null?"":s;return d.innerHTML;}
+function render(){
+  var q = document.getElementById("q").value.trim().toLowerCase();
+  var tb = document.getElementById("tb"); tb.innerHTML = "";
+  var n = 0;
+  DATA.forEach(function(x){
+    if(curF!="all" && x.status!=curF) return;
+    if(q && (x.id+" "+x.title+" "+x.detail+" "+x.cat+" "+x.ch).toLowerCase().indexOf(q)<0) return;
+    n++;
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td>"+esc(x.ch)+"</td><td class='id'>"+esc(x.id)+"</td><td class='cat'>"+esc(x.cat)+"</td>"+
+      "<td class='title'>"+esc(x.title)+"</td>"+
+      "<td><span class='badge badge-"+x.status+"'>"+ST[x.status]+"</span></td>"+
+      "<td class='detail'>"+esc(x.detail)+"</td>"+
+      "<td class='rec'>"+esc(x.rec)+"</td>"+
+      "<td class='guide'>"+esc(x.guide)+"</td>";
+    tb.appendChild(tr);
+  });
+  document.getElementById("empty").style.display = n? "none":"block";
+}
+function fset(f){
+  curF = f;
+  var bs = document.querySelectorAll(".fbtn");
+  for(var i=0;i<bs.length;i++){ bs[i].className = "fbtn" + (bs[i].getAttribute("data-f")==f ? " on" : ""); }
+  render();
+}
+(function(){
+  var bs = document.querySelectorAll(".fbtn");
+  for(var i=0;i<bs.length;i++){ bs[i].onclick = (function(b){ return function(){ fset(b.getAttribute("data-f")); }; })(bs[i]); }
+})();
+document.getElementById("q").addEventListener("input", render);
+render();
+</script>
+</body>
+</html>
