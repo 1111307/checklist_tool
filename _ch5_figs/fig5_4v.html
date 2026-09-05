@@ -1,0 +1,16 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+body{margin:0;background:#fff;font-family:"Segoe UI",sans-serif;}
+.term{width:760px;border:1px solid #5a5a5a;border-radius:4px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+.titlebar{height:26px;background:linear-gradient(#f0f0f0,#d5d5d5);display:flex;align-items:center;padding:0 8px;border-bottom:1px solid #b5b5b5;}
+.titlebar .icon{width:14px;height:14px;background:#3c78b4;border-radius:2px;margin-right:6px;}
+.titlebar .t{font:12px "Segoe UI";color:#333;flex:1;}
+.titlebar .wbtns{display:flex;gap:5px;}
+.titlebar .wbtn{width:22px;height:16px;border:1px solid #999;border-radius:2px;background:#f5f5f5;font:10px/14px "Segoe UI";text-align:center;color:#444;}
+.screen{background:#0c0c0c;padding:8px 10px;font:13px/1.45 "Consolas","Courier New",monospace;color:#e8e8e8;white-space:pre-wrap;word-break:break-all;}
+.screen .pr{color:#e8e8e8;}
+.screen .cmd{color:#ffffff;font-weight:bold;}
+.screen .out{color:#c8c8c8;}
+.screen .hl{color:#7ec8ff;}
+.screen .ok{color:#7ee787;}
+.screen .dim{color:#8a8a8a;}
+</style></head><body><div class="term"><div class="titlebar"><div class="icon"></div><div class="t">PuTTY — 核心交换机-HJS-CORE-01 (10.1.100.10)</div><div class="wbtns"><div class="wbtn">—</div><div class="wbtn">□</div><div class="wbtn">×</div></div></div><div class="screen"><div><span class="pr">&lt;HJS-NET-CORE-01&gt;</span><span class="cmd">display current-configuration | include telnet</span></div><div class="dim">（回显为空：未发现 telnet 相关配置）</div><div><span class="pr">&lt;HJS-NET-CORE-01&gt;</span><span class="cmd">display current-configuration | include ftp</span></div><div class="dim">（回显为空：未发现 ftp 相关配置）</div><div><span class="pr">&lt;HJS-NET-CORE-01&gt;</span><span class="cmd">display current-configuration | include stelnet</span></div><div class="out"> stelnet server enable</div><div class="dim">（最小化配置核查：Telnet/FTP 均未启用，仅保留 SSH，对应指导书 5.6）</div></div></div></body></html>

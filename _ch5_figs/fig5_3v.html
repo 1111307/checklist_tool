@@ -1,0 +1,16 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+body{margin:0;background:#fff;font-family:"Segoe UI",sans-serif;}
+.term{width:760px;border:1px solid #5a5a5a;border-radius:4px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+.titlebar{height:26px;background:linear-gradient(#f0f0f0,#d5d5d5);display:flex;align-items:center;padding:0 8px;border-bottom:1px solid #b5b5b5;}
+.titlebar .icon{width:14px;height:14px;background:#3c78b4;border-radius:2px;margin-right:6px;}
+.titlebar .t{font:12px "Segoe UI";color:#333;flex:1;}
+.titlebar .wbtns{display:flex;gap:5px;}
+.titlebar .wbtn{width:22px;height:16px;border:1px solid #999;border-radius:2px;background:#f5f5f5;font:10px/14px "Segoe UI";text-align:center;color:#444;}
+.screen{background:#0c0c0c;padding:8px 10px;font:13px/1.45 "Consolas","Courier New",monospace;color:#e8e8e8;white-space:pre-wrap;word-break:break-all;}
+.screen .pr{color:#e8e8e8;}
+.screen .cmd{color:#ffffff;font-weight:bold;}
+.screen .out{color:#c8c8c8;}
+.screen .hl{color:#7ec8ff;}
+.screen .ok{color:#7ee787;}
+.screen .dim{color:#8a8a8a;}
+</style></head><body><div class="term"><div class="titlebar"><div class="icon"></div><div class="t">PuTTY — 核心交换机-HJS-CORE-01 (10.1.100.10)</div><div class="wbtns"><div class="wbtn">—</div><div class="wbtn">□</div><div class="wbtn">×</div></div></div><div class="screen"><div><span class="pr">&lt;HJS-NET-CORE-01&gt;</span><span class="cmd">display vlan</span></div><div class="out">The total number of vlans is : 5</div><div class="out">--------------------------------------------------------------------------------</div><div class="out">U: Up;         D: Down;         TG: Tagged;         UT: Untagged;</div><div class="out">MP: Vlan-mapping;              ST: Vlan-stacking;</div><div class="out">#: Protocol-transparent-vlan;  *: Management-vlan;</div><div class="out">--------------------------------------------------------------------------------</div><div class="out"></div><div class="out">VID  Type     Ports</div><div class="out">--------------------------------------------------------------------------------</div><div class="out">1    common   UT:GE0/0/24</div><div class="out">10   common   UT:GE0/0/1     GE0/0/2</div><div class="out">20   common   UT:GE0/0/3</div><div class="out">30   common   UT:GE0/0/4     GE0/0/5     GE0/0/6</div><div class="out">40   common   UT:GE0/0/7     GE0/0/8</div><div class="dim">（安全区域划分核查：服务器/存储/终端/管理分区明确，对应指导书 5.5）</div></div></div></body></html>
