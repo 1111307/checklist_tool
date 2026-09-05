@@ -74,6 +74,18 @@ header .sub{opacity:.85;font-size:13px;}
 .rb.on-na{background:var(--na);border-color:var(--na);color:#fff;font-weight:600;}
 .item textarea{width:100%;margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:13px/1.5 inherit;outline:none;resize:vertical;min-height:34px;background:rgba(255,255,255,.85);}
 .item textarea:focus{border-color:#2563eb;}
+.item.active{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+.shots{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:flex-start;}
+.shot{position:relative;width:120px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#f8fafc;}
+.shot img{display:block;width:100%;height:80px;object-fit:cover;cursor:zoom-in;}
+.shot .del{position:absolute;top:2px;right:2px;width:18px;height:18px;line-height:16px;text-align:center;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:12px;cursor:pointer;user-select:none;}
+.shot .del:hover{background:var(--fail);}
+.addshot{width:120px;height:80px;border:1.5px dashed var(--line);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);font-size:11px;cursor:pointer;text-align:center;gap:2px;}
+.addshot:hover{border-color:#2563eb;color:#2563eb;}
+.addshot b{font-size:15px;}
+.paste-hint{font-size:11px;color:var(--muted);margin-top:4px;}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:100;cursor:zoom-out;}
+.lightbox img{max-width:92%;max-height:92%;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);}
 .empty{padding:60px;text-align:center;color:var(--muted);}
 footer{margin-top:30px;text-align:center;color:var(--muted);font-size:12px;}
 @media(max-width:800px){.dash{grid-template-columns:repeat(3,1fr);}.info{grid-template-columns:1fr;}}
@@ -154,8 +166,12 @@ function saveDraft(){
       os: g("f-os").value, host: g("f-host").value,
       user: g("f-user").value, date: g("f-date").value
     };
-    localStorage.setItem(KEY, JSON.stringify(draft));
-    g("saved-tip").textContent = "已自动保存 " + new Date().toTimeString().slice(0,5);
+    try {
+      localStorage.setItem(KEY, JSON.stringify(draft));
+      g("saved-tip").textContent = "已自动保存 " + new Date().toTimeString().slice(0,5);
+    } catch(e) {
+      g("saved-tip").textContent = "⚠ 本机存储已满（截图过多），请尽快导出报告后清空重填";
+    }
   }, 400);
 }
 
@@ -264,10 +280,112 @@ function buildItem(it){
     if (ta.value.trim() || cur.status) { cur.note = ta.value; draft.results[it.id] = cur; }
     saveDraft();
   };
-  div.appendChild(head); div.appendChild(guide); div.appendChild(radios); div.appendChild(ta);
+  // ---- 截图区：点击卡片激活，Ctrl+V 粘贴 或 点击选择图片 ----
+  var shots = document.createElement("div");
+  shots.className = "shots";
+  var addBtn = document.createElement("div");
+  addBtn.className = "addshot";
+  addBtn.innerHTML = "<b>＋</b>添加截图<br>(点击选择 / Ctrl+V)";
+  var fileInput = document.createElement("input");
+  fileInput.type = "file"; fileInput.accept = "image/*"; fileInput.multiple = true;
+  fileInput.style.display = "none";
+  addBtn.onclick = function(){ setActive(it.id, div); fileInput.click(); };
+  fileInput.onchange = function(){
+    Array.prototype.forEach.call(fileInput.files, function(f){ addImageFile(it.id, f); });
+    fileInput.value = "";
+  };
+  shots.appendChild(addBtn); shots.appendChild(fileInput);
+  renderShots(shots, it.id);
+  var hint = document.createElement("div");
+  hint.className = "paste-hint";
+  hint.textContent = "提示：点击本项后，可直接 Ctrl+V 粘贴屏幕截图（自动压缩存储）";
+  div.appendChild(head); div.appendChild(guide); div.appendChild(radios);
+  div.appendChild(ta); div.appendChild(shots); div.appendChild(hint);
+  div.addEventListener("click", function(){ setActive(it.id, div); });
   applyState(div, r.status);
   return div;
 }
+
+/* ---- 截图管理 ---- */
+var activeItemId = null;
+var activeDiv = null;
+function setActive(id, div){
+  if (activeDiv) activeDiv.classList.remove("active");
+  activeItemId = id; activeDiv = div;
+  div.classList.add("active");
+}
+function renderShots(container, id){
+  container.querySelectorAll(".shot").forEach(function(s){ s.remove(); });
+  var r = draft.results[id] || {};
+  (r.images || []).forEach(function(dataUrl, idx){
+    var box = document.createElement("div");
+    box.className = "shot";
+    var img = document.createElement("img");
+    img.src = dataUrl; img.title = "点击放大";
+    img.onclick = function(){
+      var lb = document.createElement("div");
+      lb.className = "lightbox";
+      lb.appendChild(img.cloneNode());
+      lb.onclick = function(){ lb.remove(); };
+      document.body.appendChild(lb);
+    };
+    var del = document.createElement("span");
+    del.className = "del"; del.textContent = "×";
+    del.title = "删除此截图";
+    del.onclick = function(ev){
+      ev.stopPropagation();
+      var cur = draft.results[id] || {};
+      (cur.images || []).splice(idx, 1);
+      if (!cur.images.length && !cur.status && !cur.note) delete draft.results[id];
+      renderShots(container, id); saveDraft();
+    };
+    box.appendChild(img); box.appendChild(del);
+    container.insertBefore(box, container.lastChild);
+  });
+}
+function compressImage(dataUrl, cb){
+  var img = new Image();
+  img.onload = function(){
+    var max = 1280, w = img.width, h = img.height;
+    if (w > max) { h = Math.round(h * max / w); w = max; }
+    var cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    cv.getContext("2d").drawImage(img, 0, 0, w, h);
+    cb(cv.toDataURL("image/jpeg", 0.72));
+  };
+  img.src = dataUrl;
+}
+function addImageDataUrl(id, dataUrl){
+  compressImage(dataUrl, function(small){
+    var cur = draft.results[id] || {};
+    cur.images = cur.images || [];
+    cur.images.push(small);
+    draft.results[id] = cur;
+    var div = document.querySelector('.item[data-id="' + id + '"]');
+    if (div) { var sc = div.querySelector(".shots"); if (sc) renderShots(sc, id); }
+    saveDraft();
+  });
+}
+function addImageFile(id, file){
+  if (!file.type || file.type.indexOf("image/") !== 0) return;
+  var fr = new FileReader();
+  fr.onload = function(){ addImageDataUrl(id, fr.result); };
+  fr.readAsDataURL(file);
+}
+/* 全局粘贴：图片归到当前激活的核查项 */
+document.addEventListener("paste", function(ev){
+  if (!activeItemId) return;
+  var items = (ev.clipboardData || window.clipboardData) && ev.clipboardData ? ev.clipboardData.items : null;
+  if (!items) return;
+  var found = false;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type && items[i].type.indexOf("image") === 0) {
+      var f = items[i].getAsFile();
+      if (f) { addImageFile(activeItemId, f); found = true; }
+    }
+  }
+  if (found) ev.preventDefault();
+});
 
 function applyState(div, st){
   div.className = "item" + (st ? " done-"+st : "");
@@ -337,7 +455,8 @@ function collectExport(){
       status: r.status || "manual",
       detail: r.note || (r.status ? "" : "（人工核查台导出时未填写，默认需人工核查）"),
       rec: r.status === "fail" ? "请按指导书对应章节整改后复查。" : "",
-      guide: it.guide
+      guide: it.guide,
+      images: r.images || []
     };
   });
   var cnt = {pass:0, fail:0, manual:0, na:0};
@@ -387,8 +506,9 @@ g("export").onclick = function(){
     + 'function esc(s){var d=document.createElement("div");d.textContent=s==null?"":s;return d.innerHTML;}'
     + 'var tb=document.getElementById("tb");'
     + 'DATA.forEach(function(x){var tr=document.createElement("tr");'
+    + 'var imgs="";(x.images||[]).forEach(function(s){imgs+=\'<img src="\'+s+\'" style="max-width:320px;margin:4px 4px 0 0;border:1px solid #ddd;border-radius:4px;display:block">\';});'
     + 'tr.innerHTML="<td>"+esc(x.ch)+"</td><td class=\'id\'>"+esc(x.id)+"</td><td class=\'cat\'>"+esc(x.cat)+"</td><td class=\'title\'>"+esc(x.title)+"</td>"'
-    + '+"<td><span class=\'badge badge-"+x.status+"\'>"+ST[x.status]+"</span></td><td class=\'detail\'>"+esc(x.detail)+"</td><td class=\'rec\'>"+esc(x.rec)+"</td><td class=\'guide\'>"+esc(x.guide)+"</td>";'
+    + '+"<td><span class=\'badge badge-"+x.status+"\'>"+ST[x.status]+"</span></td><td class=\'detail\'>"+esc(x.detail)+(imgs?\'<div style="margin-top:6px">\'+imgs+"</div>":"")+"</td><td class=\'rec\'>"+esc(x.rec)+"</td><td class=\'guide\'>"+esc(x.guide)+"</td>";'
     + 'tb.appendChild(tr);});'
     + '<\/script></body></html>';
   downloadBlob(html, "配置核查报告_人工_" + d.stamp + ".html", "text/html;charset=utf-8");
