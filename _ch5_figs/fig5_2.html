@@ -1,0 +1,19 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;background:#fff;font-family:"Microsoft YaHei",sans-serif;}</style><script src="mermaid.min.js"></script></head><body><pre class="mermaid">flowchart TD
+  A[提出跨网跨域交换申请] --> B{网络管理部门与主管保密部门审批}
+  B -- 通过 --> C[安全保密方案设计]
+  B -- 不通过 --> H[终止或整改]
+  C --> D{专家评审}
+  D -- 不通过 --> C
+  D -- 通过 --> E[按方案实施交换]
+  E --> F[交换日志留存]
+  F --> G[定期比对：交换行为与审批范围]
+</pre><script>mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#eef3fa', primaryBorderColor: '#1a3c6e', primaryTextColor: '#1f2937',
+    lineColor: '#475569', fontSize: '15px',
+    clusterBkg: '#f7fafc', clusterBorder: '#94a3b8'
+  },
+  flowchart: { curve: 'basis', nodeSpacing: 34, rankSpacing: 44 }
+});</script></body></html>

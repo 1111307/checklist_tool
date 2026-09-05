@@ -1,0 +1,25 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;background:#fff;font-family:"Microsoft YaHei",sans-serif;}</style><script src="mermaid.min.js"></script></head><body><pre class="mermaid">sequenceDiagram
+  participant T as 接入终端<br/>(端口+IP+MAC)
+  participant S as 接入交换机<br/>(802.1x 使能)
+  participant R as 认证服务器<br/>(Radius/准入)
+  T->>S: 发起网络接入
+  S->>T: 要求 802.1x 认证
+  T->>S: 提交认证凭据
+  S->>R: 转发认证请求（绑定端口/IP/MAC）
+  alt 认证通过
+    R-->>S: 授权（放行业务 VLAN）
+    S-->>T: 接入业务网络
+  else 认证失败/未注册
+    R-->>S: 拒绝
+    S-->>T: 拒绝接入或进入隔离区
+  end
+</pre><script>mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#eef3fa', primaryBorderColor: '#1a3c6e', primaryTextColor: '#1f2937',
+    lineColor: '#475569', fontSize: '15px',
+    clusterBkg: '#f7fafc', clusterBorder: '#94a3b8'
+  },
+  flowchart: { curve: 'basis', nodeSpacing: 34, rankSpacing: 44 }
+});</script></body></html>

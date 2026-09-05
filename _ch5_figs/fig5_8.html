@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;background:#fff;font-family:"Microsoft YaHei",sans-serif;}</style><script src="mermaid.min.js"></script></head><body><pre class="mermaid">flowchart TB
+  STG((数据存储设备))
+  STG -->|管理口| MV[管理网络 VLAN40]
+  STG -->|业务口| BV[业务应用网络 VLAN20]
+  BV -. 不互通 .-> MV
+</pre><script>mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#eef3fa', primaryBorderColor: '#1a3c6e', primaryTextColor: '#1f2937',
+    lineColor: '#475569', fontSize: '15px',
+    clusterBkg: '#f7fafc', clusterBorder: '#94a3b8'
+  },
+  flowchart: { curve: 'basis', nodeSpacing: 34, rankSpacing: 44 }
+});</script></body></html>

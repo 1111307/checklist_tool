@@ -1,0 +1,21 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;background:#fff;font-family:"Microsoft YaHei",sans-serif;}</style><script src="mermaid.min.js"></script></head><body><pre class="mermaid">flowchart TB
+  CORE((核心交换机))
+  subgraph Z[安全区域划分]
+    SRV[服务器区 VLAN10]
+    STG[数据存储区 VLAN20]
+    OFF[办公终端区 VLAN30]
+    MGT[安全管理区 VLAN40]
+  end
+  CORE --> SRV & STG & OFF & MGT
+  OFF -. 须经集中服务中转 .-> SRV
+  OFF -. 管理通道 .-> MGT
+</pre><script>mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#eef3fa', primaryBorderColor: '#1a3c6e', primaryTextColor: '#1f2937',
+    lineColor: '#475569', fontSize: '15px',
+    clusterBkg: '#f7fafc', clusterBorder: '#94a3b8'
+  },
+  flowchart: { curve: 'basis', nodeSpacing: 34, rankSpacing: 44 }
+});</script></body></html>
