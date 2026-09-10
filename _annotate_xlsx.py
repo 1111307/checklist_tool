@@ -28,6 +28,19 @@ EVIDENCE = re.compile(
     r'\$\{?\w|\$\(|"\s*&|检测到|未检测到|采集到|已安装|已部署|已启用|未发现|已划分|'
     r'执行失败|无法读取|无法查询|无法确认|无法获取|无法确定|权限不足|已建立|'
     r'未找到|未运行|未在|（输出|输出:')
+# 「无法连接 X（…），请检查 XX_PASS/环境变量」是连接探测失败提示，不是对该条目的检测结果；
+# 若剥掉变量插值与连接告警后没有实际检测叙述，则不能算作"脚本已执行该项检测"
+CONN_FAIL = re.compile(r'无法连接|连接失败|连接超时|不可达|请检查\s*\S*(PASS|USER|HOST|PORT)|环境变量')
+DETECT_WORD = re.compile(r'检测到|采集到|已安装|已启用|已划分|未发现|发现|总数|条目|个可|条可')
+
+def has_evidence(det, concat):
+    if not (EVIDENCE.search(det) or concat):
+        return False
+    if CONN_FAIL.search(det):
+        stripped = re.sub(r'\$\{?\w[\w}]*|\$\([^)]*\)', '', det)
+        stripped = CONN_FAIL.sub('', stripped)
+        return bool(DETECT_WORD.search(stripped))
+    return True
 
 def read_detail(data, pos, is_vbs):
     i = pos
@@ -77,6 +90,29 @@ def extract(path, is_vbs):
         if status == 'manual':
             det, concat = read_detail(data, m.end(), is_vbs)
             d[code]['manuals'].append((det, concat))
+    if not is_vbs:
+        # bash 里把编号当参数传给包装函数时（如 db_na_or_manual "1.7" ...），
+        # 真正落盘的是函数内的 add_result "$1"，直接扫会漏掉这些条目的能力
+        for fm in re.finditer(r'(?m)^([A-Za-z_]\w*)\s*\(\s*\)\s*\{', data):
+            name = fm.group(1)
+            end = data.find('\n}', fm.end())
+            body = data[fm.end():end if end > 0 else len(data)]
+            if 'add_result "$1"' not in body:
+                continue
+            wstat, wman = set(), []
+            for m in st.finditer(body):
+                if m.group(1) != '$1':
+                    continue
+                wstat.add(m.group(2))
+                if m.group(2) == 'manual':
+                    det, concat = read_detail(body, m.end(), False)
+                    wman.append((det, concat))
+            if not wstat:
+                continue
+            for cm in re.finditer(r'\b%s\s+"([0-9]+\.[0-9]+[^"]*)"' % re.escape(name), data):
+                code = cm.group(1)
+                d[code]['statuses'] |= wstat
+                d[code]['manuals'].extend(wman)
     return d
 
 def script_cap(info):
@@ -86,7 +122,7 @@ def script_cap(info):
         return 'auto'
     if 'manual' in kinds:
         for det, concat in info['manuals']:
-            if EVIDENCE.search(det) or concat:
+            if has_evidence(det, concat):
                 return 'check'
         return 'reminder'
     if 'na' in info['statuses']:
@@ -203,12 +239,12 @@ HAND_AUTO = {
 # 部分可自动化（脚本已执行核查但覆盖/结论不完全）
 HAND_PARTIAL = {
     '1.1':  '部分可自动化（用 check_xp7.vbs、check_kylin.sh 及 MySQL、Redis、SQL Server、Nginx、Tomcat 组件脚本自动核查；达梦脚本采集版本信息、补丁比对需人工）',
-    '1.8':  '部分可自动化（用 check_xp7.vbs 及 MySQL、SQL Server、Redis 组件脚本自动核查；达梦脚本采集存储过程数量、冗余判定需人工；麒麟脚本未执行该项检测）',
-    '1.13': '部分可自动化（用 check_xp7.vbs 连接 MySQL 自动核查多库混用情况；麒麟及各数据库脚本未执行该项检测，需人工核查）',
+    '1.8':  '部分可自动化（用 check_xp7.vbs 及 MySQL、SQL Server、Redis 组件脚本自动核查；check_dm 采集存储过程数量，check_kylin.sh 检测数据库服务运行状态，账户与冗余判定需人工核查）',
+    '1.13': '部分可自动化（用 check_xp7.vbs 自动核查多库混用情况；check_kylin.sh 检测数据库服务运行状态，MySQL、SQL Server、达梦侧脚本未执行该项检测，分类独立存储需人工核查）',
     '1.16': '部分可自动化（用 check_xp7.vbs 检测 MySQL 严格 SQL 模式自动判定；麒麟及各数据库脚本未执行该项检测，应用层参数校验需人工核查）',
-    '1.20': '部分可自动化（用 check_xp7.vbs 及 MySQL、达梦、Redis 组件脚本自动核查；SQL Server、麒麟侧脚本未执行该项检测）',
-    '1.21': '部分可自动化（用 check_xp7.vbs 及 MySQL、SQL Server 组件脚本自动核查；达梦、Redis 侧审计粒度需人工核查；麒麟脚本未执行该项检测）',
-    '1.22': '部分可自动化（用 check_xp7.vbs 自动核查 MySQL binlog 日志保留天数；麒麟及 SQL Server、达梦、Redis 侧未执行该项检测，需人工核查）',
+    '1.20': '部分可自动化（用 check_xp7.vbs 及 MySQL、达梦、Redis 组件脚本自动核查；check_kylin.sh 检测数据库服务运行状态，SQL Server 侧脚本未执行该项检测，安全策略明细需人工核查）',
+    '1.21': '部分可自动化（用 check_xp7.vbs 及 MySQL、SQL Server 组件脚本自动核查；check_kylin.sh 检测数据库服务运行状态，达梦、Redis 侧审计粒度需人工核查）',
+    '1.22': '部分可自动化（用 check_xp7.vbs 自动核查本机 MySQL binlog 日志保留天数；check_kylin.sh 检测数据库服务运行状态，SQL Server、达梦、Redis 侧脚本未执行该项检测，留存时长与独立监控需人工核查）',
     '1.24': '部分可自动化（用 check_xp7.vbs、check_kylin.sh 及 MySQL 组件脚本自动核查；SQL Server、达梦、Redis 侧留存时长需人工核查）',
     '1.25': '部分可自动化（用 check_xp7.vbs 及 MySQL、SQL Server、达梦、Redis 组件脚本自动核查；麒麟侧需人工）',
     '2.2':  '部分可自动化（check_xp7.vbs 自动判定；麒麟侧以 1.1 补丁核查结果为准、结合终端管理平台人工核实）',
@@ -350,6 +386,14 @@ for r in range(4, 140):
                 continue
             if not any(tok in txt for tok in FAMILY[t]):
                 errors.append(f'R{r} {code}: 适用对象「{t}」能力={c} 未在文案中点名 -> {txt}')
+    # 文案断言某对象"未执行"检测，但实测该对象脚本确已执行（auto/check）-> 口径自相矛盾
+    if '未执行' in txt:
+        for seg in re.split(r'[（）；;，,]', txt):
+            if '未执行' not in seg:
+                continue
+            for t, c in caps.items():
+                if c in ('auto', 'check') and any(tok in seg for tok in FAMILY[t]):
+                    errors.append(f'R{r} {code}: 文案称「{t}」未执行，但实测能力={c} -> {seg.strip()}')
     texts.append((r, txt))
     dist[classify(code)] += 1
 
