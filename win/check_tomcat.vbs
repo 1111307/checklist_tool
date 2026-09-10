@@ -312,6 +312,12 @@ Sub GenerateHTML()
         dataStr = dataStr & "{""ch"":""" & JsonEsc(chPart) & """,""id"":""" & JsonEsc(rID(i)) & """,""cat"":""" & JsonEsc(rCat(i)) & """,""title"":""" & JsonEsc(rTitle(i)) & """,""status"":""" & JsonEsc(rStatus(i)) & """,""detail"":""" & JsonEsc(rDetail(i)) & """,""rec"":""" & JsonEsc(rRec(i)) & """,""guide"":""" & JsonEsc(guidePart) & """}"
     Next
 
+    ts.WriteLine "<!DOCTYPE html>"
+    ts.WriteLine "<html lang=""zh-CN"">"
+    ts.WriteLine "<head>"
+    ts.WriteLine "<meta http-equiv=""Content-Type"" content=""text/html; charset=GBK"">"
+    ts.WriteLine "<meta name=""viewport"" content=""width=device-width, initial-scale=1"">"
+    ts.WriteLine "<title>Tomcat 中间件配置核查报告</title>"
     ts.WriteLine "<style>"
     ts.WriteLine ":root{--bg:#f5f7fa;--card:#fff;--ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;--brand:#0f3057;--brand2:#1a3c6e;--pass:#15803d;--pass-bg:#ecfdf5;--pass-br:#bbf7d0;--fail:#b91c1c;--fail-bg:#fef2f2;--fail-br:#fecaca;--manual:#b45309;--manual-bg:#fffbeb;--manual-br:#fde68a;--na:#4b5563;--na-bg:#f3f4f6;--na-br:#e5e7eb;}"
     ts.WriteLine "*{box-sizing:border-box;}"
