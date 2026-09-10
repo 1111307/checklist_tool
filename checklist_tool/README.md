@@ -12,7 +12,7 @@
 | **麒麟**（中标/银河） | `sudo bash kylin/run_all.sh` | `sudo bash kylin/run.sh` |
 
 > **零依赖**：Windows 用系统自带 VBScript（cscript），麒麟用系统自带 Bash，被测机无需安装任何软件。
-> 麒麟版 `run_all.sh` 会**自动探测**本机安装的数据库/中间件，只核查存在的组件，没装的自动跳过（`FORCE_ALL=1` 可强制全查）。
+> 麒麟版 `run_all.sh` 会**自动探测**本机安装的数据库/中间件，只核查存在的组件，没装的自动跳过（`FORCE_ALL=1` 可强制全查）；检测到 `kylin/output/netdev/` 有设备采集回显时，网络设备核查自动纳入同一轮。
 
 数据库/中间件连接参数：编辑各平台目录下的 `db_config.conf`，或用环境变量覆盖（`MYSQL_PASS=xxx sudo bash kylin/run_all.sh`）。
 
@@ -41,7 +41,7 @@ bash kylin/check_network.sh init     # 1. 生成三厂商（华为/华三/锐捷
 bash kylin/check_network.sh check    # 3. 解析回显 → 23 项判定 → HTML+XLS 报告（带时间戳）
 ```
 
-其中 11 项设备命令回显类自动判定，3 项脚本提取部分信号、结论需台账比对，9 项审批/台账/平台类需人工核查（详见 `kylin\README.md`）。
+其中 12 项设备命令回显类自动判定（含端口闲置率），5 项脚本采集部分信号、结论需台账比对（型号/加密层次/会话表/VLAN 划分），6 项审批/平台类需人工核查（详见 `kylin\README.md`）。采集回显放入 `kylin/output/netdev/` 后重跑 `run_all.sh`，网络设备核查会自动纳入一键流程。
 
 ### 脚本跑不了的机器：人工核查台
 

@@ -4,6 +4,8 @@
 #
 # 到被测机上只跑这一个脚本：自动探测本机装了哪些数据库/中间件，
 # 只核查探测到的组件，最后合并输出一份汇总 Excel(.xlsx)。
+# 网络设备核查：若 output/netdev/ 下已放置设备采集回显（见
+# check_network.sh init），本轮自动解析并生成网络设备报告。
 #
 # 用法：sudo bash run_all.sh
 #
@@ -106,6 +108,26 @@ echo ""
 echo "==================== 组件探测结果 ===================="
 [ "${FORCE_ALL:-0}" = "1" ] && echo "  （FORCE_ALL=1：跳过探测，全部核查）"
 
+# 网络设备：不探测本机（设备是独立硬件），检测采集工作区是否有设备回显文件
+netdev_count() {
+    local f n=0
+    for f in output/netdev/*.txt; do
+        [ -f "$f" ] || continue
+        case "$(basename "$f")" in 采集说明*|采集命令清单*) continue ;; esac
+        n=$((n + 1))
+    done
+    echo "$n"
+}
+NETDEV_N="$(netdev_count)"
+RUN_NETDEV=0
+if [ "$NETDEV_N" -gt 0 ]; then
+    RUN_NETDEV=1
+    echo "  [核查] 网络设备（检测到 ${NETDEV_N} 台设备采集回显，将解析判定第5章 23 项）"
+else
+    echo "  [跳过] 网络设备（无采集文件；如需核查：bash check_network.sh init 生成采集清单，"
+    echo "         运维采集回显后放入 output/netdev/，再重跑 run_all.sh，详见 README）"
+fi
+
 RUN_MYSQL=0; RUN_REDIS=0; RUN_DM=0; RUN_MSSQL=0; RUN_NGINX=0; RUN_TOMCAT=0
 mark() { # mark 组件名 探测函数 环境开关名
     local label="$1" det="$2" runvar="$3" why=""
@@ -135,15 +157,15 @@ mark "Tomcat 中间件"        detect_tomcat    RUN_TOMCAT  TOMCAT
 # ---------- 执行 ----------
 step=0
 total=1
-for v in RUN_MYSQL RUN_REDIS RUN_DM RUN_MSSQL RUN_NGINX RUN_TOMCAT; do
+for v in RUN_MYSQL RUN_REDIS RUN_DM RUN_MSSQL RUN_NGINX RUN_TOMCAT RUN_NETDEV; do
     [ "${!v}" = "1" ] && total=$((total + 1))
 done
 
-run_step() {  # run_step "标题" 脚本
+run_step() {  # run_step "标题" 脚本 [参数...]
     step=$((step + 1))
     echo ""
     echo "==================== ${step}/${total} $1 ===================="
-    bash "$2" || echo "（$1 核查脚本执行异常，继续后续项）"
+    bash "$2" ${3:+"$3"} || echo "（$1 核查脚本执行异常，继续后续项）"
 }
 
 run_step "麒麟操作系统核查" check_kylin.sh
@@ -153,6 +175,7 @@ run_step "麒麟操作系统核查" check_kylin.sh
 [ "$RUN_MSSQL"  = "1" ] && run_step "SQL Server 核查"     check_sqlserver.sh
 [ "$RUN_NGINX"  = "1" ] && run_step "Nginx 中间件核查"    check_nginx.sh
 [ "$RUN_TOMCAT" = "1" ] && run_step "Tomcat 中间件核查"   check_tomcat.sh
+[ "$RUN_NETDEV" = "1" ] && run_step "网络设备核查（解析 ${NETDEV_N} 台设备采集回显）" check_network.sh check
 
 # ---------- 汇总 ----------
 echo ""
