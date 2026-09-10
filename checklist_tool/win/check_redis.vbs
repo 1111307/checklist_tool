@@ -680,6 +680,8 @@ Sub GenerateExcel()
     oExcel.Quit
     Set oExcel = Nothing
     WScript.Echo "[OK] Excel(.xlsx)报告已生成：" & xlsxPath
+    ' 汇总合并（merge_report.vbs）只认 .xls，装了 Excel 时也要落一份
+    Call GenerateXLS()
 End Sub
 
 Sub GenerateXLS()

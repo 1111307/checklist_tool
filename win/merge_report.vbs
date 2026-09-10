@@ -10,6 +10,9 @@ Dim oShell, oFSO
 Set oShell = CreateObject("WScript.Shell")
 Set oFSO   = CreateObject("Scripting.FileSystemObject")
 
+' 是否已收集到网络设备报告（决定是否丢弃单机脚本第5章的 na 占位行）
+Dim HAS_NETDEV : HAS_NETDEV = False
+
 ' 从文件名提取组件名（配置核查报告_MySQL_xxx.xls -> MySQL；纯时间戳 -> 操作系统）
 Function ComponentName(filename)
     Dim base : base = filename
@@ -40,8 +43,8 @@ End Function
 ' 状态着色
 Function StatusColor(status)
     Select Case status
-        Case "通过":       StatusColor = "#28a745"
-        Case "未通过":     StatusColor = "#dc3545"
+        Case "通过", "合规": StatusColor = "#28a745"
+        Case "未通过", "不合规": StatusColor = "#dc3545"
         Case "需人工核查": StatusColor = "#e67e00"
         Case Else:         StatusColor = "#6c757d"
     End Select
@@ -59,6 +62,7 @@ Function AppendRows(ts, xlsPath, comp)
     Dim mtr : Set mtr = re.Execute(content)
 
     Dim n : n = 0
+    Dim skipRow
     Dim i
     For i = 0 To mtr.Count - 1
         Dim trContent : trContent = mtr(i).SubMatches(0)
@@ -66,18 +70,34 @@ Function AppendRows(ts, xlsPath, comp)
         retd.Global = True
         retd.Pattern = "<td[^>]*>([\s\S]*?)</td>"
         Dim mtd : Set mtd = retd.Execute(trContent)
+        ' 兼容两种组件报告列结构：
+        '   7 列（组件脚本）   编号/类别/检查项/状态/详情/修复建议/章节
+        '   8 列（网络设备版） 章节/编号/类别/核查项/结果/详情/建议/参考指导书
+        Dim iId, iCat, iTitle, iStatus, iDetail, iRec, iCh, okRow
+        okRow = False
         If mtd.Count = 7 Then
-            ' 数据行：编号/类别/检查项/状态/详情/修复建议/章节
-            Dim status : status = mtd(3).SubMatches(0)
+            iId=0 : iCat=1 : iTitle=2 : iStatus=3 : iDetail=4 : iRec=5 : iCh=6 : okRow = True
+        ElseIf mtd.Count >= 8 Then
+            iId=1 : iCat=2 : iTitle=3 : iStatus=4 : iDetail=5 : iRec=6 : iCh=0 : okRow = True
+        End If
+        ' 第5章在核查表对象矩阵中属"网络设备"对象：网络设备报告已在时，
+        ' 丢弃单机脚本的第5章 na 占位行，避免同一章两套结论
+        skipRow = False
+        If okRow And HAS_NETDEV Then
+            ' 章节值形如"第5章"或"第5章 第5.1节"，按前缀判断
+            If comp = "操作系统" And Left(Trim(mtd(iCh).SubMatches(0)), 3) = "第5章" Then skipRow = True
+        End If
+        If okRow And Not skipRow Then
+            Dim status : status = mtd(iStatus).SubMatches(0)
             ts.WriteLine "<tr>"
             ts.WriteLine "<td>" & HtmlEsc(comp) & "</td>"
-            ts.WriteLine "<td>" & HtmlEsc(mtd(0).SubMatches(0)) & "</td>"
-            ts.WriteLine "<td>" & HtmlEsc(mtd(1).SubMatches(0)) & "</td>"
-            ts.WriteLine "<td>" & HtmlEsc(mtd(2).SubMatches(0)) & "</td>"
+            ts.WriteLine "<td>" & HtmlEsc(mtd(iId).SubMatches(0)) & "</td>"
+            ts.WriteLine "<td>" & HtmlEsc(mtd(iCat).SubMatches(0)) & "</td>"
+            ts.WriteLine "<td>" & HtmlEsc(mtd(iTitle).SubMatches(0)) & "</td>"
             ts.WriteLine "<td style=""color:" & StatusColor(status) & ";font-weight:bold"">" & HtmlEsc(status) & "</td>"
-            ts.WriteLine "<td>" & HtmlEsc(mtd(4).SubMatches(0)) & "</td>"
-            ts.WriteLine "<td>" & HtmlEsc(mtd(5).SubMatches(0)) & "</td>"
-            ts.WriteLine "<td>" & HtmlEsc(mtd(6).SubMatches(0)) & "</td>"
+            ts.WriteLine "<td>" & HtmlEsc(mtd(iDetail).SubMatches(0)) & "</td>"
+            ts.WriteLine "<td>" & HtmlEsc(mtd(iRec).SubMatches(0)) & "</td>"
+            ts.WriteLine "<td>" & HtmlEsc(mtd(iCh).SubMatches(0)) & "</td>"
             ts.WriteLine "</tr>"
             n = n + 1
         End If
@@ -111,6 +131,12 @@ Sub GenerateMerge()
         WScript.Echo "[跳过] output 下没有组件 .xls 报告可合并。"
         Exit Sub
     End If
+
+    ' 收集到网络设备报告时，后续丢弃单机脚本的第5章占位行
+    Dim k
+    For k = 0 To fileCount - 1
+        If InStr(oFSO.GetFileName(files(k)), "网络设备") > 0 Then HAS_NETDEV = True
+    Next
 
     Dim dtNow : dtNow = Now()
     Dim stamp : stamp = Year(dtNow) & Right("0" & Month(dtNow), 2) & Right("0" & Day(dtNow), 2) & _

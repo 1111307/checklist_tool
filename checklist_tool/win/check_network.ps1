@@ -504,7 +504,7 @@ function Generate-Html {
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
+<meta charset="GBK">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
 <style>
@@ -639,8 +639,9 @@ render();
     $html = $html.Replace('__TIME__', $now).Replace('__DATA__', $dataJson).Replace('__TOTAL__', "$total")
     $html = $html.Replace('__PASS__', "$pass").Replace('__FAIL__', "$fail").Replace('__MANUAL__', "$manual").Replace('__NA__', "$na")
     $html = $html.Replace('__PPASS__', $ppass).Replace('__PFAIL__', $pfail).Replace('__PMANUAL__', $pmanual).Replace('__PNA__', $pna)
-    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    [System.IO.File]::WriteAllText($outfile, $html, $utf8NoBom)
+    # 与其余 win 脚本（VBS/ANSI）一致：GBK 输出；merge_report.vbs 按 ANSI 读取汇总
+    $gbk = [System.Text.Encoding]::GetEncoding(936)
+    [System.IO.File]::WriteAllText($outfile, $html, $gbk)
     Write-Host "HTML报告已生成：$outfile"
 }
 
@@ -653,7 +654,7 @@ function Generate-Xls {
     $now = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $sb = New-Object System.Text.StringBuilder
     [void]$sb.AppendLine('<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">')
-    [void]$sb.AppendLine('<head><meta charset="UTF-8">')
+    [void]$sb.AppendLine('<head><meta charset="GBK">')
     [void]$sb.AppendLine('<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>配置核查报告</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->')
     [void]$sb.AppendLine('<style>table{border-collapse:collapse;}th,td{border:1px solid #999;padding:4px 6px;font-family:"Microsoft YaHei",Arial;font-size:12px;mso-number-format:"\@";}th{background:#1a3c6e;color:#fff;font-weight:bold;}</style>')
     [void]$sb.AppendLine('</head><body>')
@@ -671,8 +672,8 @@ function Generate-Xls {
         [void]$sb.AppendLine("<tr><td>$(Html-Esc $r.chapter)</td><td>$(Html-Esc $r.id)</td><td>$(Html-Esc $r.cat)</td><td>$(Html-Esc $r.title)</td><td>$scn</td><td>$(Html-Esc $r.detail)</td><td>$(Html-Esc $r.rec)</td><td>$(Html-Esc $r.guide)</td></tr>")
     }
     [void]$sb.AppendLine('</table></body></html>')
-    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    [System.IO.File]::WriteAllText($outfile, $sb.ToString(), $utf8NoBom)
+    $gbk = [System.Text.Encoding]::GetEncoding(936)
+    [System.IO.File]::WriteAllText($outfile, $sb.ToString(), $gbk)
     Write-Host "Excel(.xls)报告已生成：$outfile"
 }
 

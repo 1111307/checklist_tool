@@ -37,6 +37,12 @@ merge_xlsx() {
         files+=("$f")
     done
     if [ ${#files[@]} -eq 0 ]; then echo "[跳过] $outdir 下无组件 xlsx 可合并"; return 0; fi
+    # 收集到网络设备报告时，后续丢弃单机脚本的第5章 na 占位行
+    # （第5章在核查表对象矩阵中属"网络设备"对象，避免同一章出现两套结论）
+    local HAS_NETDEV=0
+    for f in "${files[@]}"; do
+        case "$(basename "$f")" in *网络设备*) HAS_NETDEV=1 ;; esac
+    done
     if ! command -v unzip >/dev/null 2>&1 || ! command -v zip >/dev/null 2>&1; then
         echo "[提示] 缺少 unzip/zip 命令，跳过汇总（可 yum install -y zip unzip）"; return 0
     fi
@@ -64,6 +70,11 @@ merge_xlsx() {
                 while IFS= read -r t; do
                     cells+=("$t")
                 done < <(printf '%s\n' "$rowline" | grep -oE '<t[^>]*>[^<]*</t>' | sed 's#<t[^>]*>##; s#</t>##')
+                # 第5章属"网络设备"对象：网络设备报告已在时，丢弃单机脚本的 na 占位行
+                # 章节值形如"第5章"（部分脚本为"第5章 第5.1节"），按前缀判断
+                case "${cells[0]:-}" in
+                    第5章*) [ "$HAS_NETDEV" = "1" ] && [ "$comp" = "操作系统" ] && continue ;;
+                esac
                 printf '%s' "$comp"
                 local i
                 for i in 0 1 2 3 4 5 6 7; do
