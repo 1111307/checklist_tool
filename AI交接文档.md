@@ -13,7 +13,7 @@
 |---|---|---|
 | 核查表（基准矩阵） | `配置核查表_v2.0.0.xlsx` / `_标注自动验证.xlsx` | 已定版，标注版含每项自动化状态 |
 | 作业指导书（标准依据） | `配置核查作业指导书_v2.2.docx` | v2.2 已修复+完善（10 章、113 个编号检查项） |
-| 自动化工具（双平台） | `win/`（VBScript）、`kylin/`（Bash）各 7 个脚本 | 可用，HTML 报告为 2026-08 新模板 |
+| 自动化工具（双平台） | `win/`（VBScript）、`kylin/`（Bash）各 7 个脚本；网络设备另有独立版 `网络设备核查/`（同源） | 可用，HTML 报告为 2026-08 新模板 |
 | 交叉验证报告 | `测评报告/指导书与核查工具交叉验证报告.docx/.md` | 113 项全覆盖：已实现 75 / 部分 38 / 未实现 0，自动化率 66.4% |
 | 交付包 | `checklist_tool/`（仓库内快照）+ `Desktop\checklist_tool`（实物） | 37 文件，含总 README |
 
@@ -41,6 +41,11 @@
 │   ├── run.sh / run_all.sh       run_all 有组件自动探测（进程/端口/目录四信号）
 │   ├── lib_xlsx.sh / merge_xlsx.sh
 │   └── output/                   真机历史报告（20260710-20260809）
+├── 网络设备核查/                 网络设备核查独立版（与 win/、kylin/ 同源逐字节复制，可整份交给网络/运维组）
+│   ├── run.bat                   一键入口（无回显→init 生成清单；有回显→check 出报告）
+│   ├── check_network.ps1 / .bat  Windows 版（UTF-8 BOM + CRLF / GBK + CRLF）
+│   ├── check_network.sh + lib_xlsx.sh  麒麟版（LF）
+│   └── README.md                 采集流程与同源 MD5 对照（改动仍改原目录，再整份复制过来）
 ├── docker/                       Docker 靶机环境（Dockerfile + systemctl3.py + 90 份报告）
 ├── 测评报告/                      交叉验证报告 + 分章 md
 ├── checklist_tool/               交付包快照（干净版，无 output）
@@ -130,6 +135,8 @@ cp win/check_*.vbs win/check_*.ps1 win/run*.bat win/*.conf win/*.ps1 "C:/Users/r
 cp kylin/check_*.sh kylin/run*.sh kylin/*.conf "C:/Users/ryan.xiong/Desktop/checklist_tool/kylin/"
 cp 配置核查作业指导书_v2.2.docx 配置核查表_v2.0.0_标注自动验证.xlsx "C:/Users/ryan.xiong/Desktop/checklist_tool/"
 cp 测评报告/指导书与核查工具交叉验证报告.docx "C:/Users/ryan.xiong/Desktop/checklist_tool/"
+# 另有仓库内快照 checklist_tool/（同一棵树，与上面两条一致）
+cp -r 网络设备核查/. "C:/Users/ryan.xiong/Desktop/checklist_tool/网络设备核查/"   # 独立版目录（不含 output/）
 # 注意：交付包文件被 Word 占用时 cp 会报 Device or resource busy，关 Word 重试
 ```
 
