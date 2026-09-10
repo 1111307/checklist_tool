@@ -43,6 +43,8 @@ bash kylin/check_network.sh check    # 3. 解析回显 → 23 项判定 → HTML
 
 Windows 管理机同理：`win\check_network.bat init` / `check`（PowerShell 版，判定逻辑与麒麟版一致，采集文件两边通用）。
 
+**独立使用**：网络设备核查另抽了一份放在 `网络设备核查\`（脚本与 `win\`、`kylin\` 同源、逐字节一致，原目录未改动），可整份交给网络/运维组单独使用——Windows 管理机双击 `run.bat` 一键（未采集到回显时生成采集清单，已采集时直接出报告），麒麟机 `bash check_network.sh init` / `check`。详见 `网络设备核查\README.md`。
+
 其中 11 项设备命令回显类自动判定（含端口闲置率），6 项为脚本采集部分信号或部分对象未检测、结论需台账比对（型号/加密层次/会话表/VLAN 划分、5.19 终端侧未覆盖），6 项审批/平台类需人工核查（详见 `kylin\README.md`）。采集回显放入 `kylin/output/netdev/` 后重跑 `run_all.sh`，网络设备核查会自动纳入一键流程。
 
 ### 脚本跑不了的机器：人工核查台
@@ -80,6 +82,11 @@ checklist_tool/
 │   ├── check_*.sh            核查脚本（含网络设备 check_network.sh）
 │   ├── run.sh / run_all.sh   启动入口（自动探测组件）
 │   └── README.md             详细使用说明（含网络设备采集-解析流程）
+├── 网络设备核查\             网络设备核查独立版（与 win\、kylin\ 同源，可整份交给网络/运维组）
+│   ├── run.bat               一键入口（无回显→生成采集清单；有回显→直接出报告）
+│   ├── check_network.ps1 / .bat   Windows 版（PowerShell，系统自带）
+│   ├── check_network.sh + lib_xlsx.sh   麒麟版（纯 Bash）
+│   └── README.md             采集流程、目录约定与同源校验（MD5）
 ├── manual_check.html                       人工核查台（136 项，截图取证 + 双格式导出）
 ├── 配置核查作业指导书_v2.2.docx             核查标准依据（10 章、136 个编号检查项 + 第5章 13 张终端操作截图）
 ├── 配置核查表_v2.0.0.xlsx                  检查项 × 11 类核查对象矩阵（含华为交换机等网络设备；√适用/—不适用；第 14 列逐项标注用哪个脚本、哪些对象可自动、哪些需人工）
