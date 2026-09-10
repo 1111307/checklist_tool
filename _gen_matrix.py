@@ -31,6 +31,9 @@ INLINE_PLAT = [
     ('银河麒麟', re.compile(r'(^|[，,、；;\s（(])银河麒麟\s*[：:]')),
     ('中标麒麟', re.compile(r'(^|[，,、；;\s（(])麒麟\s*[：:]')),
     ('银河麒麟', re.compile(r'(^|[，,、；;\s（(])麒麟\s*[：:]')),
+    # 裸称「Windows：」（如 5.19「（Windows：防火墙入站默认阻止；麒麟：…）」）——两端并列的平台前缀写法
+    ('Win7',    re.compile(r'(^|[，,、；;\s（(])Windows\s*[：:]', re.I)),
+    ('WinXP',   re.compile(r'(^|[，,、；;\s（(])Windows\s*[：:]', re.I)),
     ('Nginx',   re.compile(r'(^|[，,、；;\s（(])Nginx\s*[：:]')),
     ('Tomcat',  re.compile(r'(^|[，,、；;\s（(])Tomcat\s*[：:]')),
 ]
