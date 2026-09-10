@@ -54,6 +54,26 @@ function Count-Lines([string]$text, [string]$pattern, [bool]$ignoreCase) {
 function NonEmpty([string]$text) {
     return ((($text -replace '\s', '') -ne ''))
 }
+# 统计 VLAN 条数：优先数 VLAN 表格行（华为/华三/锐捷 brief 输出），
+# 退化用汇总行 "The total number of vlans is : N"，再退化旧写法 "VLAN N"
+function Count-Vlans([string]$text) {
+    if ([string]::IsNullOrEmpty($text)) { return 0 }
+    $n = Count-Lines $text '^[0-9]+\s+\S' $false
+    if ($n -eq 0) {
+        $m = [regex]::Match($text, '(?i)total number of vlans?[^0-9]*([0-9]+)')
+        if ($m.Success) { $n = [int]$m.Groups[1].Value }
+    }
+    if ($n -eq 0) { $n = Count-Lines $text '^(VLAN|vlan) [0-9]+' $false }
+    return $n
+}
+# 筛出端口状态表里的接口行：兼容全称 GigabitEthernet0/0/1、缩写 GE0/0/1、
+# 华三 XGE1/0/1、锐捷 connected/notconnect 四种写法
+function Get-IfLines([string]$text) {
+    if ([string]::IsNullOrEmpty($text)) { return @() }
+    return @($text -split "`r?`n" | Where-Object {
+        $_ -imatch '^[A-Za-z][A-Za-z0-9./:-]*[0-9](/[0-9]+)*\s+(up|down|connected|notconnect|dormant|inactive|active|suspended)'
+    })
+}
 
 # ---------- init：生成采集模板 ----------
 function Do-Init {
@@ -201,7 +221,7 @@ function Do-Check {
         "第5章" "无线组网须审批后实施，私建热点应立即清除。"
     # ---- 5.3 最小化架构 ----
     if (NonEmpty $vlan) {
-        $vlanCnt = Count-Lines $vlan '^(VLAN|vlan) [0-9]+' $false
+        $vlanCnt = Count-Vlans $vlan
         if ($vlanCnt -le 1) {
             Add-Result "5.3" "网络安全" "按最小化原则设计网络架构" "fail" `
                 "设备回显中仅发现 $vlanCnt 个 VLAN，疑似未按业务划分区域（全设备置于同一广播域）。请核对 topology 与规划表。" `
@@ -234,7 +254,7 @@ function Do-Check {
     }
     # ---- 5.5 安全区域划分 ----
     if (NonEmpty $vlan) {
-        $vlanCnt2 = Count-Lines $vlan '^(VLAN|vlan) [0-9]+' $false
+        $vlanCnt2 = Count-Vlans $vlan
         if ($vlanCnt2 -ge 3) {
             Add-Result "5.5" "网络安全" "按业务性质划分安全区域" "pass" `
                 "发现 $vlanCnt2 个 VLAN，具备区域划分基础。请比对安全区域划分图确认服务器/存储/嵌入式设备分区。" `
@@ -418,8 +438,9 @@ function Do-Check {
     }
     # ---- 5.23 设备配备合理必要性 ----
     if (NonEmpty $brief) {
-        $totalIf = Count-Lines $brief '(GE|Gigabit|Eth|Fast|XGE|ge|fa|gi)[0-9/]+' $false
-        $downIf = Count-Lines $brief '(GE|Gigabit|Eth|Fast|XGE|ge|fa|gi)[0-9/]+.*(DOWN|down|notconnect|not-connect)' $false
+        $ifLines = Get-IfLines $brief
+        $totalIf = $ifLines.Count
+        $downIf  = @($ifLines | Where-Object { $_ -imatch 'down|notconnect' }).Count
         if ($totalIf -gt 0) {
             $pctDown = [math]::Floor($downIf * 100 / $totalIf)
             if ($pctDown -ge 50) {

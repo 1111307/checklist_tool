@@ -11,10 +11,13 @@
 # 采集文件约定：output/netdev/<设备名>.txt，各命令段以
 #   ########## CMD: <命令> ########## 行分隔（模板已带标记，直接粘贴回显即可）
 #
-# 输出：output/配置核查报告_网络设备_日期时间.html / .xls
+# 输出：output/配置核查报告_网络设备_日期时间.html / .xls / .xlsx
 # ============================================================
 set -u
 cd "$(dirname "$0")"
+
+# 零依赖 .xlsx 生成器（可选，需要 zip 命令；缺失时自动降级为 .html/.xls）
+[ -f "lib_xlsx.sh" ] && source "lib_xlsx.sh"
 
 OUT_DIR="output"
 NET_DIR="$OUT_DIR/netdev"
@@ -32,6 +35,25 @@ add_result() { # id cat title status detail chapter rec
 }
 
 html_esc() { local s="$1"; s="${s//&/&amp;}"; s="${s//</&lt;}"; s="${s//>/&gt;}"; printf '%s' "$s"; }
+
+# ---------- 回显解析辅助 ----------
+count_vlans() { # 统计 VLAN 条数：优先数 VLAN 表格行（华为/华三/锐捷 brief 输出），
+                # 退化用汇总行 "The total number of vlans is : N"，再退化旧写法 "VLAN N"
+    local txt="$1" n
+    n="$(echo "$txt" | grep -cE '^[0-9]+[[:space:]]+[^[:space:]]')"
+    if [ "${n:-0}" -eq 0 ] 2>/dev/null; then
+        n="$(echo "$txt" | grep -ioE 'total number of vlans?[^0-9]*[0-9]+' | grep -oE '[0-9]+' | tail -1)"
+    fi
+    if [ -z "${n:-}" ]; then
+        n="$(echo "$txt" | grep -cE '^(VLAN|vlan) [0-9]+')"
+    fi
+    printf '%s' "${n:-0}"
+}
+
+if_lines() { # 筛出端口状态表里的接口行：兼容全称 GigabitEthernet0/0/1、缩写 GE0/0/1、
+             # 华三 XGE1/0/1、锐捷 connected/notconnect 四种写法
+    echo "$1" | grep -iE '^[A-Za-z][A-Za-z0-9./:-]*[0-9](/[0-9]+)*[[:space:]]+(up|down|connected|notconnect|dormant|inactive|active|suspended)'
+}
 
 # ---------- init：生成采集模板 ----------
 do_init() {
@@ -178,7 +200,7 @@ $(cat "$f")"
     # ---- 5.3 最小化架构 ----
     if [ -n "$(echo "$vlan" | tr -d '[:space:]')" ]; then
         local vlan_cnt
-        vlan_cnt="$(echo "$vlan" | grep -cE '^(VLAN|vlan) [0-9]+' )"
+        vlan_cnt="$(count_vlans "$vlan")"
         if [ "$vlan_cnt" -le 1 ] 2>/dev/null; then
             add_result "5.3" "网络安全" "按最小化原则设计网络架构" "fail" \
                 "设备回显中仅发现 $vlan_cnt 个 VLAN，疑似未按业务划分区域（全设备置于同一广播域）。请核对 topology 与规划表。" \
@@ -212,7 +234,7 @@ $(cat "$f")"
     # ---- 5.5 安全区域划分 ----
     if [ -n "$(echo "$vlan" | tr -d '[:space:]')" ]; then
         local vlan_cnt2
-        vlan_cnt2="$(echo "$vlan" | grep -cE '^(VLAN|vlan) [0-9]+')"
+        vlan_cnt2="$(count_vlans "$vlan")"
         if [ "$vlan_cnt2" -ge 3 ] 2>/dev/null; then
             add_result "5.5" "网络安全" "按业务性质划分安全区域" "pass" \
                 "发现 $vlan_cnt2 个 VLAN，具备区域划分基础。请比对安全区域划分图确认服务器/存储/嵌入式设备分区。" \
@@ -398,9 +420,10 @@ $(cat "$f")"
     fi
     # ---- 5.23 设备配备合理必要性 ----
     if [ -n "$(echo "$brief" | tr -d '[:space:]')" ]; then
-        local total_if down_if
-        total_if="$(echo "$brief" | grep -cE '(GE|Gigabit|Eth|Fast|XGE|ge|fa|gi)[0-9/]+')"
-        down_if="$(echo "$brief" | grep -cE '(GE|Gigabit|Eth|Fast|XGE|ge|fa|gi)[0-9/]+.*(DOWN|down|notconnect|not-connect)')"
+        local total_if down_if ifl
+        ifl="$(if_lines "$brief")"
+        total_if="$(printf '%s' "$ifl" | grep -c .)"
+        down_if="$(printf '%s' "$ifl" | grep -ciE 'down|notconnect')"
         if [ "$total_if" -gt 0 ] 2>/dev/null; then
             local pct_down=$((down_if * 100 / total_if))
             if [ "$pct_down" -ge 50 ]; then
@@ -423,6 +446,10 @@ $(cat "$f")"
     echo "核查完成，共 $R_COUNT 项（网络设备 $DEV_COUNT 台：$DEV_NAMES）"
     generate_html
     generate_xls
+    # 与其余组件脚本一致：另出 .xlsx，供 run_all 的汇总（只并 xlsx）纳入第 5 章
+    # 注意 generate_xlsx 内部会 cd 到临时目录，必须传绝对路径
+    type generate_xlsx >/dev/null 2>&1 && \
+        generate_xlsx "$(pwd)/$OUT_DIR/配置核查报告_网络设备_${STAMP}.xlsx" "网络设备配置核查报告"
 }
 
 # ---------- 报告生成（与组件脚本同款模板） ----------

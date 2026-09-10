@@ -52,8 +52,12 @@ merge_xlsx() {
         comp="${base%%_*}"
         [[ "$comp" =~ ^[0-9]+$ ]] && comp="操作系统"
         # 提取数据行（跳过标题/汇总/表头前 3 个 <row>）
+        # 先把整段 XML 压成单行再按 </row> 切分：单元格文本含换行时，
+        # 逐行 grep 会漏配 <row>，并把文本残片当成新的数据行
         unzip -p "$f" xl/worksheets/sheet1.xml \
-          | grep -oE '<row[^>]*>.*</row>' \
+          | tr -d '\r' | tr -d '\n' \
+          | sed 's#</row>#</row>\n#g' \
+          | grep -E '<row' \
           | tail -n +4 \
           | while IFS= read -r rowline; do
                 local cells=() t
@@ -63,7 +67,9 @@ merge_xlsx() {
                 printf '%s' "$comp"
                 local i
                 for i in 0 1 2 3 4 5 6 7; do
-                    printf '\t%s' "$(xml_unescape "${cells[$i]:-}")"
+                    # 详情/建议里含 &#10;（XML 换行实体），unescape 后是真实换行，
+                    # 会把"一行一条记录"的中间格式撑破 → 这里压成空格
+                    printf '\t%s' "$(xml_unescape "${cells[$i]:-}" | tr -d '\r' | tr '\n' ' ')"
                 done
                 printf '\n'
             done >> "$rowsfile"

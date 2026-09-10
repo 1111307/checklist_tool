@@ -217,12 +217,21 @@ KERNEL_VER="$(uname -r)"
 HOSTNAME_STR="$(hostname 2>/dev/null)"
 
 KYLIN_TYPE="未知/其他Linux"
+# 银河麒麟有 apt/dpkg 桌面版与 yum/rpm 服务器版，标注以 PKG_MGR 实测为准
 case "$OS_ID" in
-    kylin) KYLIN_TYPE="银河麒麟 Kylin OS（apt/dpkg）" ;;
+    kylin) if [ "$PKG_MGR" = "yum" ]; then
+               KYLIN_TYPE="银河麒麟 Kylin OS（yum/rpm）"
+           else
+               KYLIN_TYPE="银河麒麟 Kylin OS（apt/dpkg）"
+           fi ;;
     neokylin) KYLIN_TYPE="中标麒麟 NeoKylin（yum/rpm）" ;;
     *)
         if [ -f /etc/kylin-release ]; then
-            KYLIN_TYPE="银河麒麟 Kylin OS（apt/dpkg，来自/etc/kylin-release）"
+            if [ "$PKG_MGR" = "yum" ]; then
+                KYLIN_TYPE="银河麒麟 Kylin OS（yum/rpm，来自/etc/kylin-release）"
+            else
+                KYLIN_TYPE="银河麒麟 Kylin OS（apt/dpkg，来自/etc/kylin-release）"
+            fi
         elif [ -f /etc/neokylin-release ]; then
             KYLIN_TYPE="中标麒麟 NeoKylin（yum/rpm，来自/etc/neokylin-release）"
         elif [ "$PKG_MGR" = "apt" ]; then
