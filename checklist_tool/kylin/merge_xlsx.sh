@@ -30,11 +30,25 @@ col_letter() {
 
 merge_xlsx() {
     local outdir="${1:-$PWD/output}"
-    local files=() f
+    # 收集组件 xlsx；同一组件只保留最新一份：output 会累积历史报告，否则汇总重复叠加
+    local files=() f cname i ec
+    comp_of() { # comp_of 文件名 → 组件名（纯时间戳=操作系统）
+        local b="$1"; b="${b#配置核查报告_}"; b="${b%%_*}"
+        case "$b" in ''|*[!0-9]*) printf '%s' "$b" ;; *) printf '%s' "操作系统" ;; esac
+    }
     for f in "$outdir"/配置核查报告_*.xlsx; do
         [ -f "$f" ] || continue
         case "$(basename "$f")" in *汇总*) continue ;; esac
-        files+=("$f")
+        cname="$(comp_of "$(basename "$f")")"
+        local dup=0
+        for i in "${!files[@]}"; do
+            ec="$(comp_of "$(basename "${files[$i]}")")"
+            if [ "$ec" = "$cname" ]; then
+                [ "$f" -nt "${files[$i]}" ] && files[$i]="$f"
+                dup=1; break
+            fi
+        done
+        [ "$dup" = "0" ] && files+=("$f")
     done
     if [ ${#files[@]} -eq 0 ]; then echo "[跳过] $outdir 下无组件 xlsx 可合并"; return 0; fi
     # 收集到网络设备报告时，后续丢弃单机脚本的第5章 na 占位行

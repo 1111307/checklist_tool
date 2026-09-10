@@ -113,17 +113,29 @@ Sub GenerateMerge()
     End If
 
     ' 收集组件 .xls 文件
+    ' 同一组件只保留最新一份：output\ 会累积历史报告，否则汇总里同一组件会重复叠加
     Dim folder : Set folder = oFSO.GetFolder(outDir)
     Dim files()
     ReDim files(0)
     Dim fileCount : fileCount = 0
-    Dim f
+    Dim f, j, cname, dup
     For Each f In folder.Files
         Dim ext : ext = LCase(oFSO.GetExtensionName(f.Name))
         If ext = "xls" And InStr(f.Name, "配置核查报告") > 0 And InStr(f.Name, "汇总") = 0 Then
-            ReDim Preserve files(fileCount)
-            files(fileCount) = f.Path
-            fileCount = fileCount + 1
+            cname = ComponentName(f.Name)
+            dup = False
+            For j = 0 To fileCount - 1
+                If ComponentName(oFSO.GetFileName(files(j))) = cname Then
+                    If f.DateLastModified > oFSO.GetFile(files(j)).DateLastModified Then files(j) = f.Path
+                    dup = True
+                    Exit For
+                End If
+            Next
+            If Not dup Then
+                ReDim Preserve files(fileCount)
+                files(fileCount) = f.Path
+                fileCount = fileCount + 1
+            End If
         End If
     Next
 

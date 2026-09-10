@@ -100,6 +100,11 @@ Function InvokeSql(sql)
     InvokeSql = Trim(RunCmd(cmd))
 End Function
 
+' sqlcmd/实例不可用时 InvokeSql 会返回提示文本，取数前先做数值校验（VBScript 的 And 不短路）
+Function NumVal(s)
+    If IsNumeric(s) Then NumVal = CDbl(s) Else NumVal = 0
+End Function
+
 Function SqlMaj(v)
     Dim parts : parts = Split(v, ".")
     If UBound(parts) >= 0 Then
@@ -157,7 +162,7 @@ End Sub
 
 Sub Check_1_9()
     Dim obj : obj = InvokeSql("SELECT COUNT(*) FROM sys.database_permissions WHERE class_desc IN ('OBJECT_OR_COLUMN','SCHEMA');")
-    If obj <> "" And CInt(obj) > 0 Then
+    If NumVal(obj) > 0 Then
         AddResult "1.9", "系统安全-数据库", "数据库权限最小化", "pass", "存在对象级细粒度授权 " & obj & " 条。", "第1章", "持续最小权限。"
     Else
         AddResult "1.9", "系统安全-数据库", "数据库权限最小化", "manual", "请人工确认权限最小化。", "第1章", "最小权限授权。"
@@ -166,7 +171,7 @@ End Sub
 
 Sub Check_1_10()
     Dim cnt : cnt = InvokeSql("SELECT COUNT(*) FROM sys.server_role_members rm JOIN sys.server_principals p ON rm.member_principal_id=p.principal_id JOIN sys.server_principals r ON rm.role_principal_id=r.principal_id WHERE r.name='sysadmin' AND p.name NOT IN ('sa');")
-    If cnt <> "" And CInt(cnt) > 0 Then
+    If NumVal(cnt) > 0 Then
         AddResult "1.10", "系统安全-数据库", "数据库访问控制", "manual", "存在 " & cnt & " 个非 sa 的 sysadmin，请人工确认。", "第1章", "收敛 sysadmin。"
     Else
         AddResult "1.10", "系统安全-数据库", "数据库访问控制", "pass", "sysadmin 仅 sa。", "第1章", "保持。"
@@ -177,7 +182,7 @@ Sub Check_1_11()
     Dim days : days = InvokeSql("SELECT ISNULL(DATEDIFF(day, MAX(backup_finish_date), GETDATE()), 9999) FROM msdb.dbo.backupset WHERE type='D';")
     If days = "" Or days = "9999" Then
         AddResult "1.11", "系统安全-数据库", "数据库备份策略", "fail", "未发现全量备份记录。", "第1章", "建立定期备份。"
-    ElseIf CInt(days) <= 7 Then
+    ElseIf NumVal(days) <= 7 Then
         AddResult "1.11", "系统安全-数据库", "数据库备份策略", "pass", "最近备份距今 " & days & " 天。", "第1章", "保持。"
     Else
         AddResult "1.11", "系统安全-数据库", "数据库备份策略", "fail", "最近备份距今 " & days & " 天（>7）。", "第1章", "建立定期备份。"
@@ -186,7 +191,7 @@ End Sub
 
 Sub Check_1_12()
     Dim audit : audit = InvokeSql("SELECT COUNT(*) FROM sys.server_audits WHERE is_state_enabled=1;")
-    If audit <> "" And CInt(audit) > 0 Then
+    If NumVal(audit) > 0 Then
         AddResult "1.12", "系统安全-数据库", "数据库审计插件", "pass", "已启用服务器审计 " & audit & " 项。", "第1章", "保持。"
     Else
         AddResult "1.12", "系统安全-数据库", "数据库审计插件", "fail", "未启用服务器审计。", "第1章", "启用审计。"
@@ -227,7 +232,7 @@ End Sub
 
 Sub Check_1_21()
     Dim spec : spec = InvokeSql("SELECT COUNT(*) FROM sys.server_audit_specifications;")
-    If spec <> "" And CInt(spec) > 0 Then
+    If NumVal(spec) > 0 Then
         AddResult "1.21", "系统安全-数据库", "数据库操作审计", "manual", "检测到审计规范 " & spec & " 项，行/列级审计粒度需人工确认。", "第1章", "配置审计规范覆盖敏感操作。"
     Else
         AddResult "1.21", "系统安全-数据库", "数据库操作审计", "fail", "未配置审计规范，不具备行/列级审计。", "第1章", "创建审计规范。"
@@ -258,7 +263,7 @@ End Sub
 
 Sub Check_1_26()
     Dim log : log = InvokeSql("SELECT COUNT(*) FROM sys.dm_os_server_diagnostics_log_configurations;")
-    If log <> "" And CInt(log) > 0 Then
+    If NumVal(log) > 0 Then
         AddResult "1.26", "系统安全-数据库", "防病毒/补丁日志记录", "pass", "检测到诊断日志配置。", "第1章", "保持。"
     Else
         AddResult "1.26", "系统安全-数据库", "防病毒/补丁日志记录", "manual", "请人工核查日志完整性。", "第1章", "配置日志。"
