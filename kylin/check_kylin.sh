@@ -202,6 +202,26 @@ svc_enabled() {
     systemctl is-enabled "$1" >/dev/null 2>&1
 }
 
+port_listen() { # port_listen 3306 -> 0=在监听
+    local port="$1" out=""
+    if command -v ss >/dev/null 2>&1; then
+        out="$(ss -tln 2>/dev/null)"
+    elif command -v netstat >/dev/null 2>&1; then
+        out="$(netstat -tln 2>/dev/null)"
+    fi
+    [ -n "$out" ] && echo "$out" | grep -q ":${port} " && return 0
+    return 1
+}
+
+db_listen_addrs() { # 只取数据库端口的"本地监听地址"（第 4 列）；
+                    # ss 输出的对端列也常是 0.0.0.0:*，整行匹配会把本地回环误判成对外暴露
+    if command -v ss >/dev/null 2>&1; then
+        ss -lnt 2>/dev/null | awk 'NR>1{print $4}' | grep -E ':(3306|5236|54321|5432)$'
+    elif command -v netstat >/dev/null 2>&1; then
+        netstat -lnt 2>/dev/null | awk 'NR>2{print $4}' | grep -E ':(3306|5236|54321|5432)$'
+    fi
+}
+
 # ---------- 发行版/包管理器检测 ----------
 PKG_MGR=""
 if command -v apt-get >/dev/null 2>&1; then
@@ -477,13 +497,16 @@ check_1_27_softwarelicensing() {
 # ---------- 数据库相关（1.7 - 1.23）----------
 DB_TYPE=""
 detect_db() {
-    if svc_active mysqld || svc_active mysql || svc_active mariadb; then
+    # 不能只看 systemctl：容器内、手工/服务单元名不同、或数据库以其它方式启动时，
+    # systemctl is-active 会报未知/失败，而库其实在跑 → 再看进程与监听端口
+    if svc_active mysqld || svc_active mysql || svc_active mariadb \
+       || pgrep -f 'mysqld|mariadbd' >/dev/null 2>&1 || port_listen 3306; then
         DB_TYPE="MySQL/MariaDB"
-    elif svc_active DmServiceDMSERVER || pgrep -f dmserver >/dev/null 2>&1; then
+    elif svc_active DmServiceDMSERVER || pgrep -f dmserver >/dev/null 2>&1 || port_listen 5236; then
         DB_TYPE="达梦数据库(DM)"
-    elif pgrep -f kingbase >/dev/null 2>&1 || svc_active kingbase; then
+    elif pgrep -f kingbase >/dev/null 2>&1 || svc_active kingbase || port_listen 54321; then
         DB_TYPE="人大金仓(Kingbase)"
-    elif svc_active postgresql; then
+    elif svc_active postgresql || pgrep -f 'postgres' >/dev/null 2>&1 || port_listen 5432; then
         DB_TYPE="PostgreSQL"
     else
         DB_TYPE=""
@@ -492,6 +515,7 @@ detect_db() {
 
 db_na_or_manual() {
     # $1 id $2 title $3 rec
+    detect_db   # 1.7/1.8/1.9 先于 1.10 执行，不先探测会拿不到 DB_TYPE 而误标"不适用"
     if [ -z "$DB_TYPE" ]; then
         add_result "$1" "系统安全-数据库" "$2" "na" "未检测到本机运行数据库服务（MySQL/达梦/Kingbase/PostgreSQL），标记不适用。" "第1章" "$3"
     else
@@ -514,11 +538,11 @@ check_1_10_dbaccess() {
         [ -f "$c" ] && bind="$bind $(grep -Ei '^\s*bind-address' "$c" 2>/dev/null)"
     done
     local listen
-    listen="$(run_cmd "ss -lntp 2>/dev/null | grep -E ':3306|:5236|:54321'")"
-    if echo "$listen" | grep -q '0\.0\.0\.0\|\*:'; then
+    listen="$(db_listen_addrs)"
+    if echo "$listen" | grep -qE '^(0\.0\.0\.0|\*|\[::\]|::):'; then
         add_result "1.10" "系统安全-数据库" "数据库访问控制" "fail" "数据库端口监听在 0.0.0.0（对外暴露）：$listen" "第1章" "将数据库绑定地址改为内网/127.0.0.1，并通过防火墙限制访问来源IP。"
     elif [ -n "$listen" ]; then
-        add_result "1.10" "系统安全-数据库" "数据库访问控制" "pass" "数据库监听的地址非公网暴露（0.0.0.0）：$listen。绑定配置：${bind:-默认}" "第1章" "持续保持数据库仅对可信来源开放访问。"
+        add_result "1.10" "系统安全-数据库" "数据库访问控制" "pass" "数据库监听地址未对外暴露：$listen。绑定配置：${bind:-默认}" "第1章" "持续保持数据库仅对可信来源开放访问。"
     else
         add_result "1.10" "系统安全-数据库" "数据库访问控制" "manual" "检测到数据库服务($DB_TYPE)，但未在标准端口(3306/5236/54321)检测到监听，可能使用自定义端口，需人工确认监听地址与访问控制。" "第1章" "确认数据库实际监听端口与地址，限制其仅对可信来源开放。"
     fi
@@ -597,9 +621,9 @@ check_1_19_dbdefaults() {
         return
     fi
     local port_default
-    port_default="$(run_cmd "ss -lntp 2>/dev/null | grep -E ':3306|:5236|:54321'")"
+    port_default="$(db_listen_addrs)"
     if [ -n "$port_default" ]; then
-        add_result "1.19" "系统安全-数据库" "数据库默认账户/端口" "fail" "数据库仍使用默认端口对外监听：$port_default" "第1章" "修改数据库默认监听端口，并核查root/sys等默认账户是否已加固。"
+        add_result "1.19" "系统安全-数据库" "数据库默认账户/端口" "fail" "数据库仍在使用默认端口监听：$port_default" "第1章" "修改数据库默认监听端口，并核查root/sys等默认账户是否已加固。"
     else
         add_result "1.19" "系统安全-数据库" "数据库默认账户/端口" "manual" "未在默认端口监听，请人工核实数据库默认账户是否已重命名/禁用/改密。" "第1章" "禁用或加固数据库默认账户，修改默认端口。"
     fi
