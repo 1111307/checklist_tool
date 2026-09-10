@@ -5,7 +5,7 @@
   可自动化     = 勾选的全部适用对象，脚本均能自动判定（pass/fail）
   部分可自动化 = 脚本已执行核查但存在边界：仅覆盖部分对象/平台，或采集证据后结论需人工确认
   需人工       = 脚本未执行该项核查（纯方法提示或无覆盖）
-适用对象以核查表 C~L 勾选矩阵为准。本脚本只读核查脚本源码，不改动任何脚本。
+适用对象以核查表 C~M（11 列）勾选矩阵为准。本脚本只读核查脚本源码，不改动任何脚本。
 """
 import re, glob, os, sys, datetime
 from docx import Document
@@ -129,14 +129,17 @@ XLSX = '配置核查表_v2.0.0_标注自动验证.xlsx'
 _wb = load_workbook(XLSX)
 _ws = _wb.active
 COLS = {3: 'Windows', 4: 'Windows', 5: '麒麟', 6: '麒麟', 7: 'Nginx', 8: 'Tomcat',
-        9: 'MySQL', 10: 'SQL Server', 11: '达梦', 12: 'Redis'}
+        9: '网络设备', 10: 'MySQL', 11: 'SQL Server', 12: '达梦', 13: 'Redis'}
 TARGET_SCRIPTS = {
     'Windows': ['win/check_xp7'], '麒麟': ['kylin/check_kylin'],
     'Nginx': ['win/check_nginx', 'kylin/check_nginx'], 'Tomcat': ['win/check_tomcat', 'kylin/check_tomcat'],
+    # 网络设备：check_network.ps1 与 check_network.sh 判定逻辑一致，能力以 .sh 源码为准
+    '网络设备': ['kylin/check_network'],
     'MySQL': ['win/check_mysql', 'kylin/check_mysql'],
     'SQL Server': ['win/check_sqlserver', 'kylin/check_sqlserver'],
     '达梦': ['win/check_dm', 'kylin/check_dm'], 'Redis': ['win/check_redis', 'kylin/check_redis'],
 }
+TYPE_ORDER = ['Windows', '麒麟', 'Nginx', 'Tomcat', '网络设备', 'MySQL', 'SQL Server', '达梦', 'Redis']
 chapters_hdr = {'系统安全': 1, '用户安全': 2, '数据安全': 3, '应用安全': 4, '网络安全': 5, '物理安全': 6}
 applic = {}
 cur = None; seq = 0
@@ -175,7 +178,7 @@ def target_cap(code, t):
 # ---------- 4. 判定 ----------
 SPECIAL = {
     '10.1': ('可自动化', '脚本自动核查 TLS/SSH 协议版本（协议层条目，勾选矩阵未单列对象）'),
-    '1.27': ('部分可自动化', '脚本采集版本与授权状态，正版/定制认定需人工核对采购凭证（核查表未设行）'),
+    '1.27': ('部分可自动化', '脚本采集软件版本与授权状态，正版/定制认定需人工核对采购凭证与售后协议'),
 }
 NET_REASON = {
     '5.9': 'check_network.sh 提取设备型号，异构部署结论需比对台账',
@@ -192,11 +195,17 @@ def judge(code):
         st, reason = SPECIAL[code]
         return st, reason, ('脚本采集证据、结论需人工' if st == '部分可自动化' else '特例')
     if ch == 5:
-        k = cap.get(code, {}).get('kylin/check_network', 'none')
-        if k == 'auto':
-            return '可自动化', 'check_network.sh 自动判定（设备回显采集后自动给出结论）', '网络设备自动判定'
-        if k == 'check':
-            return '部分可自动化', NET_REASON.get(code, '脚本采集部分信号，结论需人工'), '网络设备部分信号+台账比对'
+        # 第5章主体为网络设备，个别行含麒麟（如 5.19 终端逻辑隔离）
+        row_t = [(t, target_cap(code, t)) for t in TYPE_ORDER if t in (applic.get(code) or [])]
+        net_auto = cap.get(code, {}).get('kylin/check_network', 'none') == 'auto'
+        others_ok = all(c == 'auto' for t, c in row_t if t != '网络设备')
+        if net_auto and others_ok:
+            return '可自动化', 'check_network.sh / check_network.ps1 自动判定（设备回显采集后自动给出结论）', '网络设备自动判定'
+        if any(c in ('auto', 'check') for _, c in row_t):
+            if code in NET_REASON:
+                return '部分可自动化', NET_REASON[code], '网络设备部分信号+台账比对'
+            bad = [t for t, c in row_t if c != 'auto']
+            return '部分可自动化', '、'.join(bad) + ' 侧脚本未执行该项检测，需人工核查', '部分适用对象仅提示或未检测'
         return '需人工', '审批/台账/平台类核查，脚本未执行检测', '第5章台账/平台类'
     if ch in (6, 7, 8, 9):
         return '需人工', '现场/文档/台账类核查', '第6-9章现场/文档类'
@@ -231,13 +240,10 @@ def judge(code):
     return '需人工', '脚本未执行该项检测，仅输出指导书方法提示', '第1-4章脚本未检测'
 
 def applic_disp(code):
-    ch = int(code.split('.')[0])
-    if ch == 5:
-        return '网络设备'
     appl = applic.get(code)
-    if not appl:
-        return '—'
-    return '、'.join(appl)
+    if appl:
+        return '、'.join(appl)
+    return '网络设备' if int(code.split('.')[0]) == 5 else '—'
 
 # ---------- 5. 统计 ----------
 stat = defaultdict(lambda: [0, 0, 0])
@@ -258,6 +264,35 @@ n_auto = sum(v[0] for v in stat.values())
 n_part = sum(v[1] for v in stat.values())
 n_manual = sum(v[2] for v in stat.values())
 rate = n_auto / total * 100
+
+
+def sel(chs=None, st=None, bucket=None):
+    """按章节/结论/原因类别筛出编号列表。"""
+    out = []
+    for _ch, _code, _t in guide_items:
+        s2, _r, b = judge(_code)
+        if chs is not None and int(_code.split('.')[0]) not in chs:
+            continue
+        if st is not None and s2 != st:
+            continue
+        if bucket is not None and b != bucket:
+            continue
+        out.append(_code)
+    return out
+
+man_14 = sel(chs={1, 2, 3, 4}, st='需人工')
+man_5 = sel(chs={5}, st='需人工')
+man_69 = sel(chs={6, 7, 8, 9, 10}, st='需人工')
+part_missing = sel(bucket='部分适用对象仅提示或未检测')
+net_auto = sel(chs={5}, st='可自动化')
+net_part = sel(chs={5}, st='部分可自动化')
+net_man = sel(chs={5}, st='需人工')
+
+b1 = bucket_stat.get('部分适用对象仅提示或未检测', 0)
+b2 = bucket_stat.get('部分适用对象采集证据需人工', 0)
+b3 = bucket_stat.get('网络设备部分信号+台账比对', 0)
+b4 = bucket_stat.get('脚本采集证据、结论需人工', 0)
+
 today = datetime.date.today().isoformat()
 
 chapters = []
@@ -268,7 +303,7 @@ for ch, code, title in guide_items:
 # ---------- 6. 一致性校验：报告结论 vs 核查表第13列 ----------
 excel_label = {}
 cur = None; seq = 0
-for r in range(4, 139):
+for r in range(4, 140):
     c1 = _ws.cell(row=r, column=1).value
     if c1 and str(c1).strip() in chapters_hdr:
         cur = chapters_hdr[str(c1).strip()]; seq = 0
@@ -281,13 +316,13 @@ for r in range(4, 139):
         else: code = '10.1'
     else:
         code = f'{cur}.{seq}'
-    v = str(_ws.cell(row=r, column=13).value or '')
+    v = str(_ws.cell(row=r, column=14).value or '')
     excel_label[code] = ('可自动化' if v.startswith('可自动化')
                          else ('部分可自动化' if v.startswith('部分可自动化') else '需人工'))
 
 mismatch = [c for c, lab in excel_label.items() if judge(c)[0] != lab]
 if mismatch:
-    print('!! 报告与核查表第13列不一致：', mismatch)
+    print('!! 报告与核查表「工具自动验证」列不一致：', mismatch)
     sys.exit(1)
 
 # ---------- 7. 生成报告 ----------
@@ -300,7 +335,7 @@ A(f'报告日期：{today}')
 A('')
 A('## 一、验证结论')
 A('')
-A(f'对《配置核查作业指导书》v2.2 与自动化核查工具（Windows VBScript 版、麒麟 Bash 版、网络设备核查 check_network.sh）逐项比对，共核对 {total} 个编号检查项。以「脚本是否实际执行核查」为判定标准，结合核查表勾选矩阵（√ 适用 / — 不适用）逐对象核对脚本能力：可自动化 {n_auto} 项，部分可自动化 {n_part} 项，需人工 {n_manual} 项，自动化覆盖率 {rate:.1f}%。')
+A(f'对《配置核查作业指导书》v2.2 与自动化核查工具（Windows VBScript 版、麒麟 Bash 版、网络设备核查 check_network.sh / check_network.ps1）逐项比对，共核对 {total} 个编号检查项。以「脚本是否实际执行核查」为判定标准，结合核查表勾选矩阵（11 列对象，√ 适用 / — 不适用）逐对象核对脚本能力：可自动化 {n_auto} 项、部分可自动化 {n_part} 项、需人工 {n_manual} 项。全部适用对象均由脚本自动判定的「完全自动化」覆盖率 {rate:.1f}%；计入采集证据、结论需人工确认的部分可自动化项后，自动化核查涉及 {n_auto + n_part} 项、覆盖率 {(n_auto + n_part) / total * 100:.1f}%。')
 A('')
 A('| 验证结论 | 项数 | 占比 |')
 A('|---|---|---|')
@@ -308,12 +343,10 @@ A(f'| 可自动化 | {n_auto} | {n_auto/total*100:.1f}% |')
 A(f'| 部分可自动化 | {n_part} | {n_part/total*100:.1f}% |')
 A(f'| 需人工 | {n_manual} | {n_manual/total*100:.1f}% |')
 A('')
-b1 = bucket_stat.get('部分适用对象仅提示或未检测', 0)
-b2 = bucket_stat.get('部分适用对象采集证据需人工', 0)
-b3 = bucket_stat.get('网络设备部分信号+台账比对', 0)
-b4 = bucket_stat.get('脚本采集证据、结论需人工', 0)
-A(f'部分可自动化 {n_part} 项均为脚本已执行核查但存在边界：部分适用对象仅提示或未检测 {b1} 项、部分对象采集证据后结论需人工 {b2} 项、网络设备部分信号需台账比对 {b3} 项、版本采集比对 {b4} 项。需人工 {n_manual} 项为脚本未执行该项核查的条目（第 1-4 章 17 项、第 5 章台账/平台类 6 项、第 6-9 章现场文档类 22 项）。')
+
+A(f'部分可自动化 {n_part} 项均为脚本已执行核查但存在边界：部分适用对象仅提示或未检测 {b1} 项、部分对象采集证据后结论需人工 {b2} 项、网络设备部分信号需台账比对 {b3} 项、版本采集比对 {b4} 项。需人工 {n_manual} 项为脚本未执行该项核查的条目（第 1-4 章 {len(man_14)} 项、第 5 章台账/平台类 {len(man_5)} 项、第 6-9 章现场文档类 {len(man_69)} 项）。')
 A('')
+
 A('## 二、验证对象与方法')
 A('')
 A('### 2.1 验证对象')
@@ -356,7 +389,7 @@ A('## 五、差异与问题分析')
 A('')
 A('### 5.1 网络安全（第 5 章）')
 A('')
-A('第 5 章 23 项分三类：设备命令回显类 12 项（5.3 至 5.8、5.10、5.11、5.16、5.18、5.19、5.23，其中 5.23 为端口闲置率自动判定）由 check_network.sh 自动判定；5 项脚本采集部分信号、结论需人工（5.9 设备型号、5.12/5.17 IKE SA 网络层加密、5.14 防火墙会话表、5.22 VLAN 划分）；6 项为审批记录、管理平台与方案文档类（5.1、5.2、5.13、5.15、5.20、5.21），脚本未执行检测。该划分与核查表第 13 列「工具自动验证」标注一一对应。')
+A(f'第 5 章 23 项分三类：设备命令回显类 {len(net_auto)} 项（{"、".join(net_auto)}）由 check_network.sh 自动判定；{len(net_part)} 项脚本采集部分信号或部分对象未检测、结论需人工（{"、".join(net_part)}）；{len(net_man)} 项为审批记录、管理平台与方案文档类（{"、".join(net_man)}），脚本未执行检测。该划分与核查表「工具自动验证」列标注一一对应。')
 A('')
 A('### 5.2 部分可自动化项的原因分布')
 A('')
@@ -369,16 +402,16 @@ for b, c in sorted(bucket_stat.items(), key=lambda x: -x[1]):
 A('')
 A('### 5.3 需人工项的构成')
 A('')
-A(f'共 {n_manual} 项需人工：第 6 至 9 章（物理、组织、制度、管理）22 项，要到机房看设备台账、翻组织文件、核对制度版本和演练记录；第 5 章台账/平台类 6 项，是跨网审批单、方案文档与管理平台界面核查；第 1-4 章 17 项，其中应用层代码能力 8 项（1.16 输入参数校验、4.9、4.10、4.15、4.20、4.21、4.26 至 4.29）需渗透测试、代码审计或 WAF 工具，物理过程与文档台账比对 9 项（1.13、1.22、3.4、3.12、3.14、4.5、4.13 等）需人工核对业务架构、销毁档案与边界设备。')
+A(f'共 {n_manual} 项需人工：第 6 至 9 章（物理、组织、制度、管理）{len(man_69)} 项，要到机房看设备台账、翻组织文件、核对制度版本和演练记录；第 5 章台账/平台类 {len(man_5)} 项（{"、".join(man_5)}），是跨网审批单、方案文档与管理平台界面核查；第 1-4 章 {len(man_14)} 项（{"、".join(man_14)}），需渗透测试、代码审计、WAF 工具或人工核对业务架构与销毁档案。')
 A('')
-A(f'部分可自动化 {n_part} 项里，{b1} 项存在适用对象仅提示或未检测（麒麟侧 1.25、2.8、2.15、4.12、4.23、4.24，Windows 侧 4.31，组件侧 1.20、1.21、4.1，跨对象 1.24），后续补齐对应判定分支即可转可自动化；其余为采集证据后结论本需人工比对（达梦版本比对、备份有效性验证、网络设备台账比对等），属合理边界。本报告仅核对脚本现状，未改动任何脚本代码。')
+A(f'部分可自动化 {n_part} 项里，{len(part_missing)} 项存在适用对象仅提示或未检测（{"、".join(part_missing)}），后续补齐对应判定分支即可转可自动化；其余 {n_part - len(part_missing)} 项为采集证据后结论本需人工比对（达梦版本比对、备份有效性验证、网络设备台账比对、数据库层加密等），属合理边界。本报告只读脚本源码与核查表，未改动任何脚本代码。')
 A('')
 A('## 六、整改建议')
 A('')
-A('下一步几件事。第 5 章上真机核查时，用 check_network.sh init 生成采集清单，运维陪同采集回显后跑 check 出报告；遇到解析不出的回显格式，把回显片段补进特征匹配。需人工的 45 项用人工核查台（manual_check.html）逐项记录、粘贴取证截图并导出报告。如需提升自动化率，可补齐一侧平台与组件对象的判定分支（约 10 项可转可自动化），补齐前以本报告口径为准。')
+A(f'下一步几件事。第 5 章上真机核查时，用 check_network.sh init 生成采集清单，运维陪同采集回显后跑 check 出报告（Windows 侧用 check_network.bat，判定逻辑一致）；遇到解析不出的回显格式，把回显片段补进特征匹配。需人工的 {n_manual} 项用人工核查台（manual_check.html）逐项记录、粘贴取证截图并导出报告。如需提升自动化率，可先补齐「部分适用对象仅提示或未检测」的 {len(part_missing)} 项判定分支，补齐前以本报告口径为准。')
 A('')
 
 open('测评报告/指导书与核查工具交叉验证报告.md', 'w', encoding='utf-8').write('\n'.join(L))
 print(f'已生成：{total} 项，可自动化 {n_auto}，部分可自动化 {n_part}，需人工 {n_manual}，覆盖率 {rate:.1f}%')
 print('原因分布：', dict(bucket_stat))
-print('一致性：报告与核查表第13列逐项一致 ✓')
+print('一致性：报告与核查表「工具自动验证」列逐项一致 ✓')
