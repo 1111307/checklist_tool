@@ -380,8 +380,9 @@ ws.column_dimensions['N'].width = 55
 for r, txt in texts:
     c = ws.cell(row=r, column=14)
     c.alignment = Alignment(wrap_text=True, vertical='center')
+    # N 列宽 55 ≈ 每行 26 个汉字，行高按行数取足，避免固定行高裁掉标注文字
     lines = math.ceil(len(txt) / 26)
-    need = {1: 17, 2: 34, 3: 50}.get(lines, 50)
+    need = lines * 15 + 6
     h = ws.row_dimensions[r].height
     if h is not None and h < need:
         ws.row_dimensions[r].height = need
