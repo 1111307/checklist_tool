@@ -34,6 +34,15 @@ echo ==================== 7/7 Tomcat 中间件核查 ====================
 cscript //NoLogo check_tomcat.vbs
 
 echo.
+
+echo ==================== 网络设备核查（检测到采集回显时执行，需 Win7+ / PowerShell）====================
+if exist "output\netdev\*.txt" (
+  powershell -NoProfile -ExecutionPolicy Bypass -File check_network.ps1 check
+) else (
+  echo   未检测到网络设备采集文件（output\netdev\），跳过。
+  echo   如需核查：先运行 check_network.bat init 生成采集清单，运维采集设备回显后重跑本脚本。
+)
+
 echo ==================== 合并生成汇总报告 ====================
 cscript //NoLogo merge_report.vbs
 

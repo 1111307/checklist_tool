@@ -29,7 +29,7 @@
 | SQL Server | `win\check_sqlserver.vbs` | `kylin/check_sqlserver.sh` |
 | Nginx | `win\check_nginx.vbs` | `kylin/check_nginx.sh` |
 | Tomcat | `win\check_tomcat.vbs` | `kylin/check_tomcat.sh` |
-| 网络设备（第5章 23 项） | — | `kylin/check_network.sh` |
+| 网络设备（第5章 23 项） | `win\check_network.ps1` | `kylin/check_network.sh` |
 
 ### 网络设备核查（采集-解析模式）
 
@@ -40,6 +40,8 @@ bash kylin/check_network.sh init     # 1. 生成三厂商（华为/华三/锐捷
                                       # 2. 运维陪同登录设备，按清单采集回显粘贴进设备txt
 bash kylin/check_network.sh check    # 3. 解析回显 → 23 项判定 → HTML+XLS 报告（带时间戳）
 ```
+
+Windows 管理机同理：`win\check_network.bat init` / `check`（PowerShell 版，判定逻辑与麒麟版一致，采集文件两边通用）。
 
 其中 12 项设备命令回显类自动判定（含端口闲置率），5 项脚本采集部分信号、结论需台账比对（型号/加密层次/会话表/VLAN 划分），6 项审批/平台类需人工核查（详见 `kylin\README.md`）。采集回显放入 `kylin/output/netdev/` 后重跑 `run_all.sh`，网络设备核查会自动纳入一键流程。
 

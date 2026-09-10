@@ -31,8 +31,10 @@ win/
 ├── check_tomcat.vbs     Tomcat 中间件核查（8 项）
 ├── merge_report.vbs     汇总合并器（合并各组件报告）
 ├── db_config.conf       数据库连接配置（改密码看这里）
-├── run_all.bat          一键运行全部（含汇总）
+├── run_all.bat          一键运行全部（含汇总；netdev 有采集回显时自动含网络设备）
 ├── run.bat              只核查操作系统
+├── check_network.ps1    网络设备核查（PowerShell，采集-解析模式，第5章 23 项）
+├── check_network.bat    网络设备核查双击入口（init / check）
 ├── check_*.ps1          PowerShell 版（可选，Win7+ 装了 PowerShell 才用）
 ├── lib_xlsx.ps1         PowerShell 版 xlsx 生成器（可选）
 ├── merge_xlsx.ps1       PowerShell 版汇总合并（可选）
@@ -97,6 +99,18 @@ cscript //NoLogo check_tomcat.vbs
 ```bat
 cscript //NoLogo merge_report.vbs
 ```
+
+## 网络设备核查（check_network.ps1 / .bat，Win7+）
+
+交换机、防火墙等网络设备是独立硬件，无法在被测机上直接跑脚本，采用**采集-解析**两步模式（与麒麟版 check_network.sh 同判定逻辑，采集文件两边通用）：
+
+```bat
+check_network.bat init     :: 1. 生成采集工作区 output\netdev\（说明 + 华为华三/锐捷命令清单模板）
+                           :: 2. 运维陪同登录设备，按清单采集回显粘贴进设备txt（每台设备一个文件）
+check_network.bat check    :: 3. 解析回显 → 第5章 23 项判定 → HTML+XLS 报告（带时间戳）
+```
+
+23 项判定能力：12 项自动判定（VLAN/路由/SSH/ACL/802.1x/端口隔离/组播/双机热备/端口闲置率等回显类）、5 项采集部分信号需台账比对（型号/IKE SA/会话表/VLAN 划分）、6 项审批/平台类需人工。设备文件保存为 UTF-8 或 ANSI（记事本默认）均可，脚本自动识别编码。`run_all.bat` 检测到 `output\netdev\` 有采集文件时自动纳入同一轮。
 
 ---
 
