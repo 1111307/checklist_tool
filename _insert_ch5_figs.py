@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""第5章插入 8 张示意图 → 生成 配置核查作业指导书_v2.0.1.docx。"""
+"""第5章插入示意图 → 生成 配置核查作业指导书_v2.2.docx。"""
 import os
 import re
 from docx import Document
@@ -9,7 +9,7 @@ from docx.oxml import OxmlElement
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 SRC = r"C:\Users\ryan.xiong\Desktop\peizhitool\配置核查\配置核查作业指导书_v2.2.docx"
-DST = r"C:\Users\ryan.xiong\Desktop\peizhitool\配置核查\配置核查作业指导书_v2.0.1.docx"
+DST = r"C:\Users\ryan.xiong\Desktop\peizhitool\配置核查\配置核查作业指导书_v2.2.docx"
 FIG = r"C:\Users\ryan.xiong\Desktop\peizhitool\配置核查\_ch5_figs"
 
 # (插图节号, 文件, 宽度in, 题注)

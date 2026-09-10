@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""v2.0.1 重建：从 v2.2 基线 + 插入 13 张终端核查截图。"""
+"""重建：v2.2 基线 + 插入 13 张终端核查截图（成品即 配置核查作业指导书_v2.2.docx）。"""
 import re
 import os
 from docx import Document
