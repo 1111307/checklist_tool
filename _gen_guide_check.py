@@ -302,6 +302,7 @@ for ch, code, title in guide_items:
 
 # ---------- 6. 一致性校验：报告结论 vs 核查表第13列 ----------
 excel_label = {}
+item_name = {}
 cur = None; seq = 0
 for r in range(4, 140):
     c1 = _ws.cell(row=r, column=1).value
@@ -319,6 +320,11 @@ for r in range(4, 140):
     v = str(_ws.cell(row=r, column=14).value or '')
     excel_label[code] = ('可自动化' if v.startswith('可自动化')
                          else ('部分可自动化' if v.startswith('部分可自动化') else '需人工'))
+    # 检查项名称取核查表 B 列正式条目文本（去掉行首 "1、" 序号，与编号列呼应）
+    nm = str(_ws.cell(row=r, column=2).value or '').strip()
+    nm = re.sub(r'^[0-9]+[、.]', '', nm).strip()
+    nm = re.sub(r'\s+', ' ', nm).strip().replace('|', '｜')   # 单元格内换行会切断 md 表格
+    item_name[code] = nm
 
 mismatch = [c for c, lab in excel_label.items() if judge(c)[0] != lab]
 if mismatch:
@@ -386,15 +392,18 @@ for ch in chapters:
     a, b, c = stat[ch]
     A(f'| {ch} | {len(detail[ch])} | {a} | {b} | {c} |')
 A('')
-A('## 四、逐项验证结果索引')
+A('## 四、逐项验证结果')
 A('')
-A('各章检查项按验证结论归类如下；逐项的适用对象、所用脚本与结论依据见《配置核查表》第 14 列「工具自动验证」。')
+A('各章检查项及验证结论逐项列示如下；核查对象、所用脚本与结论依据见《配置核查表》第 14 列「工具自动验证」。')
 A('')
-A('| 章节 | 可自动化 | 部分可自动化 | 需人工核查 |')
-A('|---|---|---|---|')
 for ch in chapters:
-    A(f'| {ch} | {idx(by_state(ch, "可自动化"))} | {idx(by_state(ch, "部分可自动化"))} | {idx(by_state(ch, "需人工"))} |')
-A('')
+    A(f'### {ch}')
+    A('')
+    A('| 编号 | 检查项 | 验证结论 |')
+    A('|---|---|---|')
+    for code, title, appl, st, reason in detail[ch]:
+        A(f'| {code} | {item_name.get(code) or title} | {st} |')
+    A('')
 A('## 五、说明')
 A('')
 A('| 事项 | 说明 |')
