@@ -1,0 +1,44 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta http-equiv="Content-Type" content="text/html; charset=GBK">
+<style>td,th{border:1px solid #bbb;padding:4px 6px}th.hd{background:#007bff;color:#fff}</style></head><body>
+<table cellspacing="0">
+<tr><td colspan="7"><b>SQL Server 数据库配置核查报告</b></td></tr>
+<tr><td colspan="7">连接：sa@localhost:1433  版本：unable to open tcp connection with host 'localhost:1433': dial tcp [::1]:1433: connectex: No connection could be made because the target machine actively refused it.<br>unable to open tcp connection with host 'localhost:1433': dial tcp [::1]:1433: connectex: No connection could be made because the target machine actively refused it.<br></td></tr>
+<tr><th class="hd">编号</th><th class="hd">类别</th><th class="hd">检查项</th><th class="hd">状态</th><th class="hd">详情</th><th class="hd">修复建议</th><th class="hd">章节</th></tr>
+<tr><td>1.1</td><td>系统安全-数据库</td><td>数据库补丁程序</td>
+<td>未通过</td><td>版本 unable to open tcp connection with host 'localhost:1433': dial tcp [::1]:1433: connectex: No connection could be made because the target machine actively refused it.<br>unable to open tcp connection with host 'localhost:1433': dial tcp [::1]:1433: connectex: No connection could be made because the target machine actively refused it.<br> 已 EOL（&lt;2017）。</td><td>升级。</td><td>第1章</td></tr>
+<tr><td>1.7</td><td>系统安全-数据库</td><td>数据库账户管理</td>
+<td>通过</td><td>sa 已启用密码策略。</td><td>保持。</td><td>第1章</td></tr>
+<tr><td>1.8</td><td>系统安全-数据库</td><td>数据库存储过程管理</td>
+<td>通过</td><td>xp_cmdshell 已禁用。</td><td>保持。</td><td>第1章</td></tr>
+<tr><td>1.9</td><td>系统安全-数据库</td><td>数据库权限最小化</td>
+<td>需人工核查</td><td>请人工确认权限最小化。</td><td>最小权限授权。</td><td>第1章</td></tr>
+<tr><td>1.10</td><td>系统安全-数据库</td><td>数据库访问控制</td>
+<td>通过</td><td>sysadmin 仅 sa。</td><td>保持。</td><td>第1章</td></tr>
+<tr><td>1.11</td><td>系统安全-数据库</td><td>数据库备份策略</td>
+<td>通过</td><td>最近备份距今 unable to open tcp connection with host 'localhost:1433': dial tcp [::1]:1433: connectex: No connection could be made because the target machine actively refused it.<br>unable to open tcp connection with host 'localhost:1433': dial tcp [::1]:1433: connectex: No connection could be made because the target machine actively refused it.<br> 天。</td><td>保持。</td><td>第1章</td></tr>
+<tr><td>1.12</td><td>系统安全-数据库</td><td>数据库审计插件</td>
+<td>未通过</td><td>未启用服务器审计。</td><td>启用审计。</td><td>第1章</td></tr>
+<tr><td>1.13</td><td>系统安全-数据库</td><td>数据库与业务隔离</td>
+<td>需人工核查</td><td>数据分类独立存储需人工核查。</td><td>分类独立存储。</td><td>第1章</td></tr>
+<tr><td>1.15</td><td>系统安全-数据库</td><td>数据库远程访问控制</td>
+<td>需人工核查</td><td>sa 启用中，请人工确认远程限制。</td><td>禁用 sa 或限制远程。</td><td>第1章</td></tr>
+<tr><td>1.16</td><td>系统安全-数据库</td><td>输入验证/SQL注入防护</td>
+<td>需人工核查</td><td>属应用层能力，需人工核查。</td><td>应用层参数化查询。</td><td>第1章</td></tr>
+<tr><td>1.19</td><td>系统安全-数据库</td><td>数据库默认账户/端口</td>
+<td>未通过</td><td>默认端口 1433</td><td>改默认端口、加固 sa。</td><td>第1章</td></tr>
+<tr><td>1.21</td><td>系统安全-数据库</td><td>数据库操作审计</td>
+<td>未通过</td><td>未配置审计规范，不具备行/列级审计。</td><td>创建审计规范。</td><td>第1章</td></tr>
+<tr><td>1.22</td><td>系统安全-数据库</td><td>数据库审计日志留存</td>
+<td>需人工核查</td><td>独立监控需人工核查。</td><td>部署独立监控。</td><td>第1章</td></tr>
+<tr><td>1.23</td><td>系统安全-数据库</td><td>应用与数据库账户分离</td>
+<td>需人工核查</td><td>请人工确认是否仅应用服务器访问。</td><td>限制访问。</td><td>第1章</td></tr>
+<tr><td>1.24</td><td>系统安全-数据库</td><td>日志审计留存180天</td>
+<td>需人工核查</td><td>审计日志留存时长需人工核查。</td><td>配置留存180天。</td><td>第1章</td></tr>
+<tr><td>1.25</td><td>系统安全-数据库</td><td>边界保护抗攻击防篡改</td>
+<td>需人工核查</td><td>检测到 Windows 防火墙已启用，边界防护细节需人工核查。</td><td>部署完整边界防护。</td><td>第1章</td></tr>
+<tr><td>1.26</td><td>系统安全-数据库</td><td>防病毒/补丁日志记录</td>
+<td>需人工核查</td><td>请人工核查日志完整性。</td><td>配置日志。</td><td>第1章</td></tr>
+<tr><td>2.16</td><td>系统安全-数据库</td><td>补丁修复升级到最新</td>
+<td>未通过</td><td>版本 unable to open tcp connection with host 'localhost:1433': dial tcp [::1]:1433: connectex: No connection could be made because the target machine actively refused it.<br>unable to open tcp connection with host 'localhost:1433': dial tcp [::1]:1433: connectex: No connection could be made because the target machine actively refused it.<br> 已 EOL。</td><td>升级。</td><td>第2章</td></tr>
+</table></body></html>

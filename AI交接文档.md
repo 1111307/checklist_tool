@@ -1,7 +1,7 @@
 # 配置核查项目 · AI 交接文档
 
 > 本文档面向后续接手本项目的 AI 助手（或开发者），覆盖项目全貌、关键约定、工具链、验证清单、已知坑与待办。读完本文应能独立继续开发。
-> 最后更新：2026-08-22（对应提交 2c16e35 之后）
+> 最后更新：2026-09-11
 
 ---
 
@@ -14,8 +14,9 @@
 | 核查表（基准矩阵） | `配置核查表_v2.0.0.xlsx` / `_标注自动验证.xlsx` | 已定版，标注版含每项自动化状态 |
 | 作业指导书（标准依据） | `配置核查作业指导书_v2.2.docx` | v2.2 已修复+完善（10 章、113 个编号检查项） |
 | 自动化工具（双平台） | `win/`（VBScript）、`kylin/`（Bash）各 7 个脚本；网络设备另有独立版 `网络设备核查/`（同源） | 可用，HTML 报告为 2026-08 新模板 |
-| 交叉验证报告 | `测评报告/指导书与核查工具交叉验证报告.docx/.md` | 113 项全覆盖：已实现 75 / 部分 38 / 未实现 0，自动化率 66.4% |
+| 交叉验证报告 | `测评报告/指导书与核查工具交叉验证报告.docx/.md` | 136 项：纳入工具核查 94（可自动化 43 / 部分可自动化 51）、需人工 42；末章「验证证据」共 43 张实跑截图，**每张图下方配一段说明（环境/方法/关键数据）**，说明文案在 `_gen_guide_check.py` 的 `FIG_NOTES` 字典里 |
 | 交付包 | `checklist_tool/`（仓库内快照）+ `Desktop\checklist_tool`（实物） | 37 文件，含总 README |
+| 操作说明书 | `测评报告/配置核查工具操作说明书.docx/.md` | 面向现场运维：功能与支持矩阵、运行要求、部署、常用命令（逐条注释）、配置项表、输出说明、人工核查台、已知限制、FAQ、授权声明；15 张实际操作截图 |
 
 **仓库**：`https://github.com/1111307/checklist_tool.git`（分支 main）。
 **仓库位置**：`C:\Users\ryan.xiong\Desktop\peizhitool\配置核查\`。
@@ -47,7 +48,7 @@
 │   ├── check_network.sh + lib_xlsx.sh  麒麟版（LF）
 │   └── README.md                 采集流程与同源 MD5 对照（改动仍改原目录，再整份复制过来）
 ├── docker/                       Docker 靶机环境（Dockerfile + systemctl3.py + 90 份报告）
-├── 测评报告/                      交叉验证报告 + 分章 md
+├── 测评报告/                      交叉验证报告 + 分章 md + 验证截图/（报告第六章配图）+ 说明书截图/（操作说明书配图）
 ├── checklist_tool/               交付包快照（干净版，无 output）
 ├── 配置核查作业指导书_v2.2.docx   正式文件（42MB，含 1019 张截图）
 ├── 配置核查作业指导书_v2.2.md     docx 的 md 副本（_to_md.py 生成）
@@ -113,11 +114,41 @@
 
 ---
 
+### 指导书格式审计与修正（2026-09-11）
+```bash
+python _audit_guide.py            # 只读格式审计：页面/页码、字体字号、标题层级、段落、图片、判定标准、历史硬错误
+python _fix_guide_format.py [--apply]     # 格式对齐：样式错用、补字体、编号后补空格、代码块字号、网页样式归正
+python _fix_guide_fonts2.py  [--apply]    # 标题统一黑体（清主题字体引用）、去掉误留的加粗
+```
+- 备份在仓库外 `Desktop\peizhitool\_guide_backup\`：`.20260911-bak.docx`（原始）、`.beforeformat.docx`、`.beforepagenum.docx`
+- ⚠️ **用户明确要求「不要动目录」**：`_fix_guide_pagenum.py` / `_fix_guide_footer.py` / `_fix_guide_sections.py` / `_fix_guide_toc_entries.py` / `_refresh_toc.py` 均已停用（脚本头部有警示），目录与分节/页码保持原样。
+- ⚠️ 指导书 docx 被 python-docx 重存后**体积不变但打包方式变化**（45.7MB Word 包 → 42.6MB），内容无差异；三处副本（仓库根 / 仓库内快照 / 桌面交付包）已 `cmp` 校验一致。
+- ⚠️ 标题编号后统一补了一个空格（138 处），标题文字因此变化；如有工具按标题字符串精确匹配，需重新核对。
+- ⚠️ 「Redis没有存储过程。」已由 Heading 4 改为正文样式——**下次更新目录域时该条会从目录中消失**；若要目录保持不变，需把它改回标题样式。
+
 ## 五、工具链与常用操作
 
 ```bash
 # 交叉验证报告重跑（改指导书或脚本后必须跑）
 python _gen_guide_check.py && python md2docx.py 测评报告/指导书与核查工具交叉验证报告.md 测评报告/指导书与核查工具交叉验证报告.docx
+
+# 报告第六章「验证证据」截图重生成
+python _gen_report_figs.py          # 报告类 9 张（截报告 HTML）+ 核查表标注图
+python _gen_term_figs.py            # 终端类 9 张（真实 cmd 窗口截图，win 侧约 11 分钟）
+python _gen_term_figs.py win|kylin  # 只跑某一侧
+# 终端图是真实窗口截图（PrintWindow），不是 HTML 模拟；麒麟侧走 docker exec 调 kylin-target
+# 终端图内容读自真实执行回显；probe_* 的检测命令取自 check_xp7.vbs / check_kylin.sh / check_mysql.sh
+# 图下说明格式为「图 N　说明：……」，N 与图注编号一致（在 _gen_guide_check.py 的 FIG_GROUPS 循环里按序编号）
+# ⚠️ 配图保持彩色（用户已确认「图片没让你黑白」）——「不要用黑色以外的颜色」指正文文字，正文本就是纯黑
+# _make_figs_gray.py 仅作灰度转换工具保留，除非用户再明确要求，勿对配图使用
+
+# 操作说明书配图重生成
+python _gen_manual_doc_figs.py      # Windows 侧操作用图（目录/配置/一键运行/报告清单）
+python _cap_kylin_session.py <out.png> <等待秒> <命令...>   # 麒麟交互式会话图（伪终端，窗口内只有会话）
+python _gen_manual_fig.py           # 人工核查台「填完→导出 Excel」演示图
+python md2docx.py 测评报告/配置核查工具操作说明书.md 测评报告/配置核查工具操作说明书.docx
+# ⚠️ 说明书用图在 测评报告/说明书截图/，报告用图在 测评报告/验证截图/——**重拍某张图后要同步两处**，
+#    否则文档里仍是旧图（曾因只更新了 验证截图/ 导致 Excel 截图重拍无效，被验收抓出）
 
 # 指导书 md 副本重生成
 python _to_md.py
