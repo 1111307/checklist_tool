@@ -1,0 +1,5 @@
+已加载 2 台设备回显：AggSW02 CoreSW01
+
+核查完成，共 23 项（网络设备 2 台：AggSW02 CoreSW01）
+HTML报告已生成：C:\Users\ryan.xiong\Desktop\peizhitool\_netdev_win_test\output\配置核查报告_网络设备_20260911_111832.html
+Excel(.xls)报告已生成：C:\Users\ryan.xiong\Desktop\peizhitool\_netdev_win_test\output\配置核查报告_网络设备_20260911_111832.xls

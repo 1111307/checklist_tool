@@ -1,0 +1,30 @@
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{3855ab6f-02d1-4f09-9a8b-d1971f92779c}
+    NameServerList    REG_MULTI_SZ    
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{3da5722d-f03e-4073-933f-21eaad6236ef}
+    NameServerList    REG_MULTI_SZ    
+    NetbiosOptions    REG_DWORD    0x0
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{501c7c27-2931-46f2-91b0-3658e3f5cdaa}
+    NameServerList    REG_MULTI_SZ    
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{76ede9d7-98a1-42b5-8ec8-b21a150d8168}
+    NameServerList    REG_MULTI_SZ    
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{9bfe8d93-0e87-4026-a9b7-d57f448e88c7}
+    NameServerList    REG_MULTI_SZ    
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{b9a3bb06-2078-40fd-83e1-e4332b95f3a6}
+    NameServerList    REG_MULTI_SZ    
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{c2802221-1f01-4d7a-a656-518975b694c1}
+    NameServerList    REG_MULTI_SZ    
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{c8085d73-2e72-4e90-807c-85608b1c31f9}
+    NameServerList    REG_MULTI_SZ    
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{f9c361bd-9983-48d7-84e9-cd291af629d5}
+    NameServerList    REG_MULTI_SZ    
+    NetbiosOptions    REG_DWORD    0x0
+

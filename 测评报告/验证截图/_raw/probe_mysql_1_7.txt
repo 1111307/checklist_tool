@@ -1,0 +1,7 @@
+user	host	plugin	auth
+root	localhost		(空)
+root	5f5d6dcd29ef		(空)
+root	127.0.0.1		(空)
+root	::1		(空)
+checker	localhost		(空)
+checker	%		(空)

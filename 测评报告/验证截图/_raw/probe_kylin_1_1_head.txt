@@ -1,0 +1,7 @@
+Last metadata expiration check: 18:21:46 ago on 2026年09月10日 星期四 17时16分00秒.
+
+ca-certificates.noarch              2025.2.76-3.p01.ky10        ks10-adv-updates
+coreutils.x86_64                    8.32-10.p04.ky10            ks10-adv-updates
+file.x86_64                         5.39-7.p03.ky10             ks10-adv-updates
+file-libs.x86_64                    5.39-7.p03.ky10             ks10-adv-updates
+glib2.x86_64                        2.66.8-13.p09.ky10          ks10-adv-updates

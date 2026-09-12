@@ -1,0 +1,5 @@
+采集工作区已生成：C:\Users\ryan.xiong\Desktop\peizhitool\_netdev_win_test\output\netdev\
+  采集说明.txt                    —— 先读这个
+  采集命令清单-华为华三.txt        —— 华为/华三设备命令模板
+  采集命令清单-锐捷.txt            —— 锐捷设备命令模板
+按说明采集完成后运行：check_network.bat check
