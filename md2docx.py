@@ -227,22 +227,36 @@ def convert(md_path, out_path):
     n = len(lines)
     # 封面：md 顶部连续的 % 行（对齐指导书封面样式）。
     #   % 标题行   → 42pt 黑体加粗居中（长标题按行拆开写）
+    #   %! 图片    → 封面顶部居中图片（校徽/标识，约 3.5cm 宽）
     #   %> 说明行  → 14pt 宋体，置于标题下方留白之后（适用范围/验证基准等）
     _j = 0
     _titles = []
     while _j < n and lines[_j].strip() == '':
         _j += 1
     if _j < n and lines[_j].startswith('%'):
-        _titles, _notes = [], []
+        _titles, _notes, _covers = [], [], []
         while _j < n and lines[_j].startswith('%'):
             _ln = lines[_j]
-            if _ln.startswith('%>'):
+            if _ln.startswith('%!'):
+                _covers.append(_ln[2:].strip())
+            elif _ln.startswith('%>'):
                 _notes.append(_ln[2:].strip())
             elif _ln[1:].strip():
                 _titles.append(_ln[1:].strip())
             _j += 1
         i = _j
-        for _ in range(3):
+        if _covers:
+            doc.add_paragraph()
+        for _cf in _covers:
+            _cp = os.path.join(os.path.dirname(os.path.abspath(md_path)), _cf)
+            if os.path.exists(_cp):
+                _p = doc.add_paragraph()
+                _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                _p.paragraph_format.space_after = Pt(18)
+                _p.add_run().add_picture(_cp, width=Cm(3.5))
+            else:
+                print('  !! 封面图片不存在：' + _cp)
+        for _ in range(3 if not _covers else 1):
             doc.add_paragraph()
         for _t in _titles:
             _p = doc.add_paragraph()
