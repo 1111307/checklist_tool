@@ -288,7 +288,8 @@ def convert(md_path, out_path):
                 cp.paragraph_format.line_spacing = 1.15
                 cp.paragraph_format.space_before = Pt(4 if k == 0 else 0)
                 cp.paragraph_format.space_after = Pt(4 if k == len(code_lines) - 1 else 0)
-                # 代码块不设绑页链：长目录树/脚本块允许跨页，避免整块移页留下大半页空白
+                # 代码块行间绑页：整块原子（如 21 行工具包目录树不可拆页）；尾部行放开
+                cp.paragraph_format.keep_with_next = (k < len(code_lines) - 1)
                 if cl.strip():
                     _set_font(cp.add_run(cl), EAST_BODY, latin=MONO_LATIN, size=CODE_SIZE)
             continue
