@@ -96,6 +96,101 @@ def _add_footer_page_number(doc, size=CAPTION_SIZE):
         _set_font(run, EAST_BODY, size=size)
 
 
+# ---------- 页眉 / 页码 / 目录（三段式：封面无页码 → 目录罗马 → 正文阿拉伯从 1 起） ----------
+
+def _add_bottom_border(p):
+    pPr = p._p.get_or_add_pPr()
+    pbdr = OxmlElement('w:pBdr')
+    bottom = OxmlElement('w:bottom')
+    bottom.set(qn('w:val'), 'single'); bottom.set(qn('w:sz'), '6')
+    bottom.set(qn('w:space'), '1'); bottom.set(qn('w:color'), '000000')
+    pbdr.append(bottom); pPr.append(pbdr)
+
+
+def _clear_paragraph(p):
+    for r in list(p.runs):
+        r._r.getparent().remove(r._r)
+
+
+def _set_doc_header(section, title):
+    section.header.is_linked_to_previous = False
+    p = section.header.paragraphs[0]
+    _clear_paragraph(p)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    _set_font(p.add_run(title), EAST_BODY, size=9)
+    _add_bottom_border(p)
+
+
+def _set_section_footer_page(section, size=CAPTION_SIZE, arabic_switch=False):
+    section.footer.is_linked_to_previous = False
+    p = section.footer.paragraphs[0]
+    _clear_paragraph(p)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p.add_run()
+    begin = OxmlElement('w:fldChar'); begin.set(qn('w:fldCharType'), 'begin')
+    instr = OxmlElement('w:instrText'); instr.set(qn('xml:space'), 'preserve')
+    instr.text = 'PAGE \\* arabic' if arabic_switch else 'PAGE'
+    end = OxmlElement('w:fldChar'); end.set(qn('w:fldCharType'), 'end')
+    run._r.append(begin); run._r.append(instr); run._r.append(end)
+    _set_font(run, EAST_BODY, size=size)
+
+
+def _set_pgnum(section, fmt=None, start=None):
+    sectPr = section._sectPr
+    e = sectPr.find(qn('w:pgNumType'))
+    if e is None:
+        e = OxmlElement('w:pgNumType')
+        sectPr.append(e)
+    if fmt:
+        e.set(qn('w:fmt'), fmt)
+    if start is not None:
+        e.set(qn('w:start'), str(start))
+
+
+def _add_toc_block(doc):
+    # 目录标题用普通段落（不进目录本身）
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_before = Pt(6)
+    p.paragraph_format.space_after = Pt(12)
+    _set_font(p.add_run('目　　录'), EAST_HEAD, size=16, bold=True)
+    p2 = doc.add_paragraph()
+    run = p2.add_run()
+    b = OxmlElement('w:fldChar'); b.set(qn('w:fldCharType'), 'begin'); b.set(qn('w:dirty'), 'true')
+    i = OxmlElement('w:instrText'); i.set(qn('xml:space'), 'preserve')
+    i.text = ' TOC \\o "1-3" \\h \\z \\u '
+    sep = OxmlElement('w:fldChar'); sep.set(qn('w:fldCharType'), 'separate')
+    t = OxmlElement('w:t'); t.text = '（打开文档时目录自动更新）'
+    e = OxmlElement('w:fldChar'); e.set(qn('w:fldCharType'), 'end')
+    for el in (b, i, sep, t, e):
+        run._r.append(el)
+
+
+def _enable_update_fields(doc):
+    el = OxmlElement('w:updateFields'); el.set(qn('w:val'), 'true')
+    doc.settings.element.append(el)
+
+
+def _preset_toc_styles(doc):
+    """预设 TOC1/2/3 样式（紧凑行距、分级缩进），保证目录收进一页。"""
+    styles_el = doc.styles.element
+    have = {s.get(qn('w:styleId')) for s in styles_el.findall(qn('w:style'))}
+    for sid, left in (('TOC1', 0), ('TOC2', 220), ('TOC3', 440)):
+        if sid in have:
+            continue
+        st = OxmlElement('w:style')
+        st.set(qn('w:type'), 'paragraph'); st.set(qn('w:styleId'), sid)
+        nm = OxmlElement('w:name'); nm.set(qn('w:val'), 'toc ' + sid[3]); st.append(nm)
+        ppr = OxmlElement('w:pPr')
+        sp = OxmlElement('w:spacing')
+        sp.set(qn('w:after'), '40'); sp.set(qn('w:line'), '264'); sp.set(qn('w:lineRule'), 'auto')
+        ppr.append(sp)
+        if left:
+            ind = OxmlElement('w:ind'); ind.set(qn('w:left'), str(left)); ppr.append(ind)
+        st.append(ppr)
+        styles_el.append(st)
+
+
 def _table(doc, rows):
     rows = [[c.strip() for c in r.strip().strip('|').split('|')] for r in rows]
     t = doc.add_table(rows=len(rows), cols=len(rows[0]))
@@ -120,6 +215,12 @@ def convert(md_path, out_path):
     normal.font.name = LATIN
     normal._element.rPr.rFonts.set(qn('w:eastAsia'), EAST_BODY)
     normal.font.size = Pt(BODY_SIZE)
+    # A4 纸（与指导书一致），边距上下 2.54cm、左右 3.17cm
+    _sec = doc.sections[0]
+    _sec.page_width = Cm(21.0)
+    _sec.page_height = Cm(29.7)
+    _sec.top_margin = _sec.bottom_margin = Cm(2.54)
+    _sec.left_margin = _sec.right_margin = Cm(3.17)
 
     lines = open(md_path, encoding='utf-8').read().splitlines()
     i = 0
@@ -128,6 +229,7 @@ def convert(md_path, out_path):
     #   % 标题行   → 42pt 黑体加粗居中（长标题按行拆开写）
     #   %> 说明行  → 14pt 宋体，置于标题下方留白之后（适用范围/验证基准等）
     _j = 0
+    _titles = []
     while _j < n and lines[_j].strip() == '':
         _j += 1
     if _j < n and lines[_j].startswith('%'):
@@ -151,7 +253,11 @@ def convert(md_path, out_path):
         for _nt in _notes:
             _p = doc.add_paragraph()
             _set_font(_p.add_run(_nt), EAST_BODY, size=14)
-        doc.add_page_break()
+        # 封面独立成节（无页眉页脚），随后为目录节
+        doc.add_section()
+        _add_toc_block(doc)
+        doc.add_section()
+        i = _j
     while i < n:
         ln = lines[i].rstrip()
         if ln.strip() == '':
@@ -182,7 +288,7 @@ def convert(md_path, out_path):
                 cp.paragraph_format.line_spacing = 1.15
                 cp.paragraph_format.space_before = Pt(4 if k == 0 else 0)
                 cp.paragraph_format.space_after = Pt(4 if k == len(code_lines) - 1 else 0)
-                cp.paragraph_format.keep_with_next = (k < len(code_lines) - 1)
+                # 代码块不设绑页链：长目录树/脚本块允许跨页，避免整块移页留下大半页空白
                 if cl.strip():
                     _set_font(cp.add_run(cl), EAST_BODY, latin=MONO_LATIN, size=CODE_SIZE)
             continue
@@ -265,7 +371,20 @@ def convert(md_path, out_path):
             p.paragraph_format.keep_with_next = True
         i += 1
 
-    _add_footer_page_number(doc)
+    # 三节收尾：[0]封面（无页眉页脚）、[1]目录（罗马页码）、[2]正文（阿拉伯从 1 起）
+    _enable_update_fields(doc)
+    _preset_toc_styles(doc)
+    sections = doc.sections
+    if len(sections) >= 3:
+        title = ''.join(_titles) if _titles else ''
+        _set_pgnum(sections[1], 'upperRoman', 1)
+        _set_section_footer_page(sections[1])
+        _set_doc_header(sections[1], title)
+        _set_pgnum(sections[2], 'decimal', 1)
+        _set_section_footer_page(sections[2], arabic_switch=True)
+        _set_doc_header(sections[2], title)
+    else:
+        _add_footer_page_number(doc)
     doc.save(out_path)
 
 if __name__ == '__main__':
