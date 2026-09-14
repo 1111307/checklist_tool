@@ -228,17 +228,23 @@ def convert(md_path, out_path):
     # 封面：md 顶部连续的 % 行（对齐指导书封面样式）。
     #   % 标题行   → 42pt 黑体加粗居中（长标题按行拆开写）
     #   %! 图片    → 封面顶部居中图片（校徽/标识，约 3.5cm 宽）
+    #   %# 校名行  → 22pt 黑体加粗居中，位于校徽与标题之间
     #   %> 说明行  → 14pt 宋体，置于标题下方留白之后（适用范围/验证基准等）
+    #   %$ 日期行  → 14pt 宋体居中，位于封面底部
     _j = 0
     _titles = []
     while _j < n and lines[_j].strip() == '':
         _j += 1
     if _j < n and lines[_j].startswith('%'):
-        _titles, _notes, _covers = [], [], []
+        _titles, _notes, _covers, _schools, _dates = [], [], [], [], []
         while _j < n and lines[_j].startswith('%'):
             _ln = lines[_j]
             if _ln.startswith('%!'):
                 _covers.append(_ln[2:].strip())
+            elif _ln.startswith('%#'):
+                _schools.append(_ln[2:].strip())
+            elif _ln.startswith('%$'):
+                _dates.append(_ln[2:].strip())
             elif _ln.startswith('%>'):
                 _notes.append(_ln[2:].strip())
             elif _ln[1:].strip():
@@ -252,11 +258,16 @@ def convert(md_path, out_path):
             if os.path.exists(_cp):
                 _p = doc.add_paragraph()
                 _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                _p.paragraph_format.space_after = Pt(18)
+                _p.paragraph_format.space_after = Pt(12)
                 _p.add_run().add_picture(_cp, width=Cm(3.5))
             else:
                 print('  !! 封面图片不存在：' + _cp)
-        for _ in range(3 if not _covers else 1):
+        for _s in _schools:
+            _p = doc.add_paragraph()
+            _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            _p.paragraph_format.space_after = Pt(10)
+            _set_font(_p.add_run(_s), '黑体', size=22, bold=True)
+        for _ in range(1 if _covers else 3):
             doc.add_paragraph()
         for _t in _titles:
             _p = doc.add_paragraph()
@@ -267,6 +278,11 @@ def convert(md_path, out_path):
         for _nt in _notes:
             _p = doc.add_paragraph()
             _set_font(_p.add_run(_nt), EAST_BODY, size=14)
+        for _d in _dates:
+            doc.add_paragraph()
+            _p = doc.add_paragraph()
+            _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            _set_font(_p.add_run(_d), EAST_BODY, size=14)
         # 封面独立成节（无页眉页脚），随后为目录节
         doc.add_section()
         _add_toc_block(doc)
