@@ -183,7 +183,8 @@ def convert(md_path, out_path):
                 if alt:
                     cap = doc.add_paragraph()
                     cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    cap.paragraph_format.keep_with_next = True
+                    # 图注不与后文绑页（图段已与图注绑页）；否则图注会牵连下一节标题成链甩页
+                    cap.paragraph_format.keep_with_next = False
                     _add_runs(cap, alt, size=CAPTION_SIZE)
                 print('  插图：' + (alt or src))
             else:
