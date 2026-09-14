@@ -327,6 +327,26 @@ def convert(md_path, out_path):
                 print('  !! 图片不存在：' + path)
             i += 1
             continue
+        # 表题（表格上方居中五号黑体，如「表 1　工具组成」）
+        m = re.match(r'^表\s*\d+[　\s].+$', ln.strip())
+        if m:
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.keep_with_next = True
+            p.paragraph_format.space_before = Pt(6)
+            p.paragraph_format.space_after = Pt(2)
+            _add_runs(p, ln.strip(), east=EAST_HEAD, size=CAPTION_SIZE, bold=True)
+            i += 1
+            continue
+        # 编号段（N）（与有序列表同款左缩进、无首行缩进）
+        if re.match(r'^（\d+）\S', ln.strip()):
+            p = doc.add_paragraph()
+            p.paragraph_format.left_indent = Cm(0.74)
+            p.paragraph_format.first_line_indent = Pt(0)
+            p.paragraph_format.line_spacing = 1.5
+            _add_runs(p, ln.strip())
+            i += 1
+            continue
         # 表格
         if ln.lstrip().startswith('|'):
             tbl = [ln]
