@@ -266,3 +266,9 @@ cp -r 网络设备核查/. "C:/Users/ryan.xiong/Desktop/checklist_tool/网络设
 - 指导书 _guide_sections.py：复制 body sectPr 为段内 sectPr 插两处（sdt 前=封面节尾、sdt 后=目录节尾），API 配三节页眉页码。踩坑：①目录 sdt 内容控件内部自带 sectPr（python-docx 数 3 节、Word 实际 4 节，目录主体落进无页眉旧节）→ 删除 sdt 内 sectPr；②封面标题 run 挂 Heading1Char 字符样式被 TOC 抓入 → 移除 rStyle（直接格式完整、视觉不变）；③sdt 内「目录」标题段用 Heading2 样式同样被抓 → 改 Normal+直接格式黑体14pt。COM 流程：TablesOfContents.Update + Fields.Update + Save + ExportAsFixedFormat（705 页 1157 图后台跑）。
 - 结果：指导书 705 页=封面1+目录 I~X+正文 1~694；手册 20 页=封面+目录 I+正文 1~18；报告 40 页=封面+目录 I+正文 1~38。程序化逐页验证页眉/页码序列全过；judge 验收手册 20/20、报告 40/40、指导书抽验 7/7。
 - 注意：_audit_guide.py 三项"待处理"为口径过时误报（Word 保存规范化 run 级直格进样式；三节后 titlePg 判断不适用）——以 PDF 渲染为准。
+
+### 操作说明书目录树整页（2026-09-14，commit b539102）
+
+- 用户要求第 3 章工具包目录树（21 行）放在一页内。md2docx 代码块行间绑页恢复（此前为消大空页曾取消）——代码块整块原子，树+章标题+引导句同页落在正文第 4 页；前页留白 48% 未超半页，手册 21 页 judge 验收 20/21，唯一 fail 为 4.5 节「第 5 章 23 项」引用歧义（指指导书第 5 章，读者误读为手册第 5 章）→ 已改为「《配置核查作业指导书》第 5 章（网络安全）…见 6.1 节」。
+- 注意：Desktop\checklist_tool 实物包的操作说明书 docx 当时被 Word 占用未能同步，需文件关闭后补拷（仓库与 checklist_tool/ 快照已同步至 b539102）。
+- md2docx 代码块绑页状态终版：**行间 keep_with_next 绑定（整块原子）**。
