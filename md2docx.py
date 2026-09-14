@@ -124,6 +124,34 @@ def convert(md_path, out_path):
     lines = open(md_path, encoding='utf-8').read().splitlines()
     i = 0
     n = len(lines)
+    # 封面：md 顶部连续的 % 行（对齐指导书封面样式）。
+    #   % 标题行   → 42pt 黑体加粗居中（长标题按行拆开写）
+    #   %> 说明行  → 14pt 宋体，置于标题下方留白之后（适用范围/验证基准等）
+    _j = 0
+    while _j < n and lines[_j].strip() == '':
+        _j += 1
+    if _j < n and lines[_j].startswith('%'):
+        _titles, _notes = [], []
+        while _j < n and lines[_j].startswith('%'):
+            _ln = lines[_j]
+            if _ln.startswith('%>'):
+                _notes.append(_ln[2:].strip())
+            elif _ln[1:].strip():
+                _titles.append(_ln[1:].strip())
+            _j += 1
+        i = _j
+        for _ in range(3):
+            doc.add_paragraph()
+        for _t in _titles:
+            _p = doc.add_paragraph()
+            _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            _set_font(_p.add_run(_t), '黑体', size=42, bold=True)
+        for _ in range(8):
+            doc.add_paragraph()
+        for _nt in _notes:
+            _p = doc.add_paragraph()
+            _set_font(_p.add_run(_nt), EAST_BODY, size=14)
+        doc.add_page_break()
     while i < n:
         ln = lines[i].rstrip()
         if ln.strip() == '':
