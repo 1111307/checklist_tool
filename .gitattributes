@@ -1,0 +1,14 @@
+# 交付脚本换行与二进制规则（避免 autocrlf 把 LH 脚本转成 CRLF 而失效）
+# 麒麟/Linux 侧脚本必须 LF；Windows 侧 vbs/bat/ps1 必须 CRLF（GBK 编码另行人工保证）。
+*.sh    text eol=lf
+*.vbs   text eol=crlf
+*.bat   text eol=crlf
+*.ps1   text eol=crlf
+*.conf  text eol=lf
+
+# 二进制交付物不做任何换行转换
+*.docx  binary
+*.xlsx  binary
+*.xls   binary
+*.png   binary
+*.jpg   binary
