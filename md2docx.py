@@ -251,15 +251,22 @@ def convert(md_path, out_path):
                 _titles.append(_ln[1:].strip())
             _j += 1
         i = _j
-        if _covers:
+        # 封面版式（对齐用户确认样张）：标题在上 → 中部校徽+校名 → 底部说明行+日期
+        for _ in range(5):
+            doc.add_paragraph()
+        for _t in _titles:
+            _p = doc.add_paragraph()
+            _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            _set_font(_p.add_run(_t), '黑体', size=42, bold=True)
+        for _ in range(6):
             doc.add_paragraph()
         for _cf in _covers:
             _cp = os.path.join(os.path.dirname(os.path.abspath(md_path)), _cf)
             if os.path.exists(_cp):
                 _p = doc.add_paragraph()
                 _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                _p.paragraph_format.space_after = Pt(12)
-                _p.add_run().add_picture(_cp, width=Cm(3.5))
+                _p.paragraph_format.space_after = Pt(14)
+                _p.add_run().add_picture(_cp, width=Cm(4.0))
             else:
                 print('  !! 封面图片不存在：' + _cp)
         for _s in _schools:
@@ -267,13 +274,7 @@ def convert(md_path, out_path):
             _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _p.paragraph_format.space_after = Pt(10)
             _set_font(_p.add_run(_s), '黑体', size=22, bold=True)
-        for _ in range(1 if _covers else 3):
-            doc.add_paragraph()
-        for _t in _titles:
-            _p = doc.add_paragraph()
-            _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            _set_font(_p.add_run(_t), '黑体', size=42, bold=True)
-        for _ in range(8):
+        for _ in range(7):
             doc.add_paragraph()
         for _nt in _notes:
             _p = doc.add_paragraph()
