@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # 配置核查工具 - 网络设备版（华为/华三/锐捷，纯Bash实现）
-# 参考标准：配置核查作业指导书v2.2（第5章 网络安全 5.1-5.23）
+# 参考标准：配置核查作业指导书v2.0.0（第5章 网络安全 5.1-5.23）
 #
 # 网络设备为独立硬件，本脚本采用「采集-解析」两步模式：
 #   1) bash check_network.sh init    生成采集工作区与三厂商命令清单模板
@@ -31,7 +31,7 @@ add_result() { # id cat title status detail chapter rec
     R_COUNT=$((R_COUNT+1))
     R_ID[$R_COUNT]="$1"; R_CAT[$R_COUNT]="$2"; R_TITLE[$R_COUNT]="$3"
     R_STATUS[$R_COUNT]="$4"; R_DETAIL[$R_COUNT]="$5"; R_CHAPTER[$R_COUNT]="$6"; R_REC[$R_COUNT]="$7"
-    R_GUIDE[$R_COUNT]="《配置核查作业指导书v2.2》第5章 网络安全 $1"
+    R_GUIDE[$R_COUNT]="《配置核查作业指导书v2.0.0》第5章 网络安全 $1"
 }
 
 html_esc() { local s="$1"; s="${s//&/&amp;}"; s="${s//</&lt;}"; s="${s//>/&gt;}"; printf '%s' "$s"; }
@@ -552,7 +552,7 @@ footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}
 <div class="wrap">
 <header>
   <h1>${REPORT_TITLE}</h1>
-  <div class="sub">参考标准：配置核查作业指导书v2.2　|　核查方式：设备命令回显解析（第5章 网络安全）</div>
+  <div class="sub">参考标准：配置核查作业指导书v2.0.0　|　核查方式：设备命令回显解析（第5章 网络安全）</div>
   <div class="meta">
     <div>设备：$(html_esc "$DEV_COUNT") 台（$(html_esc "$DEV_NAMES")）</div>
     <div>核查时间：$(date '+%Y-%m-%d %H:%M:%S')</div>
@@ -661,7 +661,7 @@ th{background:#1a3c6e;color:#fff;font-weight:bold;}
 </head>
 <body>
 <p><b>${REPORT_TITLE}</b>　设备：$(html_esc "$DEV_NAMES")　核查时间：$(date '+%Y-%m-%d %H:%M:%S')</p>
-<p>参考标准：配置核查作业指导书v2.2 第5章 网络安全</p>
+<p>参考标准：配置核查作业指导书v2.0.0 第5章 网络安全</p>
 <p>合规：$pass　不合规：$fail　需人工核查：$manual　不适用：$na</p>
 XLSHEAD
         echo "<table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>"

@@ -1,6 +1,6 @@
 ﻿# ============================================================
 # 配置核查工具 - 网络设备版（Windows / PowerShell，华为/华三/锐捷）
-# 参考标准：配置核查作业指导书v2.2（第5章 网络安全 5.1-5.23）
+# 参考标准：配置核查作业指导书v2.0.0（第5章 网络安全 5.1-5.23）
 #
 # 与麒麟版 kylin/check_network.sh 同判定逻辑（Win7+ / PowerShell 2.0+）。
 # 网络设备为独立硬件，本脚本采用「采集-解析」两步模式：
@@ -26,7 +26,7 @@ $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
 # ---------- 结果存储 ----------
 $script:R = @()
 function Add-Result([string]$id, [string]$cat, [string]$title, [string]$status, [string]$detail, [string]$chapter, [string]$rec) {
-    $script:R += @{ id = $id; cat = $cat; title = $title; status = $status; detail = $detail; chapter = $chapter; rec = $rec; guide = "《配置核查作业指导书v2.2》第5章 网络安全 $id" }
+    $script:R += @{ id = $id; cat = $cat; title = $title; status = $status; detail = $detail; chapter = $chapter; rec = $rec; guide = "《配置核查作业指导书v2.0.0》第5章 网络安全 $id" }
 }
 function Html-Esc([string]$s) {
     if ($null -eq $s) { return "" }
@@ -562,7 +562,7 @@ footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}
 <div class="wrap">
 <header>
   <h1>__TITLE__</h1>
-  <div class="sub">参考标准：配置核查作业指导书v2.2　|　核查方式：设备命令回显解析（第5章 网络安全）</div>
+  <div class="sub">参考标准：配置核查作业指导书v2.0.0　|　核查方式：设备命令回显解析（第5章 网络安全）</div>
   <div class="meta">
     <div>设备：__DEVCOUNT__ 台（__DEVNAMES__）</div>
     <div>核查时间：__TIME__</div>
@@ -659,7 +659,7 @@ function Generate-Xls {
     [void]$sb.AppendLine('<style>table{border-collapse:collapse;}th,td{border:1px solid #999;padding:4px 6px;font-family:"Microsoft YaHei",Arial;font-size:12px;mso-number-format:"\@";}th{background:#1a3c6e;color:#fff;font-weight:bold;}</style>')
     [void]$sb.AppendLine('</head><body>')
     [void]$sb.AppendLine("<p><b>$REPORT_TITLE</b>　设备：$(Html-Esc $script:DevNames)　核查时间：$now</p>")
-    [void]$sb.AppendLine('<p>参考标准：配置核查作业指导书v2.2 第5章 网络安全</p>')
+    [void]$sb.AppendLine('<p>参考标准：配置核查作业指导书v2.0.0 第5章 网络安全</p>')
     [void]$sb.AppendLine("<p>合规：$pass　不合规：$fail　需人工核查：$manual　不适用：$na</p>")
     [void]$sb.AppendLine('<table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>')
     foreach ($r in $script:R) {
