@@ -21,7 +21,7 @@ import sys
 import docx
 from docx.oxml.ns import qn
 
-PATH = "配置核查作业指导书_v2.2.docx"
+PATH = "配置核查作业指导书_v2.0.0.docx"
 APPLY = "--apply" in sys.argv
 
 

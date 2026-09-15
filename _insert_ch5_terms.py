@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""重建：v2.2 基线 + 插入 13 张终端核查截图（成品即 配置核查作业指导书_v2.2.docx）。"""
+"""重建：v2.2 基线 + 插入 13 张终端核查截图（成品即 配置核查作业指导书_v2.0.0.docx）。"""
 import re
 import os
 from docx import Document
@@ -9,7 +9,7 @@ from docx.oxml import OxmlElement
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.join(BASE, "配置核查作业指导书_v2.2.docx")
+SRC = os.path.join(BASE, "配置核查作业指导书_v2.0.0.docx")
 DST = os.path.join(BASE, "_v201_new.docx")
 FIG = os.path.join(BASE, "_ch5_figs")
 

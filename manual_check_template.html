@@ -114,7 +114,7 @@ td.detail,td.rec{color:#374151;max-width:320px;}
 
 <header>
   <h1>配置核查 · 人工核查台</h1>
-  <div class="sub">适用于无法运行自动核查脚本的环境 —— 逐项人工核对后导出标准核查报告（参考标准：配置核查作业指导书v2.2）</div>
+  <div class="sub">适用于无法运行自动核查脚本的环境 —— 逐项人工核对后导出标准核查报告（参考标准：配置核查作业指导书v2.0.0）</div>
   <div class="info">
     <label>被测系统 / 版本<input id="f-os" placeholder="如：Windows 7 专业版 SP1 / 银河麒麟 V10 SP1"></label>
     <label>主机名 / IP<input id="f-host" placeholder="如：PC-ZHANG-01 / 192.168.1.20"></label>
@@ -490,7 +490,7 @@ g("export").onclick = function(){
     + document.querySelector("style").outerHTML
     + '</head><body><div class="wrap">'
     + '<header><h1>配置核查报告 · 人工核查</h1>'
-    + '<div class="sub">参考标准：配置核查作业指导书v2.2　|　核查方式：人工逐项核对（自动核查脚本不适用环境）</div>'
+    + '<div class="sub">参考标准：配置核查作业指导书v2.0.0　|　核查方式：人工逐项核对（自动核查脚本不适用环境）</div>'
     + '<div class="meta"><div>' + esc(d.metaLine) + '</div><div>导出时间：' + d.timeStr + '</div></div></header>'
     + '<div class="dash">'
     + '<div class="stat s-pass"><div class="num">'+d.cnt.pass+'</div><div class="lbl">合规</div><div class="bar"><i style="width:'+pct(d.cnt.pass)+'%"></i></div><div class="pct">'+pct(d.cnt.pass)+'%</div></div>'
@@ -529,7 +529,7 @@ g("export-xls").onclick = function(){
   parts.push('<style>table{border-collapse:collapse;}th,td{border:1px solid #999;padding:4px 6px;font-family:"Microsoft YaHei",Arial;font-size:12px;mso-number-format:"\\@";}th{background:#1a3c6e;color:#fff;font-weight:bold;}</style>');
   parts.push('</head><body>');
   parts.push('<p><b>配置核查报告 · 人工核查</b>　' + xe(d.metaLine) + '　导出时间：' + xe(d.timeStr) + '</p>');
-  parts.push('<p>参考标准：配置核查作业指导书v2.2　|　核查方式：人工逐项核对</p>');
+  parts.push('<p>参考标准：配置核查作业指导书v2.0.0　|　核查方式：人工逐项核对</p>');
   parts.push('<p>合规：' + d.cnt.pass + '　不合规：' + d.cnt.fail + '　需人工核查：' + d.cnt.manual + '　不适用：' + d.cnt.na + '　合计：' + d.rows.length + '</p>');
   parts.push('<table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>');
   d.rows.forEach(function(x){

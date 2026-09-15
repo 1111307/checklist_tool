@@ -17,7 +17,7 @@ from docx.oxml.ns import qn
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIG = os.path.join(HERE, "_ch5_figs2")
-PATH = os.path.join(HERE, "配置核查作业指导书_v2.2.docx")
+PATH = os.path.join(HERE, "配置核查作业指导书_v2.0.0.docx")
 CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 APPLY = "--apply" in sys.argv
 

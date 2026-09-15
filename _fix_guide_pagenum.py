@@ -21,8 +21,8 @@ import sys
 import docx
 from docx.oxml.ns import qn
 
-PATH = "配置核查作业指导书_v2.2.docx"
-BAK = "../_guide_backup/配置核查作业指导书_v2.2.beforepagenum.docx"
+PATH = "配置核查作业指导书_v2.0.0.docx"
+BAK = "../_guide_backup/配置核查作业指导书_v2.0.0.beforepagenum.docx"
 APPLY = "--apply" in sys.argv
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 

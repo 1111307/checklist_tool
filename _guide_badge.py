@@ -10,7 +10,7 @@ import docx
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm, Pt
 
-PATH = "配置核查作业指导书_v2.2.docx"
+PATH = "配置核查作业指导书_v2.0.0.docx"
 BADGE = "测评报告/说明书截图/npu_badge.png"
 
 d = docx.Document(PATH)

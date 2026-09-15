@@ -24,7 +24,7 @@ from docx.shared import Cm
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIGS = os.path.join(HERE, "_tmp_figs")
-PATH = os.path.join(HERE, "配置核查作业指导书_v2.2.docx")
+PATH = os.path.join(HERE, "配置核查作业指导书_v2.0.0.docx")
 CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 APPLY = "--apply" in sys.argv
 DPI = 110.0

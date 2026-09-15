@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""生成 配置核查作业指导书_v2.2.docx：
+"""生成 配置核查作业指导书_v2.0.0.docx：
 1. 提升第3、4章已有"补充核查方法"小节 Normal -> Heading 4
 2. 修 4.23 编号错误（4.24.2 -> 4.23.2）
 3. 移动 3.14.3（错位到第4章标题下）回到 3.14 条目
@@ -10,7 +10,7 @@ from docx import Document
 import re, json
 
 SRC = '配置核查作业指导书_v2.1草稿_格式规范化.docx'
-DST = '配置核查作业指导书_v2.2.docx'
+DST = '配置核查作业指导书_v2.0.0.docx'
 
 doc = Document(SRC)
 

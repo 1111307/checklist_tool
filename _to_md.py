@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""将《配置核查作业指导书_v2.2.docx》转为 Markdown 副本（只读转换，不修改任何 docx）。"""
+"""将《配置核查作业指导书_v2.0.0.docx》转为 Markdown 副本（只读转换，不修改任何 docx）。"""
 from docx import Document
 
-SRC = r"C:\Users\ryan.xiong\Desktop\peizhitool\配置核查\配置核查作业指导书_v2.2.docx"
-DST = r"C:\Users\ryan.xiong\Desktop\peizhitool\配置核查\配置核查作业指导书_v2.2.md"
+SRC = r"C:\Users\ryan.xiong\Desktop\peizhitool\配置核查\配置核查作业指导书_v2.0.0.docx"
+DST = r"C:\Users\ryan.xiong\Desktop\peizhitool\配置核查\配置核查作业指导书_v2.0.0.md"
 
 doc = Document(SRC)
 out = []

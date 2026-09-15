@@ -16,7 +16,7 @@
 import re, json
 from docx import Document
 
-doc = Document('配置核查作业指导书_v2.2.docx')
+doc = Document('配置核查作业指导书_v2.0.0.docx')
 
 # 列顺序（与核查表 C~M 一致，华为交换机插在 Tomcat 之后）
 COLS = ['Win7', 'WinXP', '中标麒麟', '银河麒麟', 'Nginx', 'Tomcat', '华为交换机', 'Mysql', 'SQLSever', '达梦', 'redis']

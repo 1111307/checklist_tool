@@ -23,8 +23,8 @@ from docx.oxml.ns import qn
 from docx.shared import Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-PATH = "配置核查作业指导书_v2.2.docx"
-BAK = "../_guide_backup/配置核查作业指导书_v2.2.before124sections.docx"
+PATH = "配置核查作业指导书_v2.0.0.docx"
+BAK = "../_guide_backup/配置核查作业指导书_v2.0.0.before124sections.docx"
 HERE = os.path.dirname(os.path.abspath(__file__))
 IMG_WIN_DM = os.path.join(HERE, "_tmp_imgs", "gen_dm_win.png")
 IMG_WIN_REDIS = os.path.join(HERE, "_tmp_imgs", "gen_redis_win.png")

@@ -11,7 +11,7 @@ from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
-PATH = "配置核查作业指导书_v2.2.docx"
+PATH = "配置核查作业指导书_v2.0.0.docx"
 TITLE = "配置核查作业指导书"
 
 sys.path.insert(0, ".")

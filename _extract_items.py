@@ -5,7 +5,7 @@ import re
 from docx import Document
 from docx.oxml.ns import qn
 
-doc = Document(r'配置核查作业指导书_v2.2.docx')
+doc = Document(r'配置核查作业指导书_v2.0.0.docx')
 
 def get_lvl(p):
     pPr = p._p.pPr

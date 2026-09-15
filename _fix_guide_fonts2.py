@@ -13,7 +13,7 @@ import sys
 import docx
 from docx.oxml.ns import qn
 
-PATH = "配置核查作业指导书_v2.2.docx"
+PATH = "配置核查作业指导书_v2.0.0.docx"
 APPLY = "--apply" in sys.argv
 SIZES = {"1": 16.0, "2": 14.0, "3": 12.0, "4": 10.5, "5": 10.5}
 THEME_ATTRS = ("w:asciiTheme", "w:eastAsiaTheme", "w:hAnsiTheme", "w:cstheme")

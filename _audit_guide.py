@@ -14,7 +14,7 @@ from lxml import etree
 from docx.oxml.ns import qn
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
-PATH = "配置核查作业指导书_v2.2.docx"
+PATH = "配置核查作业指导书_v2.0.0.docx"
 OK = "  [OK] "
 WARN = "  [!!] "
 

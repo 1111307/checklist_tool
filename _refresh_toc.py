@@ -11,7 +11,7 @@ import time
 
 import win32com.client as win32
 
-PATH = os.path.abspath("配置核查作业指导书_v2.2.docx")
+PATH = os.path.abspath("配置核查作业指导书_v2.0.0.docx")
 PDF = os.path.abspath("_check_前几页.pdf")
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 4
 

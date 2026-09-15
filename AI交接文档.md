@@ -12,7 +12,7 @@
 | 产出物 | 文件 | 状态 |
 |---|---|---|
 | 核查表（基准矩阵） | `配置核查表_v2.0.0.xlsx` / `_标注自动验证.xlsx` | 已定版，标注版含每项自动化状态 |
-| 作业指导书（标准依据） | `配置核查作业指导书_v2.2.docx` | v2.2 已修复+完善（10 章、113 个编号检查项） |
+| 作业指导书（标准依据） | `配置核查作业指导书_v2.0.0.docx` | v2.2 已修复+完善（10 章、113 个编号检查项） |
 | 自动化工具（双平台） | `win/`（VBScript）、`kylin/`（Bash）各 7 个脚本；网络设备另有独立版 `网络设备核查/`（同源） | 可用，HTML 报告为 2026-08 新模板 |
 | 交叉验证报告 | `测评报告/指导书与核查工具交叉验证报告.docx/.md` | 136 项：纳入工具核查 94（可自动化 43 / 部分可自动化 51）、需人工 42；末章「验证证据」共 43 张实跑截图，**每张图下方配一段说明（环境/方法/关键数据）**，说明文案在 `_gen_guide_check.py` 的 `FIG_NOTES` 字典里 |
 | 交付包 | `checklist_tool/`（仓库内快照）+ `Desktop\checklist_tool`（实物） | 37 文件，含总 README |
@@ -50,8 +50,8 @@
 ├── docker/                       Docker 靶机环境（Dockerfile + systemctl3.py + 90 份报告）
 ├── 测评报告/                      交叉验证报告 + 分章 md + 验证截图/（报告第六章配图）+ 说明书截图/（操作说明书配图）
 ├── checklist_tool/               交付包快照（干净版，无 output）
-├── 配置核查作业指导书_v2.2.docx   正式文件（42MB，含 1019 张截图）
-├── 配置核查作业指导书_v2.2.md     docx 的 md 副本（_to_md.py 生成）
+├── 配置核查作业指导书_v2.0.0.docx   正式文件（42MB，含 1019 张截图）
+├── 配置核查作业指导书_v2.0.0.md     docx 的 md 副本（_to_md.py 生成）
 ├── 配置核查表_v2.0.0*.xlsx
 ├── _gen_guide_check.py           交叉验证报告生成器（解析指导书+脚本）
 ├── _to_md.py                     指导书 docx → md
@@ -62,7 +62,7 @@
 
 ---
 
-## 三、指导书 v2.2 关键约定（改 docx 前必读）
+## 三、指导书 v2.0.0 关键约定（改 docx 前必读）
 
 ### 样式系统（非标准！）
 - 样式 ID 是 **`'2'`~`'6'`**，不是 `Heading 1` 等：`'2'`=H1(章)、`'3'`=H2(条目)、`'4'`=H3(子目)、`'5'`=H4(平台)、`'6'`=H5
@@ -100,7 +100,7 @@
 两平台 14 个脚本同一设计：渐变头横幅 + meta 条 → 四状态指标卡（可点击筛选）→ 搜索框+筛选按钮 → 徽章表格。数据以 JSON 内嵌 `var DATA = [...]`，前端渲染，**零依赖离线可开**。
 - 麒麟：`generate_html()` heredoc 三段式（HTMLHEAD/HTMLMID/HTMLFOOT），注意 **heredoc 终结符必须独占一行**
 - win：`GenerateHTML()` 逐行 `ts.WriteLine`，占位符用 `@@VBS:expr@@` 标记法防引号翻倍错乱；`JsonEsc` 的转义顺序必须先 `\` 后 `"`
-- 参考标准字样统一为 `配置核查作业指导书v2.2`
+- 参考标准字样统一为 `配置核查作业指导书v2.0.0`
 
 ### 数据结构（两侧对齐）
 - 麒麟：`R_CHAPTER/R_ID/R_CAT/R_TITLE/R_STATUS/R_DETAIL/R_REC/R_GUIDE` 数组 + `R_COUNT`
@@ -164,7 +164,7 @@ for f in kylin/check_*.sh; do bash -n $f; done
 # 交付包同步（改完任何东西）
 cp win/check_*.vbs win/check_*.ps1 win/run*.bat win/*.conf win/*.ps1 "C:/Users/ryan.xiong/Desktop/checklist_tool/win/"
 cp kylin/check_*.sh kylin/run*.sh kylin/*.conf "C:/Users/ryan.xiong/Desktop/checklist_tool/kylin/"
-cp 配置核查作业指导书_v2.2.docx 配置核查表_v2.0.0_标注自动验证.xlsx "C:/Users/ryan.xiong/Desktop/checklist_tool/"
+cp 配置核查作业指导书_v2.0.0.docx 配置核查表_v2.0.0_标注自动验证.xlsx "C:/Users/ryan.xiong/Desktop/checklist_tool/"
 cp 测评报告/指导书与核查工具交叉验证报告.docx "C:/Users/ryan.xiong/Desktop/checklist_tool/"
 # 另有仓库内快照 checklist_tool/（同一棵树，与上面两条一致）
 cp -r 网络设备核查/. "C:/Users/ryan.xiong/Desktop/checklist_tool/网络设备核查/"   # 独立版目录（不含 output/）

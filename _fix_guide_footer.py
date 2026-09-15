@@ -16,7 +16,7 @@ from docx.oxml.ns import qn
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-PATH = "配置核查作业指导书_v2.2.docx"
+PATH = "配置核查作业指导书_v2.0.0.docx"
 APPLY = "--apply" in sys.argv
 
 
