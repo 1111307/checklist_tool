@@ -359,7 +359,7 @@ def convert(md_path, out_path):
             p.paragraph_format.keep_with_next = True
             p.paragraph_format.space_before = Pt(6)
             p.paragraph_format.space_after = Pt(2)
-            _add_runs(p, ln.strip(), east=EAST_HEAD, size=CAPTION_SIZE, bold=True)
+            _add_runs(p, ln.strip(), east=EAST_BODY, size=CAPTION_SIZE, bold=False)
             i += 1
             continue
         # 编号段（N）（与有序列表同款左缩进、无首行缩进）
