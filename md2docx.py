@@ -258,7 +258,7 @@ def convert(md_path, out_path):
             _p = doc.add_paragraph()
             _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _set_font(_p.add_run(_t), '黑体', size=42, bold=True)
-        for _ in range(5):
+        for _ in range(4):
             doc.add_paragraph()
         for _cf in _covers:
             _cp = os.path.join(os.path.dirname(os.path.abspath(md_path)), _cf)
@@ -274,7 +274,7 @@ def convert(md_path, out_path):
             _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _p.paragraph_format.space_after = Pt(10)
             _set_font(_p.add_run(_s), '黑体', size=22, bold=True)
-        for _ in range(2):
+        for _ in range(1):
             doc.add_paragraph()
         for _nt in _notes:
             _p = doc.add_paragraph()
