@@ -252,13 +252,13 @@ def convert(md_path, out_path):
             _j += 1
         i = _j
         # 封面版式（对齐用户确认样张）：标题在上 → 中部校徽+校名 → 底部说明行+日期
-        for _ in range(4):
+        for _ in range(3):
             doc.add_paragraph()
         for _t in _titles:
             _p = doc.add_paragraph()
             _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _set_font(_p.add_run(_t), '黑体', size=42, bold=True)
-        for _ in range(8):
+        for _ in range(6):
             doc.add_paragraph()
         for _s in _schools:
             _p = doc.add_paragraph()
