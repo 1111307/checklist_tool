@@ -668,9 +668,10 @@ for _ci, ch in enumerate(chapters, 1):
     _cname = ch.split(" ", 1)[1]
     A(f'## 4.{_ci} {_cname}')
     A('')
-    _tno = _tab(f'{_cname}检查项逐项验证结果', None)
+    _tno = _T[0] + 1
     A(f'本章共 {len(detail[ch])} 项检查项，逐项验证结论与对应证据见表 {_tno}。')
     A('')
+    _tab(f'{_cname}检查项逐项验证结果')
     A('| 编号 | 检查项 | 验证结论 | 对应证据 |')
     A('|---|---|---|---|')
     for code, title, appl, st, reason in detail[ch]:
