@@ -367,7 +367,6 @@ def convert(md_path, out_path):
             p = doc.add_paragraph()
             p.paragraph_format.left_indent = Cm(0.74)
             p.paragraph_format.first_line_indent = Pt(0)
-            p.paragraph_format.line_spacing = 1.5
             _add_runs(p, ln.strip())
             i += 1
             continue
@@ -410,7 +409,6 @@ def convert(md_path, out_path):
         p = doc.add_paragraph()
         _add_runs(p, ln)
         _first_line_indent_2chars(p)
-        p.paragraph_format.line_spacing = 1.5
         # 以冒号结尾的引导句（「…如下：」）与后文（多为图）保持同页，避免孤句留在页尾
         if ln.rstrip().endswith(('：', ':')):
             p.paragraph_format.keep_with_next = True
