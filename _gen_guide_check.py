@@ -696,7 +696,7 @@ for _ci, ch in enumerate(chapters, 1):
             A('')
             _nt = FIG_NOTES.get(_fn)
             if _nt:
-                A(f'> 图 {_no}　说明：{_nt}')
+                A(f'> 附图 {_no}　{_nt}')
                 A('')
     elif _n_tool:
         _det = (f'{_n_auto} 项工具可直接给出判定' + (f'，{_n_part} 项脚本检测后需结合台账或现场确认' if _n_part else ''))
@@ -771,7 +771,7 @@ for _gname, _lead, _fns in CH0_GROUPS:
         A('')
         _nt = FIG_NOTES.get(_fn)
         if _nt:
-            A(f'> 图 {FIG_NO[_fn]}　说明：{_nt}')
+            A(f'> 附图 {FIG_NO[_fn]}　{_nt}')
             A('')
 
 open('测评报告/指导书与核查工具交叉验证报告.md', 'w', encoding='utf-8').write(chr(10).join(L))
