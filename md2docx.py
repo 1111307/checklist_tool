@@ -258,28 +258,20 @@ def convert(md_path, out_path):
             _p = doc.add_paragraph()
             _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _set_font(_p.add_run(_t), '黑体', size=42, bold=True)
-        for _ in range(4):
+        for _ in range(8):
             doc.add_paragraph()
-        for _cf in _covers:
-            _cp = os.path.join(os.path.dirname(os.path.abspath(md_path)), _cf)
-            if os.path.exists(_cp):
-                _p = doc.add_paragraph()
-                _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                _p.paragraph_format.space_after = Pt(14)
-                _p.add_run().add_picture(_cp, width=Cm(4.0))
-            else:
-                print('  !! 封面图片不存在：' + _cp)
         for _s in _schools:
             _p = doc.add_paragraph()
             _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _p.paragraph_format.space_after = Pt(10)
             _set_font(_p.add_run(_s), '黑体', size=22, bold=True)
-        for _ in range(1):
+        for _ in range(3):
             doc.add_paragraph()
         for _nt in _notes:
             _p = doc.add_paragraph()
             _set_font(_p.add_run(_nt), EAST_BODY, size=14)
         for _d in _dates:
+            doc.add_paragraph()
             _p = doc.add_paragraph()
             _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _set_font(_p.add_run(_d), EAST_BODY, size=14)
