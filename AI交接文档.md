@@ -334,3 +334,13 @@ cp -r 网络设备核查/. "C:/Users/ryan.xiong/Desktop/checklist_tool/网络设
 4. **截图（改文档不改脚本）**：含 v2.2 字样的工具报告截图按 `_gen_report_figs.py` 原视口参数重出——复制源 HTML 副本替换版本文案（OS 类报告另删模板冗余的独立「参考标准」行），再原尺寸重截。覆盖 fig_kylin_os/mysql/nginx/net/redis、op_kylin_report、fig_manual（7 张）+ 核查台填写/导出图（_gen_manual_fig.py 重跑 + _capture_excel.py 重截导出 Excel，3 张，两处目录同步）。Win 类报告 HTML 无版本文案，未动。
 5. 结果：指导书 705 页、说明书 22 页、报告 43 页，页码/页眉/表题/证据结构复核通过，无半空页。
 6. 注意：工具脚本（14 个）模板里仍打印「参考标准：配置核查作业指导书v2.2」，故**工具新出的 HTML 报告仍是 v2.2**；文档内截图已按 v2.0.0 呈现。若要根治需授权改脚本模板。
+
+### 核查脚本版本文案统一 v2.0.0（2026-09-15，commit 01797c6 / a32cf43 / 6467dc2 / 23cfcab）
+
+用户授权后修改脚本（此前"核查脚本勿改"约束在本项上解除，仅动版本文案）：
+
+1. **脚本**：21 个脚本（win/*.vbs、win/check_network.ps1、kylin/*.sh、网络设备核查/*，含 checklist_tool/ 与 Desktop 实物包副本）共 116 处「配置核查作业指导书v2.2」→ v2.0.0。做法：`_bump_scripts_v200.py` **字节级替换 b"v2.2"→b"v2.0.0"**，保持 GBK/UTF-8 与 CRLF/LF 原样（win vbs=GBK+CRLF、ps1=UTF-8+CRLF、kylin sh=UTF-8+LF）。校验：bash -n 全部通过、PowerShell PSParser 解析通过、VBS 副本实跑输出「参考标准：配置核查作业指导书v2.0.0」；同源副本 MD5 一致。
+2. **换行固化**：新增 `.gitattributes`（`*.sh text eol=lf`、`*.vbs/bat/ps1 text eol=crlf`、`*.docx/xlsx/xls/png/jpg binary`）——此前 core.autocrlf=true 且无规则，**重新 clone 会把麒麟脚本转成 CRLF 而在 Linux 上失效**。
+3. **踩坑**：`git add --renormalize` 会把 output/ 下 47 个 .xls（实为 HTML 文本）改成 CRLF，造成与实物包不一致 → 已用 6467dc2 回退，并由 .gitattributes 的 binary 规则保护。
+4. 收尾：操作说明书目录树里的指导书文件名同步改 v2.0.0（23cfcab）。**交付范围内 v2.2 残留已归零**（脚本/核查台/README/三份文档全查）。
+5. 影响：工具新出的 HTML/控制台报告现在一律显示「参考标准：配置核查作业指导书v2.0.0」，与文档口径一致。
