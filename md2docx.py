@@ -269,6 +269,8 @@ def convert(md_path, out_path):
             doc.add_paragraph()
         for _nt in _notes:
             _p = doc.add_paragraph()
+            # 对齐指导书封面：说明行首行缩进 2 字符（28pt=355600EMU，与指导书一致）
+            _p.paragraph_format.first_line_indent = Pt(28)
             _set_font(_p.add_run(_nt), EAST_BODY, size=14)
         for _d in _dates:
             doc.add_paragraph()
