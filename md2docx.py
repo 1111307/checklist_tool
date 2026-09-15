@@ -25,7 +25,7 @@ EAST_BODY = '宋体'
 EAST_HEAD = '黑体'
 LATIN = 'Times New Roman'
 
-BODY_SIZE = 12.0     # 正文小四
+BODY_SIZE = 14.0     # 正文四号（与指导书一致）
 TABLE_SIZE = 10.5    # 表格五号
 CAPTION_SIZE = 10.5  # 图注五号
 NOTE_SIZE = 9.5      # 图下说明（小五）
@@ -166,6 +166,17 @@ def _add_toc_block(doc):
         run._r.append(el)
 
 
+def _set_doc_grid(section, line_pitch=312):
+    """按指导书设置文档网格（中文公文按行排版）：正文行距由网格步长决定。"""
+    sectPr = section._sectPr
+    for e in sectPr.findall(qn('w:docGrid')):
+        sectPr.remove(e)
+    g = OxmlElement('w:docGrid')
+    g.set(qn('w:type'), 'lines')
+    g.set(qn('w:linePitch'), str(line_pitch))
+    sectPr.append(g)
+
+
 def _enable_update_fields(doc):
     el = OxmlElement('w:updateFields'); el.set(qn('w:val'), 'true')
     doc.settings.element.append(el)
@@ -214,7 +225,21 @@ def convert(md_path, out_path):
     normal = doc.styles['Normal']
     normal.font.name = LATIN
     normal._element.rPr.rFonts.set(qn('w:eastAsia'), EAST_BODY)
-    normal.font.size = Pt(BODY_SIZE)
+    normal.font.size = Pt(10.5)   # 与指导书 Normal(sz=21=10.5pt) 一致：封面空行高=1 网格格
+    # 清零文档默认段距（python-docx 模板默认段后 10pt + 1.15 行距，会让全文段间多出空隙；
+    # 指导书的 docDefaults 无任何段距）。各行距由下面各段落的显式设置控制。
+    _dd = doc.styles.element.find(qn('w:docDefaults'))
+    if _dd is not None:
+        _ppd = _dd.find(qn('w:pPrDefault'))
+        if _ppd is not None:
+            _ppr = _ppd.find(qn('w:pPr'))
+            if _ppr is not None:
+                _sp = _ppr.find(qn('w:spacing'))
+                if _sp is not None:
+                    _sp.set(qn('w:after'), '0')
+                    for _k in (qn('w:line'), qn('w:lineRule')):
+                        _sp.attrib.pop(_k, None)
+
     # A4 纸（与指导书一致），边距上下 2.54cm、左右 3.17cm
     _sec = doc.sections[0]
     _sec.page_width = Cm(21.0)
@@ -252,20 +277,20 @@ def convert(md_path, out_path):
             _j += 1
         i = _j
         # 封面版式（对齐用户确认样张）：标题在上 → 中部校徽+校名 → 底部说明行+日期
-        for _ in range(3):
+        for _ in range(5):
             doc.add_paragraph()
         for _t in _titles:
             _p = doc.add_paragraph()
             _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _set_font(_p.add_run(_t), '黑体', size=42, bold=True)
-        for _ in range(6):
+        for _ in range(15):
             doc.add_paragraph()
         for _s in _schools:
             _p = doc.add_paragraph()
             _p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _p.paragraph_format.space_after = Pt(10)
             _set_font(_p.add_run(_s), '黑体', size=22, bold=True)
-        for _ in range(3):
+        for _ in range(5):
             doc.add_paragraph()
         for _nt in _notes:
             _p = doc.add_paragraph()
@@ -367,7 +392,7 @@ def convert(md_path, out_path):
             p = doc.add_paragraph()
             p.paragraph_format.left_indent = Cm(0.74)
             p.paragraph_format.first_line_indent = Pt(0)
-            p.paragraph_format.line_spacing = 1.5
+            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             _add_runs(p, ln.strip())
             i += 1
             continue
@@ -410,7 +435,7 @@ def convert(md_path, out_path):
         p = doc.add_paragraph()
         _add_runs(p, ln)
         _first_line_indent_2chars(p)
-        p.paragraph_format.line_spacing = 1.5
+        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         # 以冒号结尾的引导句（「…如下：」）与后文（多为图）保持同页，避免孤句留在页尾
         if ln.rstrip().endswith(('：', ':')):
             p.paragraph_format.keep_with_next = True
@@ -420,6 +445,8 @@ def convert(md_path, out_path):
     _enable_update_fields(doc)
     _preset_toc_styles(doc)
     sections = doc.sections
+    for _s in sections:
+        _set_doc_grid(_s)
     if len(sections) >= 3:
         title = ''.join(_titles) if _titles else ''
         _set_pgnum(sections[1], 'upperRoman', 1)
