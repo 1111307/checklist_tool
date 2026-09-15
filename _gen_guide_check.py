@@ -471,6 +471,43 @@ A = L.append
 def idx(codes):
     return '、'.join(codes) if codes else '—'
 
+_T = [0]
+TNO = {}
+
+
+def _evidence_cell(code, st, reason):
+    """逐项「对应证据」：有抽查图给图号；工具核查项给脚本名；人工项标人工核查。"""
+    _ef = ITEM_FIGS.get(code)
+    if _ef:
+        return '、'.join('图 %d' % _n for _n in sorted(_ef))
+    if st == '需人工':
+        return '人工核查'
+    _sc = re.findall(r'check_[A-Za-z0-9_]+\.(?:vbs|sh|ps1)', reason or '')
+    _seen, _uniq = set(), []
+    for _x in _sc:
+        if _x not in _seen:
+            _seen.add(_x); _uniq.append(_x)
+    if _uniq:
+        return '、'.join(_uniq[:3])
+    _parts = [p.strip() for p in re.split(r'[；;]', reason or '') if p.strip()]
+    if _parts:
+        _txt = '；'.join(_parts[:2]).rstrip('；;、,，')
+        _txt = _txt[:(26 if len(_parts) > 2 else 30)].rstrip('；;、,，')
+        if _txt.count('（') > _txt.count('）'):        # 截断留下半个括号时，砍到括号前
+            _txt = _txt[: _txt.rfind('（')].rstrip('；;、,，')
+        return _txt + ('等' if len(_parts) > 2 else '')
+    return '脚本核查'
+
+
+def _tab(name, key=None):
+    _T[0] += 1
+    A(f'表 {_T[0]}　{name}')
+    A('')
+    if key:
+        TNO[key] = _T[0]
+    return _T[0]
+
+
 def by_state(ch, st):
     return [c for c, _t, _a, s2, _r in detail[ch] if s2 == st]
 
@@ -509,8 +546,7 @@ A(f'本次验证以《配置核查作业指导书》v2.0.0（10 章、{total} �
   f'逐条比对自动化核查工具的核查能力，三类验证结论的项数与占比见表 1；'
   f'各检查项的具体结论见第 4 章，支撑证据随各节附列。')
 A('')
-A('表 1　验证结论统计')
-A('')
+_tab('验证结论统计', 'concl')
 A('| 验证结论 | 项数 | 占比 |')
 A('|---|---|---|')
 A(f'| 纳入工具核查 | {n_auto + n_part} | {(n_auto + n_part)/total*100:.1f}% |')
@@ -518,9 +554,12 @@ A(f'| 　其中：可自动化（工具直接给出合格/不合格判定） | {
 A(f'| 　其中：部分可自动化（脚本已核查，结论需结合台账或现场确认） | {n_part} | {n_part/total*100:.1f}% |')
 A(f'| 人工核查 | {n_manual} | {n_manual/total*100:.1f}% |')
 A('')
-A(f'全部 {total} 个检查项中，{n_auto + n_part} 项由工具执行核查：{n_auto} 项工具直接给出合格或不合格判定，'
-  f'{n_part} 项脚本已执行核查、结论需结合设备台账或现场情况确认。'
-  f'其余 {n_manual} 项属现场查看、文档调阅或实测验证类，由人工按同一套判定规则完成并留存证据。')
+A(f'全部 {total} 个检查项中，{n_auto + n_part} 项可由核查工具执行：其中 {n_auto} 项工具直接给出合格或不合格判定（占 {n_auto/total*100:.1f}%），'
+  f'{n_part} 项脚本完成检测后仍需结合设备台账或现场情况确认结论（占 {n_part/total*100:.1f}%）。'
+  f'其余 {n_manual} 项（占 {n_manual/total*100:.1f}%）属现场查看、文档调阅或实测验证类，'
+  f'按标准要求由人工完成核查并留存证据，不属于工具能力缺陷。'
+  f'阅读本报告时需注意：{n_auto + n_part} 项表示工具可执行核查的范围，'
+  f'能直接给出判定的为 {n_auto} 项，二者含义不同。')
 A('')
 A('# 2 验证对象与方法')
 A('')
@@ -542,20 +581,46 @@ A('## 2.3 判定规则')
 A('')
 A('三类验证结论的判定条件见表 2。')
 A('')
-A('表 2　验证结论判定条件')
-A('')
+_tab('验证结论判定条件', 'rule')
 A('| 验证结论 | 判定条件 |')
 A('|---|---|')
 A('| 可自动化 | 该检查项适用的全部对象，脚本均可自动给出合格或不合格判定 |')
 A('| 部分可自动化 | 脚本已执行核查，受核查对象或结论性质所限，需结合设备台账或现场情况确认最终结论 |')
 A('| 需人工核查 | 现场查看、文档调阅、实测验证类检查项，由人工按指导书方法完成并留存证据 |')
 A('')
+A('## 2.4 验证范围与局限')
+A('')
+A('本次验证的实测环境与覆盖范围见表 3，据此界定结论的适用范围。')
+A('')
+_tab('实测环境与覆盖范围', 'scope')
+A('| 对象 | 实测环境 | 本次验证情况 |')
+A('|---|---|---|')
+A('| 操作系统 | Windows 10 专业版（本机） | 脚本实跑，139 项判定全部产出 |')
+A('| 操作系统 | 银河麒麟 V10 靶机 | 脚本实跑，139 项判定全部产出 |')
+A('| 数据库 | MySQL / MariaDB 10.3.39（麒麟靶机） | 脚本实跑，19 项判定全部产出 |')
+A('| 数据库 | Redis（麒麟靶机） | 脚本实跑，16 项判定全部产出 |')
+A('| 数据库 | SQL Server 16.0.4265.3（Windows 本机） | 脚本实跑，18 项判定全部产出 |')
+A('| 数据库 | 达梦 DM8 | 环境缺 disql 客户端，19 项按不适用处理，未实测 |')
+A('| 中间件 | Nginx、Tomcat（两平台） | 脚本实跑，各 8 项判定全部产出 |')
+A('| 网络设备 | 华为、华三、锐捷回显样例 | 按采集-解析方式执行，23 项判定产出 |')
+A('| 操作系统 | Windows 7 / Windows XP / 中标麒麟 | 脚本声明兼容，本次未在实机验证 |')
+A('')
+A('结论的局限如下：')
+A('')
+A('- 判定依据为脚本源码中的检测分支与输出结论，逐项比对得出，可说明工具「具备」该项检测能力；'
+  '判定逻辑本身是否正确，由 17 项抽查项的原始检测命令实测复核覆盖（占全部检查项的 12.5%，集中于第 1、2 章）。')
+A('- 抽查项为脚本检测命令的独立复现，未引入未参与开发的第三方独立复评，'
+  '因此本报告给出的是工具自身能力与实测一致性的验证结果，不构成第三方测评结论。')
+A('- 网络设备 23 项的结论来自运维人员登录设备采集的回显文件，回显的真实性与完整性由采集方负责。')
+A('- 未实测平台（Windows 7 / XP、中标麒麟）的结论为脚本声明兼容，需在对应实机复核后采信。')
+A('- 操作系统脚本输出 139 项判定，其中 136 项对应指导书编号检查项，另 3 项为脚本在编号体系外补充的核查条目；'
+  '汇总报告 227 项为 7 个自动核查组件判定之和，网络设备 23 项在汇总中单列。')
+A('')
 A('# 3 各章覆盖统计')
 A('')
 A('各章检查项的验证结论分布见表 3，据此可判断自动化核查能力在各章之间的差异。')
 A('')
-A('表 3　各章覆盖统计')
-A('')
+_tab('各章覆盖统计', 'cover')
 A('| 章节 | 检查项 | 可自动化 | 部分可自动化 | 需人工核查 |')
 A('|---|---|---|---|---|')
 for ch in chapters:
@@ -604,23 +669,27 @@ for _ci, ch in enumerate(chapters, 1):
     _cname = ch.split(" ", 1)[1]
     A(f'## 4.{_ci} {_cname}')
     A('')
-    A(f'本章共 {len(detail[ch])} 项检查项，逐项验证结论与对应证据见表 {3 + _ci}。')
-    A('')
-    A(f'表 {3 + _ci}　{_cname}检查项逐项验证结果')
+    _tno = _tab(f'{_cname}检查项逐项验证结果', None)
+    A(f'本章共 {len(detail[ch])} 项检查项，逐项验证结论与对应证据见表 {_tno}。')
     A('')
     A('| 编号 | 检查项 | 验证结论 | 对应证据 |')
     A('|---|---|---|---|')
     for code, title, appl, st, reason in detail[ch]:
-        _ef = ITEM_FIGS.get(code)
-        _ev = '、'.join('图 %d' % _n for _n in sorted(_ef)) if _ef else '—'
-        A(f'| {code} | {item_name.get(code) or title} | {st} | {_ev} |')
+        A(f'| {code} | {item_name.get(code) or title} | {st} | {_evidence_cell(code, st, reason)} |')
     A('')
     _figs = [(FIG_NO[_fn], _fn, _cap) for _g2, _n2, _it in FIG_GROUPS for _fn, _cap in _it
              if FIG_CHAPTER.get(_fn) == _ci]
     _figs.sort()
+    _n_all = len(detail[ch])
+    _n_auto = sum(1 for _c, _t, _a, _s, _r in detail[ch] if _s == '可自动化')
+    _n_part = sum(1 for _c, _t, _a, _s, _r in detail[ch] if _s == '部分可自动化')
+    _n_tool = _n_auto + _n_part
+    _n_man = _n_all - _n_tool
     if _figs:
         _lo, _hi = _figs[0][0], _figs[-1][0]
-        A(f'本章证据见图 {_lo}～图 {_hi}，取自核查工具在实际环境运行的输出与原始检测命令实测结果。')
+        A(f'本章 {_n_all} 项中，{_n_tool} 项由核查工具执行（{_n_auto} 项工具可直接给出判定，'
+          f'{_n_part} 项脚本检测后需结合台账或现场确认），{_n_man} 项由人工核查；'
+          f'工具核查证据见图 {_lo}～图 {_hi}，取自核查工具在实际环境运行的输出与原始检测命令实测结果。')
         A('')
         for _no, _fn, _cap in _figs:
             A(f'![图 {_no}　{_cap}](验证截图/{_fn}.png)')
@@ -629,6 +698,13 @@ for _ci, ch in enumerate(chapters, 1):
             if _nt:
                 A(f'> 图 {_no}　说明：{_nt}')
                 A('')
+    elif _n_tool:
+        _det = (f'{_n_auto} 项工具可直接给出判定' + (f'，{_n_part} 项脚本检测后需结合台账或现场确认' if _n_part else ''))
+        _tail = (f'其余 {_n_man} 项属现场查看、文档调阅与实测验证类，由人工按《配置核查作业指导书》的方法逐项核查并留存证据。'
+                 if _n_man else '')
+        A(f'本章 {_n_all} 项中，{_n_tool} 项由核查工具执行（{_det}），'
+          f'所用脚本与检测项见上表「对应证据」列，完整标注见《配置核查表》第 14 列；{_tail}')
+        A('')
     else:
         _no_tool_evid += 1
         A('本章检查项属现场查看、文档调阅与实测验证类，核查工具不产出具机证据，'
@@ -639,10 +715,10 @@ for _ci, ch in enumerate(chapters, 1):
         A('')
 A('# 5 说明')
 A('')
-A('本次验证需说明的事项见表 14。')
+_tno5 = _T[0] + 1
+A(f'本次验证需说明的事项见表 {_tno5}。')
 A('')
-A('表 14　验证说明事项')
-A('')
+_tab('验证说明事项', 'note')
 A('| 事项 | 说明 |')
 A('|---|---|')
 A('| 人工核查范围 | 第 6 至 9 章（物理安全、组织机构、规章制度、管理实施）为现场查看与文档调阅类；第 1 至 5 章中涉及应用代码安全、渗透验证、业务架构与台账比对的检查项，按标准要求由人工完成核查。 |')
