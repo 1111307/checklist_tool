@@ -18,7 +18,7 @@ STAMP="$(date +%Y%m%d_%H%M%S)"
 # 零依赖 .xlsx 生成器（可选，需要 zip 命令；缺失时自动降级为 .xls）
 [ -f "$SCRIPT_DIR/lib_xlsx.sh" ] && source "$SCRIPT_DIR/lib_xlsx.sh"
 
-R_ID=(); R_CAT=(); R_TITLE=(); R_STATUS=(); R_DETAIL=(); R_CHAPTER=(); R_REC=(); R_GUIDE=()
+R_ID=(); R_CAT=(); R_TITLE=(); R_STATUS=(); R_DETAIL=(); R_CHAPTER=(); R_REC=(); R_GUIDE=(); R_METHOD=()
 R_COUNT=0
 
 REDIS_CLI="$(command -v redis-cli 2>/dev/null)"
@@ -81,11 +81,309 @@ guide_ref() {
     esac
 }
 
+method_of() {
+    # 评审整改第4条：验证过程/方法（源自指导书 v2.0.0 逐条提取，_gen_method_map.py 生成）
+    case "$1" in
+        1.1) printf %s "1.1.1 核查操作系统安装补丁情况：图形界面/文档核查；1.1.2 核查数据库补丁情况：图形界面/文档核查；1.1.3 核查中间件补丁情况：图形界面/文档核查" ;;
+        1.2) printf %s "1.2.1 Windows7、windowsXP：wmic /namespace:\\\\root\\\\SecurityCenter2 path ；1.2.2 中标麒麟、银河麒麟：getstatus、setstatus -p disable、setstatus enable softmode" ;;
+        1.3) printf %s "1.3.1 Windows7、windowsXP：services.msc；1.3.2 中标麒麟、银河麒麟：图形界面/文档核查" ;;
+        1.4) printf %s "1.4.1 Windows7、WindowsXP：Windows 防火墙、netsh advfirewall show allprofiles；1.4.2 中标麒麟、银河麒麟：systemctl status firewalld、firewall-cmd --state、firewall-cmd --list-all" ;;
+        1.5) printf %s "1.5.1 Windows7、WindowsXP：QOS数据包计划程序；1.5.2 中标麒麟、银河麒麟：ip link show、nmcli connection show、systemctl status bluetooth" ;;
+        1.6) printf %s "1.6.1 Windows7、WindowsXP：启用或关闭Windows功能、Telnet客户端、Telnet服务器；1.6.2 中标麒麟、银河麒麟：图形界面/文档核查" ;;
+        1.7) printf %s "1.7.1 Mysql：mysql -uroot -p、SELECT User, Host FROM mysql.user;、INSTALL PLUGIN validate_password SONAME 'vali" ;;
+        1.8) printf %s "1.8.1 Mysql：mysql -uroot -p、DROP PROCEDURE IF EXISTS ‘old_backup_procedur、vi ~/.bashrc；1.8.2 SQLServer：USE YourDatabaseName;、sqlcmd -S localhost -U SA -P 'SA账户密码'" ;;
+        1.9) printf %s "1.9.1 Mysql：mysql -uroot -p、SHOW GRANTS FOR 'username'@'localhost';、vi ~/.bashrc；1.9.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'" ;;
+        1.10) printf %s "1.10.1 Mysql：mysql -uroot -p、SELECT user, host FROM mysql.user;、SHOW GRANTS FOR 'user'@'host';；1.10.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'" ;;
+        1.11) printf %s "1.11.1 Mysql：mysql -uroot -p、mysqladmin -uroot -p create restore_verify、mysql restore_verify < 备份文件路径\\dump.sql" ;;
+        1.12) printf %s "1.12.1 Mysql：mysql -uroot -p、SET SESSION sql_safe_updates = 1;、SELECT @@sql_safe_updates;；1.12.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'" ;;
+        1.13) printf %s "1.13.1 MySQL：mysql -uroot -p、SHOW VARIABLES LIKE  ‘port’;、SHOW VARIABLES LIKE ‘datadir’;；1.13.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'" ;;
+        1.14) printf %s "1.14.1 Nginx：图形界面/文档核查；1.14.2 Tomcat：<Server port=\"8527\" shutdown=\"DangerousShutdo" ;;
+        1.15) printf %s "1.15.1 MySQL：SELECT user, host FROM mysql.user WHERE user 、DROP USER 'root'@'%';、vi ~/.bashrc；1.15.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'" ;;
+        1.16) printf %s "1.16.1 MySQL：mysql -uroot -p、vi ~/.bashrc、vi ~/.bash_profile；1.16.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.16.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录" ;;
+        1.17) printf %s "1.17.1 Windows操作系统（Win7/XP）：services.msc、sc stop 服务名、sc config 服务名 start= disabled；1.17.2 中标麒麟、银河麒麟：firewall-cmd --list-all、ufw status verbose、systemctl list-units --type=service --state=r" ;;
+        1.18) printf %s "1.18.1 Windows7、WindowsXP：fsutil quota query C:；1.18.2 中标麒麟、银河麒麟：cat /etc/cgconfig.conf、systemd-cgtop、cat /etc/security/limits.conf" ;;
+        1.19) printf %s "1.19.1 MySQL：mysql -uroot -p、SHOW VARIABLES LIKE 'port';、RENAME USER 'root'@'localhost' TO 'new_admin'；1.19.2 SQLServer：ALTER LOGIN sa WITH PASSWORD = 'YourNewPasswo、sqlcmd -S loca" ;;
+        1.20) printf %s "1.20.1 MySQL：mysql -uroot -p、INSTALL PLUGIN validate_password SONAME 'vali、UNINSTALL PLUGIN  validate_password;；1.20.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'、sp_configure 'user" ;;
+        1.21) printf %s "1.21.1 MySQL：mysql -uroot -p、SET GLOBAL general_log = 'ON'、SHOW VARIABLES LIKE '%general_log%';；1.21.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'" ;;
+        1.22) printf %s "1.22.1 MySQL：mysql -uroot -p、SHOW VARIABLES LIKE '%general_log%';、SET GLOBAL general_log = 'ON';；1.22.2 SQLServer：图形界面/文档核查" ;;
+        1.23) printf %s "1.23.1 MySQL：mysql -uroot -p、SHOW VARIABLES LIKE 'bind_address';、SHOW GRANTS FOR 'app_user'@'应用服务器IP';；1.23.2 SQLServer：图形界面/文档核查" ;;
+        1.24) printf %s "1.24.1 操作系统日志审计核查：图形界面/文档核查；1.24.2 数据库日志审计核查：图形界面/文档核查" ;;
+        1.25) printf %s "1.25.1 操作系统抗攻击与防篡改核查：图形界面/文档核查；1.25.2 数据库抗攻击与防篡改核查：图形界面/文档核查" ;;
+        1.26) printf %s "1.26.1 操作系统安全日志核查：图形界面/文档核查；1.26.2 数据库安全日志核查：图形界面/文档核查" ;;
+        1.27) printf %s "1.27.1 操作系统：图形界面/文档核查；1.27.2 数据库管理系统：图形界面/文档核查；1.27.3 中间件：图形界面/文档核查；1.27.4 办公软件：图形界面/文档核查" ;;
+        2.1) printf %s "2.1.1 服务器登录口令核查：图形界面/文档核查；2.1.2 用户计算机登录口令核查：图形界面/文档核查" ;;
+        2.2) printf %s "2.2.1 Windows7/WindowXP：systeminfo | findstr /B /C:\"[补丁程序]\" /C:\"[更新]\"、systeminfo、wmic qfe list brief /format:table" ;;
+        2.3) printf %s "2.3.1 Windows7/WindowXP：net user、net user 用户名、HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows；2.3.2 中标麒麟/银河麒麟：passwd、sudo passwd 目标用户名" ;;
+        2.4) printf %s "2.4.1 Windows7/WindowXP：cmd、net user、net user 用户名；2.4.2 中标麒麟/银河麒麟：cat /etc/passwd、sudo awk -F: '{print $1}' /etc/shadow、userdel -r 重复用户名；2.4.3 核查口令互不相同：cat /etc/shadow、sudo passwd 用户名" ;;
+        2.5) printf %s "2.5.1 Windows7/WindowXP：netstat -ano；2.5.2 中标麒麟/银河麒麟：sudo systemctl list-unit-files --type=service、sudo systemctl is-enabled <服务名>、sudo systemctl is-active <服务名>" ;;
+        2.6) printf %s "2.6.1 Windows7/WindowXP：netsh advfirewall show allprofiles、wf.msc、gpedit.msc；2.6.2 中标麒麟/银河麒麟：sudo kylin-firewall -s on、sudo kylin-firewall -g、sudo kylin-firewall -A -n Deny-Telnet -p tcp " ;;
+        2.7) printf %s "2.7.1 Windows7/WindowXP：图形界面/文档核查；2.7.2 中标麒麟/银河麒麟：md5sum /bin/bash、sudo apt-get install auditd、sudo auditctl -w /etc/passwd -p wa" ;;
+        2.8) printf %s "2.8.1 Windows7/WindowXP：图形界面/文档核查；2.8.2 中标麒麟/银河麒麟：nmcli device status、sudo nmcli device set wlan0 managed no、sudo nmcli connection delete 无线连接名" ;;
+        2.9) printf %s "2.9.1 Windows7/WindowXP：appwiz.cpl、发行者（Publisher）；2.9.2 中标麒麟/银河麒麟：图形界面/文档核查" ;;
+        2.10) printf %s "2.10.1 Windows7/WindowXP：gpedit.msc、devmgmt.msc、eventvwr.msc；2.10.2 中标麒麟/银河麒麟：lsusb" ;;
+        2.11) printf %s "2.11.1 Windows7/WindowXP：net accounts、HKEY_CURRENT_USER\\Control Panel\\Desktop；2.11.2 中标麒麟/银河麒麟：gsettings get org.gnome.desktop.session idle-" ;;
+        2.12) printf %s "2.12.1 Windows7/WindowXP：devmgmt.msc、网络适配器（Network adapters）、netsh wlan show interfaces；2.12.2 中标麒麟/银河麒麟：图形界面/文档核查" ;;
+        2.13) printf %s "2.13.1 Windows7/WindowXP：ipconfig/all；2.13.2 中标麒麟/银河麒麟：sudo netstat -tunap" ;;
+        2.14) printf %s "2.14.1 Windows7/WindowXP：eventvwr.msc；2.14.2 中标麒麟/银河麒麟：sudo systemctl status auditd --no-pager" ;;
+        2.15) printf %s "2.15.1 Windows7/WindowXP：计算机配置 → Windows 设置 → 安全设置 → 账户策略/本地策略、auditpol /get /category:*、net accounts；2.15.2 中标麒麟/银河麒麟：systemctl status firewalld、ufw status verbose、firewall-cmd --list-all" ;;
+        2.16) printf %s "2.16.1 核查操作系统安装补丁情况：图形界面/文档核查；2.16.2 核查数据库补丁修复和升级到最新版本：图形界面/文档核查；2.16.3 应用软件补丁修复和升级到最新版本：图形界面/文档核查" ;;
+        3.1) printf %s "3.1.1 Win7\\WinXP：manage-bde -status、cipher /u /n；3.1.2 中标麒麟、银河麒麟：sudo apt-get install cryptsetup、sudo cryptsetup luksOpen /dev/sdb1 crypt_data；3.1.3 通用核查方法（数据库层与应用层）：图形界面/文档核查" ;;
+        3.2) printf %s "3.2.1 Win7\\WinXP：auditpol /get /category:*、auditpol /get /subcategory:\"文件系统\"、auditpol /set /subcategory:\"文件系统\" /success:en；3.2.2 中标麒麟、银河麒麟：sudo bash -c 'echo \"blacklist usb-storage\" >>、sudo firew" ;;
+        3.3) printf %s "3.3.1 Win7\\WinXP：where cipher、cipher /w:D:、cipher /w:E:；3.3.2 中标麒麟、银河麒麟：sudo apt-get install coreutils、sudo shred -n 3 -z -v /dev/sdb；3.3.3 通用核查方法（专业擦除工具层）：图形界面/文档核查" ;;
+        3.4) printf %s "3.4.1 通用核查方法（物理销毁）：图形界面/文档核查" ;;
+        3.5) printf %s "3.5.1 Win7\\WinXP：icacls C:\\Windows\\System32\\winevt\\Logs、sc qc eventlog、manage-bde -status；3.5.2 中标麒麟、银河麒麟：sudo visudo、audit_admin ALL=(ALL) NOPASSWD: /bin/cat, /bi、sudo apt-get install logrotate" ;;
+        3.6) printf %s "3.6.1 边界设备核查方法：图形界面/文档核查；3.6.2 合规判定：图形界面/文档核查；3.6.3 通用核查方法（DLP 系统层）：图形界面/文档核查" ;;
+        3.7) printf %s "3.7.1 Win7\\WinXP：以管理员身份运行 Windows Terminal（或命令提示符）、net user、auditpol /get /category:*；3.7.2 中标麒麟、银河麒麟：sudo storage-cli login、sudo storage-cli user list、sudo storage-cli audit log list --type=manage" ;;
+        3.8) printf %s "3.8.1 Win7、WinXP：以管理员身份运行 Windows Terminal（或命令提示符）、diskpart、list disk；3.8.2 中标麒麟、银河麒麟：sudo apt-get update、sudo apt-get install suricata -y、alert http any any -> any any (msg:\"DLP: 检测到'" ;;
+        3.9) printf %s "3.9.1 Win7、WinXP：以管理员身份运行 Windows Terminal（或命令提示符）、Windows 日志–安全；3.9.2 中标麒麟、银河麒麟：sudo apt-get install libpam-google-authentica、sudo -u 用户名 google-authenticator、sudo vi /etc/pam.d/sshd" ;;
+        3.10) printf %s "3.10.1 Win7、WinXP：Windows 日志–安全；3.10.2 中标麒麟、银河麒麟：图形界面/文档核查；3.10.3 通用核查方法（应用层与网络层）：图形界面/文档核查" ;;
+        3.11) printf %s "3.11.1 Win7、WinXP：Windows 日志–安全；3.11.2 中标麒麟、银河麒麟：grep -r \"CryptoPolicy\" /etc/ssh/sshd_config /、ip route show、sudo find /var/log -name \"*network*\" -o -name；3.11.3 补充核查方法（数据库层与应用层权限分级）：图形界面/文档核查" ;;
+        3.12) printf %s "3.12.1 Win7、WinXP：图形界面/文档核查；3.12.2 中标麒麟、银河麒麟：sudo smbstatus、sudo netstat -tulpn | grep -E \":139|:445|:204；3.12.3 通用核查方法（应用层）：图形界面/文档核查" ;;
+        3.13) printf %s "3.13.1 Win7、WinXP：Windows 日志–安全；3.13.2 中标麒麟、银河麒麟：图形界面/文档核查；3.13.3 通用核查方法（应用层与数据库层）：图形界面/文档核查" ;;
+        3.14) printf %s "3.14.1 Win7、WinXP：Windows 日志–安全；3.14.2 中标麒麟、银河麒麟：sudo find / -type d -name \"*l[1-4]*\" -exec ls、[ -f \"/etc/krb5.conf\" ] && echo 是 || echo 否；3.14.3 补充核查方法（大数据平台层统一管控）：图形界面/文档核查" ;;
+        4.1) printf %s "4.1.1 Windows操作系统 (Win7, WinXP)：dir C:\\ /ad /s | findstr /i \"backup bak、dir D:\\backup /o:-d、schtasks；4.1.2 中标麒麟、银河麒麟：图形界面/文档核查；4.1.3 补充核查方法（应用层与数据库层）：备份/恢复" ;;
+        4.2) printf %s "4.2.1 Windows操作系统 (Win7, WinXP)：wmic qfe list brief /format:table、type C:\\Windows\\WindowsUpdate.log、Get-ChildItem \"C:\\App\\Logs\" -Filter \"*update*" ;;
+        4.3) printf %s "4.3.1 Windows操作系统 (Win7, WinXP)：sigcheck.exe -q -m C:\\路径\\到\\程序.exe、sigcheck.exe -q -m C:\\Windows\\System32\\notepa、Get-AuthenticodeSignature \"C:\\路径\\到\\程序.exe\"" ;;
+        4.4) printf %s "4.4.1 Windows操作系统 (Win7, WinXP)：netstat -ano | findstr LISTENING、tasklist /FI \"PID eq <PID号>\"、sc query state= all；4.4.2 中标麒麟、银河麒麟：sudo netstat -tulpn | grep LISTEN | awk '{pri、sudo iptable" ;;
+        4.5) printf %s "4.5.1 Windows操作系统 (Win7, WinXP)：netsh advfirewall show allprofiles、netsh advfirewall firewall show rule name=all" ;;
+        4.6) printf %s "4.6.1 通用核查方法：图形界面/文档核查；4.6.2 主要判定标准：图形界面/文档核查；4.6.3 通用核查方法（数据库连接最小权限补充）：图形界面/文档核查" ;;
+        4.7) printf %s "4.7.1 Win7、WinXP：Select-String -Path C:\\Windows\\System32\\inets" ;;
+        4.8) printf %s "4.8.1 Win7、WinXP：图形界面/文档核查；4.8.2 中标麒麟、银河麒麟：sudo grep -E \"/var/www|html\" /etc/aide/aide.c、sudo ls -la /var/www/html/index.*；4.8.3 补充核查方法（专业防篡改系统与文件完整性）：图形界面/文档核查" ;;
+        4.9) printf %s "4.9.1 Win7、WinXP：图形界面/文档核查；4.9.2 中标麒麟、银河麒麟：curl -I http://目标URL | grep -iE \"(X-Content-T、curl -s \"$URL' OR '1'='1\" | grep -i \"error\\|s；4.9.3 通用核查方法（应用层SQL注入与XSS防护）：图形界面/文档核查" ;;
+        4.10) printf %s "4.10.1 Win7、WinXP：图形界面/文档核查；4.10.2 中标麒麟、银河麒麟：nikto -h http://192.168.1.100 -Tuning 1,3,5 -、curl -I http://192.168.1.100:8080/webapp/；4.10.3 通用核查方法（应用层执行代码验证）：图形界面/文档核查" ;;
+        4.11) printf %s "4.11.1 Win7、WinXP：图形界面/文档核查；4.11.2 中标麒麟、银河麒麟：图形界面/文档核查；4.11.3 补充核查方法（应用层RBAC与数据库授权）：图形界面/文档核查" ;;
+        4.12) printf %s "4.12.1 Win7、WinXP：1..200 | ForEach-Object {
+
+    Start-Job { In、Get-Job；4.12.2 中标麒麟、银河麒麟：cat /proc/sys/fs/file-max、ss -s | grep 'TCP:' | awk '{print $2}'；4.12.3 通用核查方法（应用层与Web服务器层）：图形界面/文档核查" ;;
+        4.13) printf %s "4.13.2 中标麒麟、银河麒麟：sudo grep -E \"(Accepted|Failed)\" /var/log/aut；4.13.3 通用核查方法（业务管理终端专设专用）：图形界面/文档核查" ;;
+        4.14) printf %s "4.14.1 Win7、WinXP：图形界面/文档核查；4.14.2 中标麒麟、银河麒麟：图形界面/文档核查；4.14.3 通用核查方法（应用层与数据库层细粒度授权）：图形界面/文档核查" ;;
+        4.15) printf %s "4.15.1 Win7、WinXP：图形界面/文档核查；4.15.2 中标麒麟、银河麒麟：sudo sestatus -v 2>/dev/null | grep -i \"mls\\|、sudo ls -Z /etc/passwd 2>/dev/null；4.15.3 通用核查方法（应用层签名验证与密级标识）：图形界面/文档核查" ;;
+        4.16) printf %s "4.16.1 Win7、WinXP：图形界面/文档核查；4.16.2 中标麒麟、银河麒麟：图形界面/文档核查；4.16.3 通用核查方法（应用层与数据库层远程管理加密）：图形界面/文档核查" ;;
+        4.17) printf %s "4.17.1 Win7、WinXP：图形界面/文档核查；4.17.2 中标麒麟、银河麒麟：图形界面/文档核查；4.17.3 通用核查方法（应用层与数据库层三权分立）：图形界面/文档核查" ;;
+        4.18) printf %s "4.18.1 Win7、WinXP：图形界面/文档核查；4.18.2 中标麒麟、银河麒麟：图形界面/文档核查；4.18.3 通用核查方法（应用层与网络层地址限制）：图形界面/文档核查" ;;
+        4.19) printf %s "4.19.1 Win7、WinXP：图形界面/文档核查；4.19.2 中标麒麟、银河麒麟：图形界面/文档核查；4.19.3 补充核查方法（应用层登录失败处理）：图形界面/文档核查" ;;
+        4.20) printf %s "4.20.1 Win7、WinXP：图形界面/文档核查；4.20.2 中标麒麟、银河麒麟：sudo systemctl list-unit-files | grep -i \"kyl、sudo find /etc -name \"*.conf\" -type f | xargs、sudo systemctl list-units | grep -i \"gmssl\\|s" ;;
+        4.21) printf %s "4.21.1 Win7、WinXP：图形界面/文档核查；4.21.2 中标麒麟、银河麒麟：sudo grep -r \"pam_fprintd\\|pam_biometric\" /et、openssl ecparam -list_curves 2>/dev/null | gr；4.21.3 通用核查方法（应用层数字证书认证）：图形界面/文档核查" ;;
+        4.22) printf %s "4.22.2 中标麒麟、银河麒麟：sudo netstat +-tunlp；4.22.3 通用核查方法（更改Web应用系统默认服务发布端口）：图形界面/文档核查" ;;
+        4.23) printf %s "4.23.1 Win7、WinXP：图形界面/文档核查；4.23.2 中标麒麟、银河麒麟：图形界面/文档核查；4.23.3 通用核查方法（Web服务器层与数据库层管理端口分离）：图形界面/文档核查" ;;
+        4.24) printf %s "4.24.1 Win7、WinXP：图形界面/文档核查；4.24.2 中标麒麟、银河麒麟：图形界面/文档核查；4.24.3 通用核查方法（数据库连接地址核查）：图形界面/文档核查" ;;
+        4.25) printf %s "4.25.1 Win7、WinXP：图形界面/文档核查；4.25.2 中标麒麟、银河麒麟：sudo systemctl status auditd 2>/dev/null || s、ls -lh /var/log/auth.log 2>/dev/null、grep -r \"rotate\\|maxage\\|180\" /etc/logrotate." ;;
+        4.26) printf %s "4.26.1 Win7、WinXP：图形界面/文档核查；4.26.2 中标麒麟、银河麒麟：find /var/log /opt /root /home -name \"*审计*\" -、grep -i \"CVE\\|漏洞\\|修复\\|patch\" /var/log/yum.log；4.26.3 通用核查方法（应用层SAST/DAST与代码审计流程）：图形界面/文档核查" ;;
+        4.27) printf %s "4.27.1 Win7、WinXP：图形界面/文档核查；4.27.2 中标麒麟、银河麒麟：图形界面/文档核查；4.27.3 通用核查方法（应用层前端与后端双重校验）：图形界面/文档核查" ;;
+        4.28) printf %s "4.28.1 Win7、WinXP：图形界面/文档核查；4.28.2 中标麒麟、银河麒麟：curl -I http://目标URL | grep -iE \"(X-Content-T、curl -s \"$URL' OR '1'='1\" | grep -i \"error\\|s；4.28.3 通用核查方法（应用层四类攻击防御）：图形界面/文档核查" ;;
+        4.29) printf %s "4.29.1 Win7、WinXP：图形界面/文档核查；4.29.2 中标麒麟、银河麒麟：图形界面/文档核查；4.29.3 补充核查方法（应用层统一权限管理平台）：图形界面/文档核查" ;;
+        4.30) printf %s "4.30.1 Win7、WinXP：图形界面/文档核查；4.30.2 中标麒麟、银河麒麟：图形界面/文档核查；4.30.3 通用核查方法（应用层管理面限制）：图形界面/文档核查" ;;
+        4.31) printf %s "4.31.1 Win7、WinXP：图形界面/文档核查；4.31.2 中标麒麟、银河麒麟：grep -r \"maxlogins\\|maxsyslogins\" /etc/securi；4.31.3 通用核查方法（应用层与Web服务器层并发会话）：图形界面/文档核查" ;;
+        4.32) printf %s "4.32.1 Win7、WinXP：图形界面/文档核查；4.32.2 中标麒麟、银河麒麟：find /opt /etc /root -name \"*备份*\" -o -name \"*；4.32.3 补充核查方法（应用层与数据库层备份恢复）：图形界面/文档核查" ;;
+        4.33) printf %s "4.33.2 中标麒麟、银河麒麟：cat /etc/os-release | grep -E \"NAME|VERSION|I、uname -a、dpkg -l 2>/dev/null | grep -v \"ubuntu\\|debian；4.33.3 通用核查方法（国产自主可控软硬件）：图形界面/文档核查" ;;
+        5.1) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.2) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.3) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.4) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.5) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.6) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.7) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.8) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.9) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.10) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.11) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.12) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.13) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.14) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.15) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.16) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.17) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.18) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.19) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.20) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.21) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.22) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        5.23) printf %s "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）" ;;
+        6.1) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        6.2) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        6.3) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        6.4) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        6.5) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        6.6) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        6.7) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        6.8) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        6.9) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        7.1) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        7.2) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        7.3) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        7.4) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        7.5) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        8.1) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        8.2) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        8.3) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        8.4) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        9.1) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        9.2) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        9.3) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        9.4) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        10.1) printf %s "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）" ;;
+        *) printf %%s '' ;;
+    esac
+}
+
+guide_title_of() {
+    case "$1" in
+        1.1) printf %s "操作系统、数据库管理系统、中间件等平台软件应及时安装补丁程序" ;;
+        1.2) printf %s "操作系统应安装防病毒软件并及时升级" ;;
+        1.3) printf %s "操作系统应按需求裁剪服务和端口" ;;
+        1.4) printf %s "操作系统应具备防火墙功能" ;;
+        1.5) printf %s "操作系统应停用冗余网络设置" ;;
+        1.6) printf %s "操作系统远程管理应开放唯一管理服务,指定管理终端并采取传输加密保护措施" ;;
+        1.7) printf %s "数据库管理系统应删除冗余帐户,应设置不少于8个字符且字符采用字母大小写，数字及特殊字符混合编制的账户口令" ;;
+        1.8) printf %s "数据库管理系统应删除冗余存储过程" ;;
+        1.9) printf %s "数据库管理系统应具有基于表级增删改查等细粒度访问和管理授权功能" ;;
+        1.10) printf %s "数据库管理系统应具有自主访问控制功能" ;;
+        1.11) printf %s "数据库管理系统应具有备份和恢复功能" ;;
+        1.12) printf %s "数据库管理系统应具有表级审计、告警和阻断功能" ;;
+        1.13) printf %s "数据库管理系统的数据应和其他应用的数据分类独立存储" ;;
+        1.14) printf %s "中间件应采取限制运行权限和使用安全管理通道等安全加固措施" ;;
+        1.15) printf %s "应具备数据库管理系统超级管理员远程登录限制远程登陆限制能力" ;;
+        1.16) printf %s "应具备数据库管理系统输入（参数）检查能力" ;;
+        1.17) printf %s "应限制操作系统开放的远程管理服务或端口" ;;
+        1.18) printf %s "应限制用户对服务器资源的最大或最小使用限度" ;;
+        1.19) printf %s "应更换数据库管理系统的默认服务端口、管理员用户名和口令" ;;
+        1.20) printf %s "数据库管理系统应配置安全策略" ;;
+        1.21) printf %s "数据库管理系统应具有行级或列级审计功能" ;;
+        1.22) printf %s "数据库管理系统应采取单独、安全监控、审计措施" ;;
+        1.23) printf %s "数据库管理系统仅为应用服务器提供访问服务" ;;
+        1.24) printf %s "应具备日志审计能力，审计日志至少保留180天" ;;
+        1.25) printf %s "检查是否具备边界保护能力,是否可以抗攻击，防纂改" ;;
+        1.26) printf %s "检查是否有防病毒日志、补丁日志、记录相关信息的完整，有效" ;;
+        1.27) printf %s "操作系统、数据库管理系统、中间件、办公软件等基础软件应采用具有完备的售后技术支持与服务的正版或定制软件" ;;
+        2.1) printf %s "服务器和用户计算机应设置登录口令" ;;
+        2.2) printf %s "用户计算机应根据需要安装补丁程序" ;;
+        2.3) printf %s "用户应设置用户应用口令，通过认证后使用信息服务" ;;
+        2.4) printf %s "用户计算机应具有互不相同的用户名和口令" ;;
+        2.5) printf %s "用户计算机应关闭冗余系统服务和端口" ;;
+        2.6) printf %s "用户计算机应具备阻断和告警非法连接互联网的能力" ;;
+        2.7) printf %s "用户计算机应具有文件保护功能" ;;
+        2.8) printf %s "应采取终端管控措施、具有统一配置、安全加固、网络访问控制、外设接口管控、软件进程管控、无线模块禁用、防止IP地址和MAC地址非授权改动等功能" ;;
+        2.9) printf %s "用户计算机应禁止安装与工作无关的软件" ;;
+        2.10) printf %s "用户计算机USB接口应禁止私自连接对拷线和手机、媒体播放设备等个人移动电子设备" ;;
+        2.11) printf %s "用户计算机登录应使用基于专用物理部件或生物特征的多因素身份认证方式，应设置超时锁屏，屏幕保护等待时间不超过5min,服务器应设置登录口令，口令长度不得少于10个字符，字符应采用字母大小写、数字及特殊字符混合编制，更换周期不超过30d" ;;
+        2.12) printf %s "用户计算机应物理拆除Wi-Fi、红外、蓝牙等无线模块，确需使用Wi-Fi的应严格采用JY密码等措施保护" ;;
+        2.13) printf %s "用户计算机应采取非法外联阻断、文件输出管控等措施" ;;
+        2.14) printf %s "应具备用户行为审计能力；审计日志留存期应满足制度要求" ;;
+        2.15) printf %s "检查安全策略配置情况和设置功能" ;;
+        2.16) printf %s "检查被试装备中操作系统、数据库以及应用软件等是否完成补丁修复和升级到最新版本" ;;
+        3.1) printf %s "集中存储的涉密数据应采取加密保护措施" ;;
+        3.2) printf %s "用户计算机之间的数据交互、文件传输均应统一管控和审计" ;;
+        3.3) printf %s "涉密存储载体在降密级使用前或重大JS演训活动结束后，应采取数据写覆盖方法及时清除数据" ;;
+        3.4) printf %s "对确定销毁的涉密载体，应采取消磁、粉碎、溶解、化浆和熔化等方法进行销毁" ;;
+        3.5) printf %s "网络、系统、应用和用户行为等日志应采取读写控制、加密、变换、完整性校验等保护措施，TM级数据存储1应采取加密保护措施" ;;
+        3.6) printf %s "网络边界应通过边界设备具备信息过滤、敏感内容识别等数据防泄漏能力" ;;
+        3.7) printf %s "数据存储系统管理登录至少采取验证码等增强措施，修改默认用户名和口令等默认设置，管理与访问应具有行为审计功能，审计日志应至少保留180天" ;;
+        3.8) printf %s "数据存储系统应根据重要程度划分不同存储区块，并设置用户访问权限" ;;
+        3.9) printf %s "检查数据传输过程是否按照要求进行加密，传输路径是否合理，是否统一管控、留有日志记录，是否具有防泄漏措施，是否存在安全风险" ;;
+        3.10) printf %s "检查数据共享是否合理，是否存在安全隐患" ;;
+        3.11) printf %s "检查对数据的访问是否按照权限分级访问，是否对访问行为进行审计" ;;
+        3.12) printf %s "检查数据采集是否超出业务需求范围" ;;
+        3.13) printf %s "检查数据各环节处理是否满足密级相应的保密要求" ;;
+        3.14) printf %s "检查对数据的访问是否按照权限分级访问，是否对访问行为进行审计，对大数据的访问是否提供同一管控和访问控制" ;;
+        4.1) printf %s "应用系统软件应采取备份措施" ;;
+        4.2) printf %s "应用系统软件应及时安装补丁程序，且更新所用升级包应经过安全性测试" ;;
+        4.3) printf %s "基于可信根对应用系统软件进行可信验证。可信性受到破坏后报警" ;;
+        4.4) printf %s "提供公共信息服务的服务器应与涉密信息服务器分设，专用服务器应只提供专用服务" ;;
+        4.5) printf %s "提供公共信息服务的服务器应具备防DDoS攻击能力" ;;
+        4.6) printf %s "Web应用系统应采取Web安全防护措施" ;;
+        4.7) printf %s "网站服务宜以静态页面形式发布" ;;
+        4.8) printf %s "网站应采取网页防篡改措施，防止对信息内容的非法修改" ;;
+        4.9) printf %s "Web应用系统应具备防范SQL注入、跨站脚本等攻击能力" ;;
+        4.10) printf %s "Web应用系统应具备执行代码有效验证能力" ;;
+        4.11) printf %s "应具备用户授权访问控制能力" ;;
+        4.12) printf %s "应具备访问应用最大并发会话连接数限制能力" ;;
+        4.13) printf %s "业务管理终端专设专用" ;;
+        4.14) printf %s "应具有基于用户角色的授权访问控制能力，访问控制主体的细粒度达到用户级或进程级，客体的细粒度应达到文件级、表和记录级、字段级" ;;
+        4.15) printf %s "文电等文档专用业务处理系统应具有签名验证、密级标识等功能" ;;
+        4.16) printf %s "远程管理应采取加密保护措施" ;;
+        4.17) printf %s "应支持管理员、安全员、审计员三权分立的职责划分，禁止设立超级管理员，并限制管理员、安全员、审计员的数量" ;;
+        4.18) printf %s "业务管理终端登录应采取网络地址限制措施" ;;
+        4.19) printf %s "应具有结束会话、限定登录错误次数和自动退出等登录失败处理功能" ;;
+        4.20) printf %s "宜使用自主设计开发的网络服务、协议、接口等，增强应用安全" ;;
+        4.21) printf %s "应具有基于专用物理部件或生物特征多因素的、与JD密码算法相结合的数字证书用户身份认证功能" ;;
+        4.22) printf %s "应更改Web应用系统默认服务发布端口" ;;
+        4.23) printf %s "应分开设置管理端口与应用端口" ;;
+        4.24) printf %s "应用服务和数据存储应部署在不同的服务器上" ;;
+        4.25) printf %s "应具有对所有访问行为和管理行为的日志审计功能，支持多组合查询检索，可读性强，具有解释和展示功能，审计日志应至少保留180天" ;;
+        4.26) printf %s "应经过代码级安全漏洞挖掘" ;;
+        4.27) printf %s "检查是否具备对人机接口输入、网络通信输入、文件输入的数据进行格式和长度检查的功能" ;;
+        4.28) printf %s "检查是否能够有效检测并防御SQL注入、网页篡改、跨站脚本、拒绝服务等应用层攻击" ;;
+        4.29) printf %s "检查是否具有用户访问权限统一管理功能" ;;
+        4.30) printf %s "检查是否具备统一管理措施，是否对远程管理进行限制" ;;
+        4.31) printf %s "检查是否能够设置最大并发会话连接数、会话建立速率、单用户并发会话数" ;;
+        4.32) printf %s "检查所有应用是否具备备份与恢复功能" ;;
+        4.33) printf %s "检查应用软件是否基于国产自主可控软硬件自主开发" ;;
+        5.1) printf %s "JD网络跨网跨域数据交换时应按规定流程进行" ;;
+        5.2) printf %s "利用无线网络技术构建高防护等级网络时应按规定流程执行" ;;
+        5.3) printf %s "应按最小化原则设计网络架构" ;;
+        5.4) printf %s "网络边界物理互联节点、路由协议与路由地址网段应满足最小化原则" ;;
+        5.5) printf %s "局域网内部应根据业务性质划分安全区域" ;;
+        5.6) printf %s "网络设备应按最小化原则进行远程管理、账户设置、访问控制等安全配置" ;;
+        5.7) printf %s "网络设备应开放唯一网络管理服务并限制管理终端访问" ;;
+        5.8) printf %s "远程管理网络设备与安全防护设备应采用加密保护的管理服务" ;;
+        5.9) printf %s "同链路相同安全功能的防护设备应使用不同架构或不同品牌" ;;
+        5.10) printf %s "应对组播源、组播地址、组播成员采取控制措施" ;;
+        5.11) printf %s "重要网络设备和网络安全防护设备应有备份" ;;
+        5.12) printf %s "远程传输应采取两层加密保护措施" ;;
+        5.13) printf %s "应设立网络安全管理中心并指定管理终端" ;;
+        5.14) printf %s "与互联网等外部网络应按等级采取物理或逻辑隔离" ;;
+        5.15) printf %s "不同用途网络之间应通过防护设备加强逻辑隔离并具备攻击告警审计阻断能力" ;;
+        5.16) printf %s "局域网各安全区域之间及主机之间应采取全网细粒度访问控制" ;;
+        5.17) printf %s "远程租用线路传输应采取三层加密保护措施" ;;
+        5.18) printf %s "应采取不低于802.1x认证强度的接入认证措施" ;;
+        5.19) printf %s "用户计算机之间应逻辑隔离" ;;
+        5.20) printf %s "应具备全网行为审计记录能力且审计日志至少保留180天" ;;
+        5.21) printf %s "应对全网攻击与违规行为采取实时监视报警审计控制阻断定位措施" ;;
+        5.22) printf %s "数据存储系统的管理网络与应用网络应逻辑隔离" ;;
+        5.23) printf %s "检查网络设备配备的合理性与必要性" ;;
+        6.1) printf %s "使用的网络设备、服务器、终端等，应选用进入《全J计算机及网络设备集中采购目录》的产品" ;;
+        6.2) printf %s "使用的安全网关、防火墙等信息安全产品，应通过JD信息安全测评认证机构的认证" ;;
+        6.3) printf %s "机房应有序、规范、合理走线布线，明确互联网区域和内部区域，粘贴标识，区分不同线路" ;;
+        6.4) printf %s "机房应符合GB 2887-2011中4.6.1所规定的温湿度等要求" ;;
+        6.5) printf %s "机房应安装安防监控设备，对机房的人员进出、设备操作等进行监管" ;;
+        6.6) printf %s "机房应将涉密区域和互联网区域设置于不同场所" ;;
+        6.7) printf %s "在涉密网络中使用过的打印机、复印机、刻录机、扫描仪、存储载体等设备严禁在互联网中使用" ;;
+        6.8) printf %s "应选用《JY关键软硬件自主可控产品名录》中的芯片类、计算机及外设类、网络设备类、安全防护设备类、存储设备类等产品" ;;
+        6.9) printf %s "与安全防护等级低的网络使用不同色系线缆进行严格隔离区分" ;;
+        7.1) printf %s "应设置安全管理机构，保证系统安全措施的落实" ;;
+        7.2) printf %s "应配备专职系统安全保密管理人员，负责系统安全措施的落实" ;;
+        7.3) printf %s "应具有安全管理领导机构，督导系统安全措施的落实" ;;
+        7.4) printf %s "应具有系统安全保密技术管理人员，具体负责安全保密技术措施的落实，保证系统安全运行" ;;
+        7.5) printf %s "应具有完善的应急响应体系，应对突发事件" ;;
+        8.1) printf %s "应具有日常安全管理制度、入网审批制度和系统安全保密检查制度等" ;;
+        8.2) printf %s "应具有安全管理操作规程、安全监控操作规程、安全审计操作规程、应急响应操作规程等" ;;
+        8.3) printf %s "应具有日常系统备份制度和存储载体使用管理制度" ;;
+        8.4) printf %s "应具有脆弱性分析等规程" ;;
+        9.1) printf %s "应具有应急响应预案，当发生危及系统安全的事件时应根据操作规程及时采取措施，符合应急预案启动条件时按预案开展应急措施" ;;
+        9.2) printf %s "计算机信息系统安全保密管理人员应能对网络中的网络安全防护设备进行统一配置、管理，并能实现安全管理中心与网络安全防护设备之间的响应" ;;
+        9.3) printf %s "应具有与实际情况相符且完整的安全保密策略文档和安全保密技术及产品配置的详细记录" ;;
+        9.4) printf %s "安全保密技术管理人员应对每日网络和系统运行情况实施安全审计，每月组织本级网络的安全性检测，编写安全审计与评估报告，并形成记录，系统配置发生变化的情况下应及时组织安全检测评估" ;;
+        10.1) printf %s "审计协议的机密性、完整性、认可性、不可否认性" ;;
+        *) printf %%s '' ;;
+    esac
+}
+
 add_result() {
+    # 评审整改（2026-09-30 第4/8条）：R_METHOD=验证过程/方法（指导书逐条提取）；
+    # 核查项名对齐指导书（不一致时以指导书 H2 标题为准，原叫法并入详情前缀）
     R_COUNT=$((R_COUNT+1))
-    R_ID[$R_COUNT]="$1"; R_CAT[$R_COUNT]="$2"; R_TITLE[$R_COUNT]="$3"; R_STATUS[$R_COUNT]="$4"
-    R_DETAIL[$R_COUNT]="$5"; R_CHAPTER[$R_COUNT]="$6"; R_REC[$R_COUNT]="$7"
+    R_ID[$R_COUNT]="$1"; R_CAT[$R_COUNT]="$2"; R_STATUS[$R_COUNT]="$4"
+    R_CHAPTER[$R_COUNT]="$6"; R_REC[$R_COUNT]="$7"
     R_GUIDE[$R_COUNT]="$(guide_ref "$1")"
+    local gtitle; gtitle="$(guide_title_of "$1")"
+    if [ -n "$gtitle" ] && [ "$gtitle" != "$3" ]; then
+        R_TITLE[$R_COUNT]="$gtitle"
+        R_DETAIL[$R_COUNT]="〔脚本项名：$3〕$5"
+    else
+        R_TITLE[$R_COUNT]="$3"
+        R_DETAIL[$R_COUNT]="$5"
+    fi
+    R_METHOD[$R_COUNT]="$(method_of "$1")"
 }
 
 db_unreachable() {
@@ -112,8 +410,10 @@ build_table_rows_by_status() {
 <td>$(html_esc "${R_CAT[$i]}")</td>
 <td>$(html_esc "${R_TITLE[$i]}")</td>
 <td style="color:$color;font-weight:bold;">$scn</td>
+<td>$(html_esc "${R_METHOD[$i]}")</td>
 <td>$(html_esc "${R_DETAIL[$i]}")</td>
-<td>$(html_esc "${R_REC[$i]}")</td>
+<td>$(html_esc "$([ "${R_STATUS[$i]}" = fail ] && printf '%s' "${R_REC[$i]}")")</td>
+<td>$(html_esc "$([ "${R_STATUS[$i]}" != fail ] && printf '%s' "${R_REC[$i]}")")</td>
 <td>$(html_esc "${R_GUIDE[$i]}")</td>
 </tr>
 ROW
@@ -145,9 +445,9 @@ report_rows_json() {
     for ((i=1; i<=R_COUNT; i++)); do
         [ "$first" -eq 1 ] || printf ','
         first=0
-        printf '{"ch":"%s","id":"%s","cat":"%s","title":"%s","status":"%s","detail":"%s","rec":"%s","guide":"%s"}' \
+        printf '{"ch":"%s","id":"%s","cat":"%s","title":"%s","status":"%s","method":"%s","detail":"%s","rec":"%s","guide":"%s"}' \
             "$(json_esc "${R_CHAPTER[$i]}")" "$(json_esc "${R_ID[$i]}")" "$(json_esc "${R_CAT[$i]}")" \
-            "$(json_esc "${R_TITLE[$i]}")" "$(json_esc "${R_STATUS[$i]}")" "$(json_esc "${R_DETAIL[$i]}")" \
+            "$(json_esc "${R_TITLE[$i]}")" "$(json_esc "${R_STATUS[$i]}")" "$(json_esc "${R_METHOD[$i]}")" "$(json_esc "${R_DETAIL[$i]}")" \
             "$(json_esc "${R_REC[$i]}")" "$(json_esc "${R_GUIDE[$i]}")"
     done
     printf ']'
@@ -277,7 +577,7 @@ HTMLHEAD
 
 <div class="panel">
 <table id="tbl">
-<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr></thead>
+<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr></thead>
 <tbody id="tb"></tbody>
 </table>
 <div class="empty" id="empty" style="display:none">没有匹配的核查项</div>
@@ -307,8 +607,10 @@ function render(){
     tr.innerHTML = "<td>"+esc(x.ch)+"</td><td class='id'>"+esc(x.id)+"</td><td class='cat'>"+esc(x.cat)+"</td>"+
       "<td class='title'>"+esc(x.title)+"</td>"+
       "<td><span class='badge badge-"+x.status+"'>"+ST[x.status]+"</span></td>"+
+      "<td class='method'>"+esc(x.method)+"</td>"+
       "<td class='detail'>"+esc(x.detail)+"</td>"+
-      "<td class='rec'>"+esc(x.rec)+"</td>"+
+      "<td class='rec'>"+(x.status=='fail'?esc(x.rec):"")+"</td>"+
+      "<td class='req'>"+(x.status=='fail'?"":esc(x.rec))+"</td>"+
       "<td class='guide'>"+esc(x.guide)+"</td>";
     tb.appendChild(tr);
   });
@@ -361,10 +663,10 @@ th{background:#1a3c6e;color:#fff;font-weight:bold;}
 <p>Redis 配置核查报告　连接：$(html_esc "$REDIS_HOST:$REDIS_PORT")　版本：$(html_esc "${DB_VERSION:-未连接}")　核查时间：$(date '+%Y-%m-%d %H:%M:%S')</p>
 <p>合规：$pass　不合规：$fail　需人工核查：$manual　不适用：$na</p>
 XLSHEAD
-        if [ "$fail" -gt 0 ]; then echo "<p><b>一、未通过（$fail 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>"; build_table_rows_by_status fail; echo "</table>"; fi
-        if [ "$manual" -gt 0 ]; then echo "<p><b>二、需人工核查（$manual 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>"; build_table_rows_by_status manual; echo "</table>"; fi
-        if [ "$na" -gt 0 ]; then echo "<p><b>三、不适用（$na 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>"; build_table_rows_by_status na; echo "</table>"; fi
-        if [ "$pass" -gt 0 ]; then echo "<p><b>四、通过（$pass 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>"; build_table_rows_by_status pass; echo "</table>"; fi
+        if [ "$fail" -gt 0 ]; then echo "<p><b>一、未通过（$fail 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>"; build_table_rows_by_status fail; echo "</table>"; fi
+        if [ "$manual" -gt 0 ]; then echo "<p><b>二、需人工核查（$manual 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>"; build_table_rows_by_status manual; echo "</table>"; fi
+        if [ "$na" -gt 0 ]; then echo "<p><b>三、不适用（$na 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>"; build_table_rows_by_status na; echo "</table>"; fi
+        if [ "$pass" -gt 0 ]; then echo "<p><b>四、通过（$pass 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>"; build_table_rows_by_status pass; echo "</table>"; fi
         cat <<XLSFOOT
 </body>
 </html>

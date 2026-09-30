@@ -1,0 +1,31 @@
+########## CMD: display version ##########
+
+########## CMD: display current-configuration ##########
+
+########## CMD: display vlan ##########
+
+########## CMD: display ip routing-table ##########
+
+########## CMD: display ssh server status ##########
+
+########## CMD: display local-user ##########
+
+########## CMD: display acl all ##########
+
+########## CMD: display dot1x ##########
+
+########## CMD: display port-isolate group ##########
+
+########## CMD: display multicast routing-table ##########
+
+########## CMD: display interface brief ##########
+
+########## CMD: display users ##########
+
+（防火墙设备补充执行以下命令）
+########## CMD: display firewall session table ##########
+
+########## CMD: display ike sa ##########
+
+########## CMD: display hrp state ##########
+

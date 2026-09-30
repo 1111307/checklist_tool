@@ -1,0 +1,21 @@
+########## CMD: show version ##########
+
+########## CMD: show running-config ##########
+
+########## CMD: show vlan ##########
+
+########## CMD: show ip route ##########
+
+########## CMD: show ip ssh ##########
+
+########## CMD: show users ##########
+
+########## CMD: show access-lists ##########
+
+########## CMD: show dot1x summary ##########
+
+########## CMD: show interfaces status ##########
+
+（防火墙设备补充执行以下命令）
+########## CMD: show session ##########
+
