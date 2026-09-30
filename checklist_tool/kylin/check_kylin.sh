@@ -350,19 +350,34 @@ check_1_3_services() {
 }
 
 check_1_4_firewall() {
-    if svc_active firewalld; then
-        local zone
+    # 评审整改（2026-09-30 第1、2条）：不能只验证"装没装/有没有规则"，
+    # 必须验证防火墙正在运行；防火墙未开启的一律判不合规。
+    # 判定顺序 firewalld → ufw → 仅 iptables；前两者要求服务运行 + 数据面确认。
+    if command -v firewall-cmd >/dev/null 2>&1 && svc_active firewalld; then
+        local state zone
+        state="$(run_cmd 'firewall-cmd --state')"
         zone="$(run_cmd 'firewall-cmd --get-default-zone')"
-        add_result "1.4" "系统安全" "防火墙状态" "pass" "firewalld 正在运行，默认区域：${zone:-未知}" "第1章" "保持防火墙开启，按最小化原则配置放行规则。"
-    elif svc_active ufw; then
+        if [ "$state" = "running" ]; then
+            add_result "1.4" "系统安全" "防火墙状态" "pass" "防火墙正在运行：systemctl is-active firewalld 为 active，且 firewall-cmd --state 返回 running（数据面确认），默认区域：${zone:-未知}。" "第1章" "保持防火墙开启，按最小化原则配置放行规则。"
+        else
+            add_result "1.4" "系统安全" "防火墙状态" "fail" "firewalld 服务显示 active，但 firewall-cmd --state 返回 ${state:-异常}，防火墙未正常运行。" "第1章" "检查 firewalld 服务（systemctl status firewalld / firewall-cmd --state），确保防火墙实际处于运行状态。"
+        fi
+    elif command -v ufw >/dev/null 2>&1; then
         local st
         st="$(run_cmd 'ufw status | head -1')"
-        add_result "1.4" "系统安全" "防火墙状态" "pass" "ufw 正在运行：${st:-active}" "第1章" "保持防火墙开启，按最小化原则配置放行规则。"
+        case "$st" in
+            *inactive*|*不活动*|*未启用*)
+                add_result "1.4" "系统安全" "防火墙状态" "fail" "防火墙未开启：ufw status 返回 ${st:-inactive}。按评审口径，防火墙必须开启且正在运行才判合规。" "第1章" "执行 ufw enable 开启防火墙，并按最小化原则配置放行规则。" ;;
+            *active*|*活动*)
+                add_result "1.4" "系统安全" "防火墙状态" "pass" "防火墙正在运行：${st}。" "第1章" "保持防火墙开启，按最小化原则配置放行规则。" ;;
+            *)
+                add_result "1.4" "系统安全" "防火墙状态" "manual" "ufw status 无有效输出（${st:-空}），请人工核实防火墙是否开启并在运行。" "第1章" "配置主机防火墙，限制非必要的入站/出站访问。" ;;
+        esac
     elif command -v iptables >/dev/null 2>&1; then
         local rules
         rules="$(run_cmd 'iptables -S | wc -l')"
         if [ "${rules:-0}" -gt 3 ] 2>/dev/null; then
-            add_result "1.4" "系统安全" "防火墙状态" "pass" "firewalld/ufw 未运行，但检测到 iptables 已配置 ${rules} 条规则。" "第1章" "确保 iptables 规则集在重启后持久化生效。"
+            add_result "1.4" "系统安全" "防火墙状态" "fail" "firewalld/ufw 均未运行，仅检测到 iptables 已配置 ${rules} 条规则（规则数仅作整改参考）。按评审口径，防火墙服务未开启即判不合规。" "第1章" "开启 firewalld 或 ufw 防火墙服务，并将现有 iptables 规则集迁入，确保重启后仍生效。"
         else
             add_result "1.4" "系统安全" "防火墙状态" "fail" "未检测到 firewalld/ufw 运行，且 iptables 规则为空或默认放行。" "第1章" "启用 firewalld/ufw 或配置 iptables 规则，禁止非必要访问。"
         fi

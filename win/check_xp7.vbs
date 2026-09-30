@@ -231,12 +231,35 @@ Sub Check_1_3_Services()
 End Sub
 
 Sub Check_1_4_Firewall()
+    ' 评审整改（2026-09-30 第1、2条）：不能只验证有没有，须验证正在运行；
+    ' 三个配置文件（域/专用/公用）任一未开启即判不合规。
     Dim fwOn : fwOn = False
     Dim detail : detail = ""
+    Dim nOn : nOn = 0
+    Dim nProfiles : nProfiles = 0
     If is7OrAbove Then
-        Dim advOut : advOut = RunCmdCached("netsh advfirewall show allprofiles 2>nul")
-        fwOn = (InStr(UCase(advOut), "ON") > 0 Or InStr(advOut, "启用") > 0)
-        detail = Left(advOut, 200)
+        Dim advOut : advOut = RunCmdCached("netsh advfirewall show allprofiles state 2>nul")
+        ' 逐 Profile 数 State 行：几行 ON/启用 就是几个开启
+        Dim reState : Set reState = New RegExp
+        reState.Global = True
+        reState.Pattern = "(State|状态)\s+(ON|OFF|启用|关闭)"
+        Dim mAll : Set mAll = reState.Execute(advOut)
+        Dim mm
+        nProfiles = mAll.Count
+        For Each mm In mAll
+            Dim sWhole : sWhole = mm.Value
+            If InStr(UCase(sWhole), "ON") > 0 Or InStr(sWhole, "启用") > 0 Then
+                nOn = nOn + 1
+            End If
+        Next
+        If nProfiles = 0 Then
+            Call AddResult("1.4", "系统安全", "防火墙策略", _
+                           "manual", "无法解析防火墙状态输出（未读到 State/状态 行），请人工核实防火墙是否开启并在运行。" & Chr(10) & Left(advOut, 200), "第1章 第1.4节", _
+                           "开启防火墙并在【高级安全 Windows 防火墙】确认域/专用/公用配置文件均为启用")
+            Exit Sub
+        End If
+        fwOn = (nOn = nProfiles)
+        detail = "三个配置文件（域/专用/公用）中已开启 " & nOn & "/" & nProfiles & " 个。" & Chr(10) & Left(advOut, 200)
     Else
         Dim xpOut : xpOut = RunCmd("netsh firewall show opmode 2>nul")
         fwOn = (InStr(UCase(xpOut), "ENABLE") > 0 Or InStr(xpOut, "启用") > 0)
@@ -244,11 +267,11 @@ Sub Check_1_4_Firewall()
     End If
     If fwOn Then
         Call AddResult("1.4", "系统安全", "防火墙策略", _
-                       "pass", "防火墙已启用。" & Chr(10) & detail, "第1章 第1.4节", "")
+                       "pass", "防火墙已开启且正在运行（全部配置文件均启用）。" & Chr(10) & detail, "第1章 第1.4节", "")
     Else
         Call AddResult("1.4", "系统安全", "防火墙策略", _
-                       "fail", "防火墙未启用或检测失败。" & Chr(10) & detail, "第1章 第1.4节", _
-                       "【控制面板】→【Windows 防火墙】 启用防火墙")
+                       "fail", "防火墙未开启或未全部运行。" & Chr(10) & detail, "第1章 第1.4节", _
+                       "【控制面板】→【Windows 防火墙】 开启防火墙（域/专用/公用配置文件均须启用）")
     End If
 End Sub
 
