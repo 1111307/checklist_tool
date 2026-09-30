@@ -3,18 +3,43 @@
 
 用法：python md2docx.py <输入.md> <输出.docx>
 支持：标题(#/##/###)、表格、无序/有序列表、段落、**加粗**、图片 ![图注](路径)。
-字体按论文规格：中文正文宋体（小四 12pt）、标题黑体（三号/四号/小四）、
-西文与数字 Times New Roman；表格与图注五号 10.5pt；正文行距 1.5、首行缩进 2 字符。
+字体按论文规格：中文正文宋体（四号 14pt）、标题黑体（三号/四号/小四）、
+西文与数字 Times New Roman；表格与图注五号 10.5pt、图下说明小五 9.5pt。
+**行距一律不设显式值，由文档网格（docGrid linePitch=312，15.6pt/格）决定**——
+与指导书一致（指导书正文无 w:spacing，实测行距 31.2pt）；首行缩进 2 字符。
+插图宽上限 IMG_WIDTH_CM / 高上限 IMG_MAX_HEIGHT_CM（见下方常量处的取舍说明）。
+
+⚠️ 本脚本产出的 docx 目录域是**空的**（无缓存条目/无 PAGEREF 页码），
+   必须再用 Word 打开→更新域→保存。请统一走 _render_reports.py。
 """
 import re, sys, os
+
+# 进度打印里有插图图注等自由文本，个别字符（如 ↔ U+2194）不在 GBK 内，
+# 直接 print 会让整个转换在保存前崩掉。降级为替换字符，不影响生成。
+try:
+    sys.stdout.reconfigure(errors='replace')
+except Exception:
+    pass
 from docx import Document
 from docx.shared import Pt, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
-IMG_WIDTH = Cm(15.5)
-IMG_MAX_HEIGHT = 12.5
+# 插图尺寸上限（cm）。图片段带 keep_with_next、图题也带，故「图 + 图题 + 说明」
+# 是一个不可拆块；块高一旦超过页尾剩余空间，整块被推到下页，页尾就留下大片空白。
+#
+# ⚠️ 这两个值是用 _sweep_figsize.py 做的 **二维网格**（宽 12~15.9 × 高 8.5~11）选出来的，
+#    别再用「宽高一起动」的对角线试法——那样会把宽度这个真正起作用的变量掩盖掉，
+#    曾经据此得出「13.0/10.0 是最优」的错误结论（实为 15.5/12.5 → 13.0/10.0 → 14.0/10.0）。
+#    报告页尾空白当量随**宽度**单调下降（W12→W14.0：6.0→5.4→5.0），W15.0 起掉到 42 页。
+#
+#    实测（_measure_gap.py 量页尾空白当量，单位=页）：
+#      操作说明书 25 页/5.1（15.5/12.5）→ 23 页/4.0（13.0/10.0）→ 23 页/3.8（14.0/10.0）
+#      交叉验证报告 45 页/7.4（15.5/12.5）→ 41 页/5.4（13.0/10.0）→ 41 页/5.0（14.0/10.0）
+#    改这两个值必须重跑 _render_reports.py 复核页数与目录条目数。
+IMG_WIDTH_CM = 14.0
+IMG_MAX_HEIGHT_CM = 10.0
 
 try:
     from PIL import Image as _PILImage
@@ -334,7 +359,8 @@ def convert(md_path, out_path):
                 cp = doc.add_paragraph()
                 cp.paragraph_format.first_line_indent = Pt(0)
                 cp.paragraph_format.left_indent = Cm(0.6)
-                cp.paragraph_format.line_spacing = 1.15
+                # 不设显式行距：与正文/图题同规则，行距由文档网格（linePitch=312）决定。
+                # 指导书的代码块（HTML Preformatted 样式）同样只有 after=40、无 w:line。
                 cp.paragraph_format.space_before = Pt(4 if k == 0 else 0)
                 cp.paragraph_format.space_after = Pt(4 if k == len(code_lines) - 1 else 0)
                 # 代码块行间绑页：整块原子（如 21 行工具包目录树不可拆页）；尾部行放开
@@ -353,14 +379,14 @@ def convert(md_path, out_path):
                 pic.paragraph_format.first_line_indent = Pt(0)
                 pic.paragraph_format.space_before = Pt(6)
                 pic.paragraph_format.keep_with_next = True
-                w_cm = 15.5
+                w_cm = IMG_WIDTH_CM
                 if _PILImage is not None:
                     try:
                         with _PILImage.open(path) as _im:
                             w_px, h_px = _im.size
                         _ratio = h_px / max(w_px, 1)
-                        if w_cm * _ratio > 12.5:
-                            w_cm = 12.5 / _ratio
+                        if w_cm * _ratio > IMG_MAX_HEIGHT_CM:
+                            w_cm = IMG_MAX_HEIGHT_CM / _ratio
                     except Exception:
                         pass
                 pic.add_run().add_picture(path, width=Cm(w_cm))
@@ -426,7 +452,7 @@ def convert(md_path, out_path):
             _add_runs(p, ln.lstrip('> ').strip(), size=NOTE_SIZE)
             p.paragraph_format.left_indent = Cm(0.6)
             p.paragraph_format.first_line_indent = Pt(0)
-            p.paragraph_format.line_spacing = 1.15
+            # 不设显式行距：说明段紧随图题（图题本就走网格），两者行距必须一致
             p.paragraph_format.space_before = Pt(2)
             p.paragraph_format.space_after = Pt(4)
             i += 1

@@ -101,7 +101,7 @@ method_of() {
     # 评审整改第4条：验证过程/方法（源自指导书 v2.0.0 逐条提取，_gen_method_map.py 生成）
     case "$1" in
         1.1) printf %s "1.1.1 核查操作系统安装补丁情况：图形界面/文档核查；1.1.2 核查数据库补丁情况：图形界面/文档核查；1.1.3 核查中间件补丁情况：图形界面/文档核查" ;;
-        1.2) printf %s "1.2.1 Windows7、windowsXP：wmic /namespace:\\\\root\\\\SecurityCenter2 path ；1.2.2 中标麒麟、银河麒麟：getstatus、setstatus -p disable、setstatus enable softmode" ;;
+        1.2) printf %s "1.2.1 Windows7、windowsXP：wmic /namespace:\\\\root\\\\SecurityCenter2 path ；1.2.2 中标麒麟、银河麒麟：getstatus、setstatus -p disable、setstatus enable softmode" ;;
         1.3) printf %s "1.3.1 Windows7、windowsXP：services.msc；1.3.2 中标麒麟、银河麒麟：图形界面/文档核查" ;;
         1.4) printf %s "1.4.1 Windows7、WindowsXP：Windows 防火墙、netsh advfirewall show allprofiles；1.4.2 中标麒麟、银河麒麟：systemctl status firewalld、firewall-cmd --state、firewall-cmd --list-all" ;;
         1.5) printf %s "1.5.1 Windows7、WindowsXP：QOS数据包计划程序；1.5.2 中标麒麟、银河麒麟：ip link show、nmcli connection show、systemctl status bluetooth" ;;

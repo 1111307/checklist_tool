@@ -39,9 +39,9 @@ function New-Xlsx {
     [void]$sb.Append('<row r="1"><c r="A1" t="inlineStr"><is><t>' + (Xml-Esc $Title) + '</t></is></c></row>')
     $summary = "合规：$pass　不合规：$fail　需人工核查：$manual　不适用：$na　共 $($Rows.Count) 项"
     [void]$sb.Append('<row r="2"><c r="A2" t="inlineStr"><is><t>' + (Xml-Esc $summary) + '</t></is></c></row>')
-    $hd = @('章节','编号','类别','核查项','结果','详情','建议','参考指导书')
+    $hd = @('章节','编号','类别','核查项','结果','验证过程/方法','详情','修改建议','安全要求','参考指导书')
     [void]$sb.Append('<row r="4">')
-    for ($c = 0; $c -lt 8; $c++) {
+    for ($c = 0; $c -lt 10; $c++) {
         $ref = [char](65 + $c) + '4'
         [void]$sb.Append('<c r="' + $ref + '" t="inlineStr"><is><t>' + $hd[$c] + '</t></is></c>')
     }
@@ -51,9 +51,13 @@ function New-Xlsx {
         $ri++
         $rn = $ri + 4
         $guide = if ($GuideScript) { & $GuideScript $r.Id } else { '' }
-        $vals = @($r.Chapter, $r.Id, $r.Cat, $r.Title, (Local-StatusCN $r.Status), $r.Detail, $r.Rec, $guide)
+        # 评审整改（2026-09-30 第4/5条）：验证过程/方法列 + 修改建议/安全要求按状态分栏
+        $mt = if ($null -ne $r.Method) { $r.Method } else { '' }
+        $recFix = if ($r.Status -eq 'fail') { $r.Rec } else { '' }
+        $reqCol = if ($r.Status -eq 'fail') { '' } else { $r.Rec }
+        $vals = @($r.Chapter, $r.Id, $r.Cat, $r.Title, (Local-StatusCN $r.Status), $mt, $r.Detail, $recFix, $reqCol, $guide)
         [void]$sb.Append('<row r="' + $rn + '">')
-        for ($c = 0; $c -lt 8; $c++) {
+        for ($c = 0; $c -lt 10; $c++) {
             $ref = [char](65 + $c) + $rn
             [void]$sb.Append('<c r="' + $ref + '" t="inlineStr"><is><t>' + (Xml-Esc $vals[$c]) + '</t></is></c>')
         }

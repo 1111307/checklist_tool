@@ -15,7 +15,7 @@ Set oCache = CreateObject("Scripting.Dictionary")
 
 ' --- 结果存储（动态数组）---
 Dim rID(400), rCat(400), rTitle(400), rStatus(400)
-Dim rDetail(400), rChapter(400), rRec(400)
+Dim rDetail(400), rChapter(400), rRec(400), rMethod(400)
 Dim rCount : rCount = 0
 
 ' --- 检测操作系统 ---
@@ -2682,14 +2682,315 @@ Function ProbeWebRoot()
     End If
 End Function
 
+' ============================================================
+' 验证过程/方法 查询表（评审整改 2026-09-30 第4条；数据源：指导书 v2.0.0 逐条提取，
+' 由 _gen_method_map.py / _patch_reports_win.py 生成，与 win/lib_method.ps1 同源）
+' ============================================================
+Function MethodOf(id)
+    Select Case id
+        Case "1.1": MethodOf = "1.1.1 核查操作系统安装补丁情况：图形界面/文档核查；1.1.2 核查数据库补丁情况：图形界面/文档核查；1.1.3 核查中间件补丁情况：图形界面/文档核查"
+        Case "1.2": MethodOf = "1.2.1 Windows7、windowsXP：wmic /namespace:\\root\\SecurityCenter2 path AntiVirusProduct get displayName,productState；1.2.2 中标麒麟、银河麒麟：getstatus、setstatus -p disable、setstatus enable softmode、dpkg -l | grep -iE ""antivirus|clamav|360|qianxin""、rpm -qa | grep -iE ""antivirus|clamav|360|qianxin""、clamscan --version"
+        Case "1.3": MethodOf = "1.3.1 Windows7、windowsXP：services.msc；1.3.2 中标麒麟、银河麒麟：图形界面/文档核查"
+        Case "1.4": MethodOf = "1.4.1 Windows7、WindowsXP：Windows 防火墙、netsh advfirewall show allprofiles；1.4.2 中标麒麟、银河麒麟：systemctl status firewalld、firewall-cmd --state、firewall-cmd --list-all"
+        Case "1.5": MethodOf = "1.5.1 Windows7、WindowsXP：QOS数据包计划程序；1.5.2 中标麒麟、银河麒麟：ip link show、nmcli connection show、systemctl status bluetooth、sudo systemctl stop bluetooth、sudo systemctl disable bluetooth"
+        Case "1.6": MethodOf = "1.6.1 Windows7、WindowsXP：启用或关闭Windows功能、Telnet客户端、Telnet服务器、Windows Defender 防火墙、远程桌面-用户模式(TCP-In)、远程IP地址；1.6.2 中标麒麟、银河麒麟：图形界面/文档核查"
+        Case "1.7": MethodOf = "1.7.1 Mysql：mysql -uroot -p、SELECT User, Host FROM mysql.user;、INSTALL PLUGIN validate_password SONAME 'validate_password.so';、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc；1.7.2 SQLServer：DROP LOGIN [login_name];、DROP LOGIN [redundant_user];、sqlcmd -S localhost -U SA -P 'SA账户密码'；1.7.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236、ALTER PROFILE DEFAULT LIMIT PASSWORD_LIFE_TIME 90;、ALTER PROFILE DEFAULT LIMIT PASSWORD_GRACE_TIME 7;；1.7.4 Redis：ACL DELUSER redundant_user、redis-cli CONFIG GET requirepass、redis-cli ACL LIST、ps aux | grep redis、systemctl status redis、redis-cli"
+        Case "1.8": MethodOf = "1.8.1 Mysql：mysql -uroot -p、DROP PROCEDURE IF EXISTS ‘old_backup_procedure’;、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc、. ~/.bash_profile；1.8.2 SQLServer：USE YourDatabaseName;、sqlcmd -S localhost -U SA -P 'SA账户密码'；1.8.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236、DROP PROCEDURE IF EXISTS 模式名.存储过程名;、DROP PROCEDURE IF EXISTS 存储过程名;；1.8.4 Redis：图形界面/文档核查"
+        Case "1.9": MethodOf = "1.9.1 Mysql：mysql -uroot -p、SHOW GRANTS FOR 'username'@'localhost';、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc、. ~/.bash_profile；1.9.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.9.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236、GRANT SELECT, INSERT, UPDATE, DELETE ON 模式名.表名 TO 用户名;、WITH GRANT OPTION；1.9.4 Redis：CONFIG GET requirepass、ACL LIST、ACL GETUSER default、ACL SETUSER app_user on >AppPass123! ~业务键前缀* +@read +@write -@dangerous、ACL DELUSER 用户名、redis-cli -a 密码"
+        Case "1.10": MethodOf = "1.10.1 Mysql：mysql -uroot -p、SELECT user, host FROM mysql.user;、SHOW GRANTS FOR 'user'@'host';、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc；1.10.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.10.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.10.4 Redis：CONFIG GET requirepass、CONFIG GET port、CONFIG GET rename-command、redis-cli、CONFIG GET bind、CONFIG GET protected-mode"
+        Case "1.11": MethodOf = "1.11.1 Mysql：mysql -uroot -p、mysqladmin -uroot -p create restore_verify、mysql restore_verify < 备份文件路径\dump.sql、mysql < 备份文件路径\dump.sql、USE restore_verify; SHOW TABLES;、vi ~/.bashrc；1.11.2 SQLServer：RESTORE VERIFYONLY FROM DISK = N'备份文件完整路径';、RESTORE FILELISTONLY FROM DISK = N'备份文件完整路径';、sqlcmd -S localhost -U SA -P 'SA账户密码'；1.11.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236、!ls -la /home/dmdba/dmdbms/bin | grep -i backup、./dmrman；1.11.4 Redis：CONFIG GET save、CONFIG GET dir、CONFIG GET *save*、CONFIG GET appendonly、CONFIG GET appendfsync、CONFIG GET *apend*"
+        Case "1.12": MethodOf = "1.12.1 Mysql：mysql -uroot -p、SET SESSION sql_safe_updates = 1;、SELECT @@sql_safe_updates;、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc；1.12.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.12.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.12.4 Redis：CONFIG GET rename-command、redis-cli"
+        Case "1.13": MethodOf = "1.13.1 MySQL：mysql -uroot -p、SHOW VARIABLES LIKE  ‘port’;、SHOW VARIABLES LIKE ‘datadir’;、SHOW VARIABLES LIKE ‘config_file’检查配置文件路径;、SHOW DATABASES、SHOW VARIABLES LIKE ‘innodb_file_per_table’;；1.13.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.13.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236、exit；1.13.4 Redis：CONFIG GET port、CONFIG GET dir、CONFIG GET dbfilename、ps -ef | grep redis-server | grep -v grep、redis-server /etc/redis/6379.conf --port 6379、redis-server /etc/redis/6380.conf --port 6380"
+        Case "1.14": MethodOf = "1.14.1 Nginx：图形界面/文档核查；1.14.2 Tomcat：<Server port=""8527"" shutdown=""DangerousShutdownCommand"">"
+        Case "1.15": MethodOf = "1.15.1 MySQL：SELECT user, host FROM mysql.user WHERE user = 'root';、DROP USER 'root'@'%';、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc、. ~/.bash_profile；1.15.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.15.3 达梦：su  -用户名、cd /home/dmdba/dmdbms/data/DAMENG、cat dm.ini | grep -i ""listen""、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.15.4 Redis：redis-cli"
+        Case "1.16": MethodOf = "1.16.1 MySQL：mysql -uroot -p、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc、. ~/.bash_profile、env | grep MYSQL；1.16.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.16.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.16.4 Redis：services.msc、ps -ef | grep redis-server | grep -v grep"
+        Case "1.17": MethodOf = "1.17.1 Windows操作系统（Win7/XP）：services.msc、sc stop 服务名、sc config 服务名 start= disabled、tasklist /svc、tasklist /fi ""PID eq 进程号""、netstat -ano；1.17.2 中标麒麟、银河麒麟：firewall-cmd --list-all、ufw status verbose、systemctl list-units --type=service --state=running、systemctl stop 服务名、systemctl disable 服务名、ss -tlnp"
+        Case "1.18": MethodOf = "1.18.1 Windows7、WindowsXP：fsutil quota query C:；1.18.2 中标麒麟、银河麒麟：cat /etc/cgconfig.conf、systemd-cgtop、cat /etc/security/limits.conf、ls /etc/security/limits.d/、* soft nproc 1024、* hard nproc 4096"
+        Case "1.19": MethodOf = "1.19.1 MySQL：mysql -uroot -p、SHOW VARIABLES LIKE 'port';、RENAME USER 'root'@'localhost' TO 'new_admin'@'localhost';FLUSH PRIVILEGES;、ALTER USER '你的管理员用户名'@'主机名' IDENTIFIED BY '你的新复杂密码';FLUSH PRIVILEGES;、vi ~/.bashrc、vi ~/.bash_profile；1.19.2 SQLServer：ALTER LOGIN sa WITH PASSWORD = 'YourNewPassword';、sqlcmd -S localhost -U SA -P 'SA账户密码'；1.19.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.19.4 Redis：图形界面/文档核查"
+        Case "1.20": MethodOf = "1.20.1 MySQL：mysql -uroot -p、INSTALL PLUGIN validate_password SONAME 'validate_password.so';、UNINSTALL PLUGIN  validate_password;、GRANT ALL PRIVILEGES ON *.* TO 'km'@'%' IDENTIFIED BY 'km'、vi ~/.bashrc、vi ~/.bash_profile；1.20.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'、sp_configure 'user connections';、sp_configure 'max server memory';、sp_configure 'show advanced options', 1; RECONFIGURE; sp_configure 'xp_cmdshell', 0; RECONFIGURE;、sp_configure 'xp_cmdshell';、ALTER LOGIN 登录名 WITH CHECK_POLICY = ON, CHECK_EXPIRATION = ON;；1.20.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.20.4 Redis：bind 127.0.0.1、protected-mode yes、requirepass ""YourStrongPassword123!""、redis-cli -a ""YourStrongPassword123!"""
+        Case "1.21": MethodOf = "1.21.1 MySQL：mysql -uroot -p、SET GLOBAL general_log = 'ON'、SHOW VARIABLES LIKE '%general_log%';、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc；1.21.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.21.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.21.4 Redis：图形界面/文档核查"
+        Case "1.22": MethodOf = "1.22.1 MySQL：mysql -uroot -p、SHOW VARIABLES LIKE '%general_log%';、SET GLOBAL general_log = 'ON';、SET GLOBAL audit_logging = OFF;、SET GLOBAL general_log = OFF;、vi ~/.bashrc；1.22.2 SQLServer：图形界面/文档核查；1.22.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.22.4 Redis：图形界面/文档核查"
+        Case "1.23": MethodOf = "1.23.1 MySQL：mysql -uroot -p、SHOW VARIABLES LIKE 'bind_address';、SHOW GRANTS FOR 'app_user'@'应用服务器IP';、DROP USER '用户名'@'%';、vi ~/.bashrc、vi ~/.bash_profile；1.23.2 SQLServer：图形界面/文档核查；1.23.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.23.4 Redis：图形界面/文档核查"
+        Case "1.24": MethodOf = "1.24.1 操作系统日志审计核查：图形界面/文档核查；1.24.2 数据库日志审计核查：图形界面/文档核查"
+        Case "1.25": MethodOf = "1.25.1 操作系统抗攻击与防篡改核查：图形界面/文档核查；1.25.2 数据库抗攻击与防篡改核查：图形界面/文档核查"
+        Case "1.26": MethodOf = "1.26.1 操作系统安全日志核查：图形界面/文档核查；1.26.2 数据库安全日志核查：图形界面/文档核查"
+        Case "1.27": MethodOf = "1.27.1 操作系统：图形界面/文档核查；1.27.2 数据库管理系统：图形界面/文档核查；1.27.3 中间件：图形界面/文档核查；1.27.4 办公软件：图形界面/文档核查"
+        Case "2.1": MethodOf = "2.1.1 服务器登录口令核查：图形界面/文档核查；2.1.2 用户计算机登录口令核查：图形界面/文档核查"
+        Case "2.2": MethodOf = "2.2.1 Windows7/WindowXP：systeminfo | findstr /B /C:""[补丁程序]"" /C:""[更新]""、systeminfo、wmic qfe list brief /format:table；2.2.2 中标麒麟/银河麒麟：sudo apt update、dpkg --get-selections | grep -v deinstall、sudo apt upgrade"
+        Case "2.3": MethodOf = "2.3.1 Windows7/WindowXP：net user、net user 用户名、HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon；2.3.2 中标麒麟/银河麒麟：passwd、sudo passwd 目标用户名"
+        Case "2.4": MethodOf = "2.4.1 Windows7/WindowXP：cmd、net user、net user 用户名；2.4.2 中标麒麟/银河麒麟：cat /etc/passwd、sudo awk -F: '{print $1}' /etc/shadow、userdel -r 重复用户名、usermod -l 新用户名 旧用户名；2.4.3 核查口令互不相同：cat /etc/shadow、sudo passwd 用户名"
+        Case "2.5": MethodOf = "2.5.1 Windows7/WindowXP：netstat -ano；2.5.2 中标麒麟/银河麒麟：sudo systemctl list-unit-files --type=service、sudo systemctl is-enabled <服务名>、sudo systemctl is-active <服务名>、sudo systemctl stop <服务名>、sudo systemctl disable <服务名>、sudo systemctl disable --now <服务名>"
+        Case "2.6": MethodOf = "2.6.1 Windows7/WindowXP：netsh advfirewall show allprofiles、wf.msc、gpedit.msc、eventvwr.msc、应用和服务日志→Microsoft→Windows→Fault-Tolerant-Heap→ Operational；2.6.2 中标麒麟/银河麒麟：sudo kylin-firewall -s on、sudo kylin-firewall -g、sudo kylin-firewall -A -n Deny-Telnet -p tcp -R 23 -a deny、sudo kylin-firewall -S"
+        Case "2.7": MethodOf = "2.7.1 Windows7/WindowXP：图形界面/文档核查；2.7.2 中标麒麟/银河麒麟：md5sum /bin/bash、sudo apt-get install auditd、sudo auditctl -w /etc/passwd -p wa、sudo ausearch -f /etc/passwd"
+        Case "2.8": MethodOf = "2.8.1 Windows7/WindowXP：图形界面/文档核查；2.8.2 中标麒麟/银河麒麟：nmcli device status、sudo nmcli device set wlan0 managed no、sudo nmcli connection delete 无线连接名"
+        Case "2.9": MethodOf = "2.9.1 Windows7/WindowXP：appwiz.cpl、发行者（Publisher）；2.9.2 中标麒麟/银河麒麟：图形界面/文档核查"
+        Case "2.10": MethodOf = "2.10.1 Windows7/WindowXP：gpedit.msc、devmgmt.msc、eventvwr.msc；2.10.2 中标麒麟/银河麒麟：lsusb"
+        Case "2.11": MethodOf = "2.11.1 Windows7/WindowXP：net accounts、HKEY_CURRENT_USER\Control Panel\Desktop；2.11.2 中标麒麟/银河麒麟：gsettings get org.gnome.desktop.session idle-delay"
+        Case "2.12": MethodOf = "2.12.1 Windows7/WindowXP：devmgmt.msc、网络适配器（Network adapters）、netsh wlan show interfaces；2.12.2 中标麒麟/银河麒麟：图形界面/文档核查"
+        Case "2.13": MethodOf = "2.13.1 Windows7/WindowXP：ipconfig/all；2.13.2 中标麒麟/银河麒麟：sudo netstat -tunap"
+        Case "2.14": MethodOf = "2.14.1 Windows7/WindowXP：eventvwr.msc；2.14.2 中标麒麟/银河麒麟：sudo systemctl status auditd --no-pager"
+        Case "2.15": MethodOf = "2.15.1 Windows7/WindowXP：计算机配置 → Windows 设置 → 安全设置 → 账户策略/本地策略、auditpol /get /category:*、net accounts；2.15.2 中标麒麟/银河麒麟：systemctl status firewalld、ufw status verbose、firewall-cmd --list-all、ufw status、sudo systemctl status auditd、auditctl -l"
+        Case "2.16": MethodOf = "2.16.1 核查操作系统安装补丁情况：图形界面/文档核查；2.16.2 核查数据库补丁修复和升级到最新版本：图形界面/文档核查；2.16.3 应用软件补丁修复和升级到最新版本：图形界面/文档核查"
+        Case "3.1": MethodOf = "3.1.1 Win7\WinXP：manage-bde -status、cipher /u /n；3.1.2 中标麒麟、银河麒麟：sudo apt-get install cryptsetup、sudo cryptsetup luksOpen /dev/sdb1 crypt_data；3.1.3 通用核查方法（数据库层与应用层）：图形界面/文档核查"
+        Case "3.2": MethodOf = "3.2.1 Win7\WinXP：auditpol /get /category:*、auditpol /get /subcategory:""文件系统""、auditpol /set /subcategory:""文件系统"" /success:enable /failure:enable、netsh advfirewall show allprofiles；3.2.2 中标麒麟、银河麒麟：sudo bash -c 'echo ""blacklist usb-storage"" >> /etc/modprobe.d/usb-blacklist.conf'、sudo firewall-cmd --permanent --remove-port=21/tcp、sudo firewall-cmd --reload；3.2.3 通用核查方法（应用层与网络层）：图形界面/文档核查"
+        Case "3.3": MethodOf = "3.3.1 Win7\WinXP：where cipher、cipher /w:D:、cipher /w:E:、doskey /history、diskpart、list disk、exit；3.3.2 中标麒麟、银河麒麟：sudo apt-get install coreutils、sudo shred -n 3 -z -v /dev/sdb；3.3.3 通用核查方法（专业擦除工具层）：图形界面/文档核查"
+        Case "3.4": MethodOf = "3.4.1 通用核查方法（物理销毁）：图形界面/文档核查"
+        Case "3.5": MethodOf = "3.5.1 Win7\WinXP：icacls C:\Windows\System32\winevt\Logs、sc qc eventlog、manage-bde -status、cipher /c <TM数据目录路径>、wevtutil gl Security；3.5.2 中标麒麟、银河麒麟：sudo visudo、audit_admin ALL=(ALL) NOPASSWD: /bin/cat, /bin/grep, /usr/bin/journalctl、sudo apt-get install logrotate；3.5.3 补充核查方法（应用层与数据库层日志保护）：图形界面/文档核查"
+        Case "3.6": MethodOf = "3.6.1 边界设备核查方法：图形界面/文档核查；3.6.2 合规判定：图形界面/文档核查；3.6.3 通用核查方法（DLP 系统层）：图形界面/文档核查"
+        Case "3.7": MethodOf = "3.7.1 Win7\WinXP：以管理员身份运行 Windows Terminal（或命令提示符）、net user、auditpol /get /category:*、eventvwr.msc、事件查看器–Windows 日志–安全、wevtutil gl Security；3.7.2 中标麒麟、银河麒麟：sudo storage-cli login、sudo storage-cli user list、sudo storage-cli audit log list --type=management、sudo storage-cli audit log config show；3.7.3 通用核查方法（数据库层）：图形界面/文档核查"
+        Case "3.8": MethodOf = "3.8.1 Win7、WinXP：以管理员身份运行 Windows Terminal（或命令提示符）、diskpart、list disk、list volume、net user、net localgroup；3.8.2 中标麒麟、银河麒麟：sudo apt-get update、sudo apt-get install suricata -y、alert http any any -> any any (msg:""DLP: 检测到'商业秘密'关键字""; http.uri; content:""商业秘密""; nocase; sid:1000001; rev:1;)；3.8.3 通用核查方法（数据库层）：图形界面/文档核查"
+        Case "3.9": MethodOf = "3.9.1 Win7、WinXP：以管理员身份运行 Windows Terminal（或命令提示符）、Windows 日志–安全；3.9.2 中标麒麟、银河麒麟：sudo apt-get install libpam-google-authenticator -y、sudo -u 用户名 google-authenticator、sudo vi /etc/pam.d/sshd、auth required pam_google_authenticator.so nullok、sudo vi /etc/ssh/sshd_config、sudo systemctl restart sshd；3.9.3 通用核查方法（应用层与数据库层）：图形界面/文档核查"
+        Case "3.10": MethodOf = "3.10.1 Win7、WinXP：Windows 日志–安全；3.10.2 中标麒麟、银河麒麟：图形界面/文档核查；3.10.3 通用核查方法（应用层与网络层）：图形界面/文档核查"
+        Case "3.11": MethodOf = "3.11.1 Win7、WinXP：Windows 日志–安全；3.11.2 中标麒麟、银河麒麟：grep -r ""CryptoPolicy"" /etc/ssh/sshd_config /etc/nginx/nginx.conf、ip route show、sudo find /var/log -name ""*network*"" -o -name ""*firewall*"" -o -name ""*iptables*""；3.11.3 补充核查方法（数据库层与应用层权限分级）：图形界面/文档核查"
+        Case "3.12": MethodOf = "3.12.1 Win7、WinXP：图形界面/文档核查；3.12.2 中标麒麟、银河麒麟：sudo smbstatus、sudo netstat -tulpn | grep -E "":139|:445|:2049"" | grep LISTEN；3.12.3 通用核查方法（应用层）：图形界面/文档核查"
+        Case "3.13": MethodOf = "3.13.1 Win7、WinXP：Windows 日志–安全；3.13.2 中标麒麟、银河麒麟：图形界面/文档核查；3.13.3 通用核查方法（应用层与数据库层）：图形界面/文档核查"
+        Case "3.14": MethodOf = "3.14.1 Win7、WinXP：Windows 日志–安全；3.14.2 中标麒麟、银河麒麟：sudo find / -type d -name ""*l[1-4]*"" -exec ls -ld {} \;、[ -f ""/etc/krb5.conf"" ] && echo 是 || echo 否；3.14.3 补充核查方法（大数据平台层统一管控）：图形界面/文档核查"
+        Case "4.1": MethodOf = "4.1.1 Windows操作系统 (Win7, WinXP)：dir C:\ /ad /s | findstr /i ""backup bak、dir D:\backup /o:-d、schtasks、schtasks | findstr /i ""backup bak copy""；4.1.2 中标麒麟、银河麒麟：图形界面/文档核查；4.1.3 补充核查方法（应用层与数据库层）：备份/恢复"
+        Case "4.2": MethodOf = "4.2.1 Windows操作系统 (Win7, WinXP)：wmic qfe list brief /format:table、type C:\Windows\WindowsUpdate.log、Get-ChildItem ""C:\App\Logs"" -Filter ""*update*.log"" | Select Name, LastWriteTime；4.2.2 中标麒麟、银河麒麟：sudo apt update、sudo apt list --upgradable；4.2.3 通用核查方法（应用层与数据库层）：图形界面/文档核查"
+        Case "4.3": MethodOf = "4.3.1 Windows操作系统 (Win7, WinXP)：sigcheck.exe -q -m C:\路径\到\程序.exe、sigcheck.exe -q -m C:\Windows\System32\notepad.exe、Get-AuthenticodeSignature ""C:\路径\到\程序.exe""、eventvwr.msc、Get-WinEvent -LogName Security | Where-Object {$_.Message -like ""*签名*""}；4.3.2 中标麒麟、银河麒麟：systemctl list-units | grep -E ""aide|tripwire""；4.3.3 通用核查方法（应用层可信验证）：图形界面/文档核查"
+        Case "4.4": MethodOf = "4.4.1 Windows操作系统 (Win7, WinXP)：netstat -ano | findstr LISTENING、tasklist /FI ""PID eq <PID号>""、sc query state= all、netsh interface ipv4 show excludedportrange protocol=tcp；4.4.2 中标麒麟、银河麒麟：sudo netstat -tulpn | grep LISTEN | awk '{print $4 "" "" $7}' | sort、sudo iptables -L INPUT -n --line-numbers；4.4.3 通用核查方法（网络层隔离与分区）：图形界面/文档核查"
+        Case "4.5": MethodOf = "4.5.1 Windows操作系统 (Win7, WinXP)：netsh advfirewall show allprofiles、netsh advfirewall firewall show rule name=all；4.5.2 中标麒麟、银河麒麟：sudo sysctl -a 2>/dev/null|grep-E""tcp_syncookies|tcp_max_syn_backlog|nf_conntrack、sudo iptables -L -n | grep -E ""syn\|flood\|limit""；4.5.3 补充核查方法（网络边界设备与应用层限流）：图形界面/文档核查"
+        Case "4.6": MethodOf = "4.6.1 通用核查方法：图形界面/文档核查；4.6.2 主要判定标准：图形界面/文档核查；4.6.3 通用核查方法（数据库连接最小权限补充）：图形界面/文档核查"
+        Case "4.7": MethodOf = "4.7.1 Win7、WinXP：Select-String -Path C:\Windows\System32\inetsrv\config\applicationHost.config -Pattern ""php|asp|jsp"" -SimpleMatch；4.7.2 中标麒麟、银河麒麟：find /var/www/html -name ""*.php"" -type f 2>/dev/null | wc -l、find /var/www/html -name ""*.jsp"" -o -name ""*.asp"" -type f 2>/dev/null | wc -l、grep -c ""php"" /etc/nginx/sites-enabled/* 2>/dev/null、curl -I http://localhost 2>/dev/null | grep -c ""X-Powered-By""；4.7.3 通用核查方法（Web服务器层静态页配置）：图形界面/文档核查"
+        Case "4.8": MethodOf = "4.8.1 Win7、WinXP：图形界面/文档核查；4.8.2 中标麒麟、银河麒麟：sudo grep -E ""/var/www|html"" /etc/aide/aide.conf、sudo ls -la /var/www/html/index.*；4.8.3 补充核查方法（专业防篡改系统与文件完整性）：图形界面/文档核查"
+        Case "4.9": MethodOf = "4.9.1 Win7、WinXP：图形界面/文档核查；4.9.2 中标麒麟、银河麒麟：curl -I http://目标URL | grep -iE ""(X-Content-Type|X-Frame|CSP)""、curl -s ""$URL' OR '1'='1"" | grep -i ""error\|sql\|mysql""；4.9.3 通用核查方法（应用层SQL注入与XSS防护）：图形界面/文档核查"
+        Case "4.10": MethodOf = "4.10.1 Win7、WinXP：图形界面/文档核查；4.10.2 中标麒麟、银河麒麟：nikto -h http://192.168.1.100 -Tuning 1,3,5 -timeout 5、curl -I http://192.168.1.100:8080/webapp/；4.10.3 通用核查方法（应用层执行代码验证）：图形界面/文档核查"
+        Case "4.11": MethodOf = "4.11.1 Win7、WinXP：图形界面/文档核查；4.11.2 中标麒麟、银河麒麟：图形界面/文档核查；4.11.3 补充核查方法（应用层RBAC与数据库授权）：图形界面/文档核查"
+        Case "4.12": MethodOf = "4.12.1 Win7、WinXP：1..200 | ForEach-Object {     Start-Job { Invoke-WebRequest -Uri http://localhost -UseBasicParsing } }、Get-Job；4.12.2 中标麒麟、银河麒麟：cat /proc/sys/fs/file-max、ss -s | grep 'TCP:' | awk '{print $2}'；4.12.3 通用核查方法（应用层与Web服务器层）：图形界面/文档核查"
+        Case "4.13": MethodOf = "4.13.2 中标麒麟、银河麒麟：sudo grep -E ""(Accepted|Failed)"" /var/log/auth.log；4.13.3 通用核查方法（业务管理终端专设专用）：图形界面/文档核查"
+        Case "4.14": MethodOf = "4.14.1 Win7、WinXP：图形界面/文档核查；4.14.2 中标麒麟、银河麒麟：图形界面/文档核查；4.14.3 通用核查方法（应用层与数据库层细粒度授权）：图形界面/文档核查"
+        Case "4.15": MethodOf = "4.15.1 Win7、WinXP：图形界面/文档核查；4.15.2 中标麒麟、银河麒麟：sudo sestatus -v 2>/dev/null | grep -i ""mls\|policy""、sudo ls -Z /etc/passwd 2>/dev/null；4.15.3 通用核查方法（应用层签名验证与密级标识）：图形界面/文档核查"
+        Case "4.16": MethodOf = "4.16.1 Win7、WinXP：图形界面/文档核查；4.16.2 中标麒麟、银河麒麟：图形界面/文档核查；4.16.3 通用核查方法（应用层与数据库层远程管理加密）：图形界面/文档核查"
+        Case "4.17": MethodOf = "4.17.1 Win7、WinXP：图形界面/文档核查；4.17.2 中标麒麟、银河麒麟：图形界面/文档核查；4.17.3 通用核查方法（应用层与数据库层三权分立）：图形界面/文档核查"
+        Case "4.18": MethodOf = "4.18.1 Win7、WinXP：图形界面/文档核查；4.18.2 中标麒麟、银河麒麟：图形界面/文档核查；4.18.3 通用核查方法（应用层与网络层地址限制）：图形界面/文档核查"
+        Case "4.19": MethodOf = "4.19.1 Win7、WinXP：图形界面/文档核查；4.19.2 中标麒麟、银河麒麟：图形界面/文档核查；4.19.3 补充核查方法（应用层登录失败处理）：图形界面/文档核查"
+        Case "4.20": MethodOf = "4.20.1 Win7、WinXP：图形界面/文档核查；4.20.2 中标麒麟、银河麒麟：sudo systemctl list-unit-files | grep -i ""kylin\|neokylin\|yongyou\|wps\|kingsoft""、sudo find /etc -name ""*.conf"" -type f | xargs grep -l ""sm2\|sm3\|sm4\|gmssl"" 2>/dev/null、sudo systemctl list-units | grep -i ""gmssl\|sm\|国密"" 2>/dev/null；4.20.3 通用核查方法（应用层自研协议与接口）：图形界面/文档核查"
+        Case "4.21": MethodOf = "4.21.1 Win7、WinXP：图形界面/文档核查；4.21.2 中标麒麟、银河麒麟：sudo grep -r ""pam_fprintd\|pam_biometric"" /etc/pam.d/ 2>/dev/null、openssl ecparam -list_curves 2>/dev/null | grep -i ""sm2""；4.21.3 通用核查方法（应用层数字证书认证）：图形界面/文档核查"
+        Case "4.22": MethodOf = "4.22.2 中标麒麟、银河麒麟：sudo netstat +-tunlp；4.22.3 通用核查方法（更改Web应用系统默认服务发布端口）：图形界面/文档核查"
+        Case "4.23": MethodOf = "4.23.1 Win7、WinXP：图形界面/文档核查；4.23.2 中标麒麟、银河麒麟：图形界面/文档核查；4.23.3 通用核查方法（Web服务器层与数据库层管理端口分离）：图形界面/文档核查"
+        Case "4.24": MethodOf = "4.24.1 Win7、WinXP：图形界面/文档核查；4.24.2 中标麒麟、银河麒麟：图形界面/文档核查；4.24.3 通用核查方法（数据库连接地址核查）：图形界面/文档核查"
+        Case "4.25": MethodOf = "4.25.1 Win7、WinXP：图形界面/文档核查；4.25.2 中标麒麟、银河麒麟：sudo systemctl status auditd 2>/dev/null || sudo systemctl status rsyslog 2>/dev/null、ls -lh /var/log/auth.log 2>/dev/null、grep -r ""rotate\|maxage\|180"" /etc/logrotate.d/ /etc/logrotate.conf 2>/dev/null | grep -i audit；4.25.3 补充核查方法（应用层与数据库层日志审计）：图形界面/文档核查"
+        Case "4.26": MethodOf = "4.26.1 Win7、WinXP：图形界面/文档核查；4.26.2 中标麒麟、银河麒麟：find /var/log /opt /root /home -name ""*审计*"" -o -name ""*报告*"" -o -name ""*scan*"" 2>/dev/null、grep -i ""CVE\|漏洞\|修复\|patch"" /var/log/yum.log /var/log/dpkg.log 2>/dev/null | tail -5；4.26.3 通用核查方法（应用层SAST/DAST与代码审计流程）：图形界面/文档核查"
+        Case "4.27": MethodOf = "4.27.1 Win7、WinXP：图形界面/文档核查；4.27.2 中标麒麟、银河麒麟：图形界面/文档核查；4.27.3 通用核查方法（应用层前端与后端双重校验）：图形界面/文档核查"
+        Case "4.28": MethodOf = "4.28.1 Win7、WinXP：图形界面/文档核查；4.28.2 中标麒麟、银河麒麟：curl -I http://目标URL | grep -iE ""(X-Content-Type|X-Frame|CSP)""、curl -s ""$URL' OR '1'='1"" | grep -i ""error\|sql\|mysql""；4.28.3 通用核查方法（应用层四类攻击防御）：图形界面/文档核查"
+        Case "4.29": MethodOf = "4.29.1 Win7、WinXP：图形界面/文档核查；4.29.2 中标麒麟、银河麒麟：图形界面/文档核查；4.29.3 补充核查方法（应用层统一权限管理平台）：图形界面/文档核查"
+        Case "4.30": MethodOf = "4.30.1 Win7、WinXP：图形界面/文档核查；4.30.2 中标麒麟、银河麒麟：图形界面/文档核查；4.30.3 通用核查方法（应用层管理面限制）：图形界面/文档核查"
+        Case "4.31": MethodOf = "4.31.1 Win7、WinXP：图形界面/文档核查；4.31.2 中标麒麟、银河麒麟：grep -r ""maxlogins\|maxsyslogins"" /etc/security/limits.conf /etc/security/limits.d/ 2/dev/null；4.31.3 通用核查方法（应用层与Web服务器层并发会话）：图形界面/文档核查"
+        Case "4.32": MethodOf = "4.32.1 Win7、WinXP：图形界面/文档核查；4.32.2 中标麒麟、银河麒麟：find /opt /etc /root -name ""*备份*"" -o -name ""*backup*"" -type f 2>/dev/null；4.32.3 补充核查方法（应用层与数据库层备份恢复）：图形界面/文档核查"
+        Case "4.33": MethodOf = "4.33.2 中标麒麟、银河麒麟：cat /etc/os-release | grep -E ""NAME|VERSION|ID""、uname -a、dpkg -l 2>/dev/null | grep -v ""ubuntu\|debian""、find /usr/share/doc -name ""copyright"" -o -name ""LICENSE"" 2>/dev/null | xargs grep -l ""GPL\|Apache\|MIT""；4.33.3 通用核查方法（国产自主可控软硬件）：图形界面/文档核查"
+        Case "5.1": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.2": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.3": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.4": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.5": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.6": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.7": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.8": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.9": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.10": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.11": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.12": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.13": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.14": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.15": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.16": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.17": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.18": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.19": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.20": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.21": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.22": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "5.23": MethodOf = "采集-解析：按采集清单登录设备执行只读命令、保存回显，脚本解析回显判定（命令清单见 check_network 采集模板）"
+        Case "6.1": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "6.2": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "6.3": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "6.4": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "6.5": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "6.6": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "6.7": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "6.8": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "6.9": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "7.1": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "7.2": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "7.3": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "7.4": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "7.5": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "8.1": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "8.2": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "8.3": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "8.4": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "9.1": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "9.2": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "9.3": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "9.4": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "10.1": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case Else: MethodOf = ""
+    End Select
+End Function
+
+' ============================================================
+' 指导书 H2 标题 查询表（评审整改 2026-09-30 第8条：核查项名对齐指导书）
+' ============================================================
+Function GuideTitleOf(id)
+    Select Case id
+        Case "1.1": GuideTitleOf = "操作系统、数据库管理系统、中间件等平台软件应及时安装补丁程序"
+        Case "1.2": GuideTitleOf = "操作系统应安装防病毒软件并及时升级"
+        Case "1.3": GuideTitleOf = "操作系统应按需求裁剪服务和端口"
+        Case "1.4": GuideTitleOf = "操作系统应具备防火墙功能"
+        Case "1.5": GuideTitleOf = "操作系统应停用冗余网络设置"
+        Case "1.6": GuideTitleOf = "操作系统远程管理应开放唯一管理服务,指定管理终端并采取传输加密保护措施"
+        Case "1.7": GuideTitleOf = "数据库管理系统应删除冗余帐户,应设置不少于8个字符且字符采用字母大小写，数字及特殊字符混合编制的账户口令"
+        Case "1.8": GuideTitleOf = "数据库管理系统应删除冗余存储过程"
+        Case "1.9": GuideTitleOf = "数据库管理系统应具有基于表级增删改查等细粒度访问和管理授权功能"
+        Case "1.10": GuideTitleOf = "数据库管理系统应具有自主访问控制功能"
+        Case "1.11": GuideTitleOf = "数据库管理系统应具有备份和恢复功能"
+        Case "1.12": GuideTitleOf = "数据库管理系统应具有表级审计、告警和阻断功能"
+        Case "1.13": GuideTitleOf = "数据库管理系统的数据应和其他应用的数据分类独立存储"
+        Case "1.14": GuideTitleOf = "中间件应采取限制运行权限和使用安全管理通道等安全加固措施"
+        Case "1.15": GuideTitleOf = "应具备数据库管理系统超级管理员远程登录限制远程登陆限制能力"
+        Case "1.16": GuideTitleOf = "应具备数据库管理系统输入（参数）检查能力"
+        Case "1.17": GuideTitleOf = "应限制操作系统开放的远程管理服务或端口"
+        Case "1.18": GuideTitleOf = "应限制用户对服务器资源的最大或最小使用限度"
+        Case "1.19": GuideTitleOf = "应更换数据库管理系统的默认服务端口、管理员用户名和口令"
+        Case "1.20": GuideTitleOf = "数据库管理系统应配置安全策略"
+        Case "1.21": GuideTitleOf = "数据库管理系统应具有行级或列级审计功能"
+        Case "1.22": GuideTitleOf = "数据库管理系统应采取单独、安全监控、审计措施"
+        Case "1.23": GuideTitleOf = "数据库管理系统仅为应用服务器提供访问服务"
+        Case "1.24": GuideTitleOf = "应具备日志审计能力，审计日志至少保留180天"
+        Case "1.25": GuideTitleOf = "检查是否具备边界保护能力,是否可以抗攻击，防纂改"
+        Case "1.26": GuideTitleOf = "检查是否有防病毒日志、补丁日志、记录相关信息的完整，有效"
+        Case "1.27": GuideTitleOf = "操作系统、数据库管理系统、中间件、办公软件等基础软件应采用具有完备的售后技术支持与服务的正版或定制软件"
+        Case "2.1": GuideTitleOf = "服务器和用户计算机应设置登录口令"
+        Case "2.2": GuideTitleOf = "用户计算机应根据需要安装补丁程序"
+        Case "2.3": GuideTitleOf = "用户应设置用户应用口令，通过认证后使用信息服务"
+        Case "2.4": GuideTitleOf = "用户计算机应具有互不相同的用户名和口令"
+        Case "2.5": GuideTitleOf = "用户计算机应关闭冗余系统服务和端口"
+        Case "2.6": GuideTitleOf = "用户计算机应具备阻断和告警非法连接互联网的能力"
+        Case "2.7": GuideTitleOf = "用户计算机应具有文件保护功能"
+        Case "2.8": GuideTitleOf = "应采取终端管控措施、具有统一配置、安全加固、网络访问控制、外设接口管控、软件进程管控、无线模块禁用、防止IP地址和MAC地址非授权改动等功能"
+        Case "2.9": GuideTitleOf = "用户计算机应禁止安装与工作无关的软件"
+        Case "2.10": GuideTitleOf = "用户计算机USB接口应禁止私自连接对拷线和手机、媒体播放设备等个人移动电子设备"
+        Case "2.11": GuideTitleOf = "用户计算机登录应使用基于专用物理部件或生物特征的多因素身份认证方式，应设置超时锁屏，屏幕保护等待时间不超过5min,服务器应设置登录口令，口令长度不得少于10个字符，字符应采用字母大小写、数字及特殊字符混合编制，更换周期不超过30d"
+        Case "2.12": GuideTitleOf = "用户计算机应物理拆除Wi-Fi、红外、蓝牙等无线模块，确需使用Wi-Fi的应严格采用JY密码等措施保护"
+        Case "2.13": GuideTitleOf = "用户计算机应采取非法外联阻断、文件输出管控等措施"
+        Case "2.14": GuideTitleOf = "应具备用户行为审计能力；审计日志留存期应满足制度要求"
+        Case "2.15": GuideTitleOf = "检查安全策略配置情况和设置功能"
+        Case "2.16": GuideTitleOf = "检查被试装备中操作系统、数据库以及应用软件等是否完成补丁修复和升级到最新版本"
+        Case "3.1": GuideTitleOf = "集中存储的涉密数据应采取加密保护措施"
+        Case "3.2": GuideTitleOf = "用户计算机之间的数据交互、文件传输均应统一管控和审计"
+        Case "3.3": GuideTitleOf = "涉密存储载体在降密级使用前或重大JS演训活动结束后，应采取数据写覆盖方法及时清除数据"
+        Case "3.4": GuideTitleOf = "对确定销毁的涉密载体，应采取消磁、粉碎、溶解、化浆和熔化等方法进行销毁"
+        Case "3.5": GuideTitleOf = "网络、系统、应用和用户行为等日志应采取读写控制、加密、变换、完整性校验等保护措施，TM级数据存储1应采取加密保护措施"
+        Case "3.6": GuideTitleOf = "网络边界应通过边界设备具备信息过滤、敏感内容识别等数据防泄漏能力"
+        Case "3.7": GuideTitleOf = "数据存储系统管理登录至少采取验证码等增强措施，修改默认用户名和口令等默认设置，管理与访问应具有行为审计功能，审计日志应至少保留180天"
+        Case "3.8": GuideTitleOf = "数据存储系统应根据重要程度划分不同存储区块，并设置用户访问权限"
+        Case "3.9": GuideTitleOf = "检查数据传输过程是否按照要求进行加密，传输路径是否合理，是否统一管控、留有日志记录，是否具有防泄漏措施，是否存在安全风险"
+        Case "3.10": GuideTitleOf = "检查数据共享是否合理，是否存在安全隐患"
+        Case "3.11": GuideTitleOf = "检查对数据的访问是否按照权限分级访问，是否对访问行为进行审计"
+        Case "3.12": GuideTitleOf = "检查数据采集是否超出业务需求范围"
+        Case "3.13": GuideTitleOf = "检查数据各环节处理是否满足密级相应的保密要求"
+        Case "3.14": GuideTitleOf = "检查对数据的访问是否按照权限分级访问，是否对访问行为进行审计，对大数据的访问是否提供同一管控和访问控制"
+        Case "4.1": GuideTitleOf = "应用系统软件应采取备份措施"
+        Case "4.2": GuideTitleOf = "应用系统软件应及时安装补丁程序，且更新所用升级包应经过安全性测试"
+        Case "4.3": GuideTitleOf = "基于可信根对应用系统软件进行可信验证。可信性受到破坏后报警"
+        Case "4.4": GuideTitleOf = "提供公共信息服务的服务器应与涉密信息服务器分设，专用服务器应只提供专用服务"
+        Case "4.5": GuideTitleOf = "提供公共信息服务的服务器应具备防DDoS攻击能力"
+        Case "4.6": GuideTitleOf = "Web应用系统应采取Web安全防护措施"
+        Case "4.7": GuideTitleOf = "网站服务宜以静态页面形式发布"
+        Case "4.8": GuideTitleOf = "网站应采取网页防篡改措施，防止对信息内容的非法修改"
+        Case "4.9": GuideTitleOf = "Web应用系统应具备防范SQL注入、跨站脚本等攻击能力"
+        Case "4.10": GuideTitleOf = "Web应用系统应具备执行代码有效验证能力"
+        Case "4.11": GuideTitleOf = "应具备用户授权访问控制能力"
+        Case "4.12": GuideTitleOf = "应具备访问应用最大并发会话连接数限制能力"
+        Case "4.13": GuideTitleOf = "业务管理终端专设专用"
+        Case "4.14": GuideTitleOf = "应具有基于用户角色的授权访问控制能力，访问控制主体的细粒度达到用户级或进程级，客体的细粒度应达到文件级、表和记录级、字段级"
+        Case "4.15": GuideTitleOf = "文电等文档专用业务处理系统应具有签名验证、密级标识等功能"
+        Case "4.16": GuideTitleOf = "远程管理应采取加密保护措施"
+        Case "4.17": GuideTitleOf = "应支持管理员、安全员、审计员三权分立的职责划分，禁止设立超级管理员，并限制管理员、安全员、审计员的数量"
+        Case "4.18": GuideTitleOf = "业务管理终端登录应采取网络地址限制措施"
+        Case "4.19": GuideTitleOf = "应具有结束会话、限定登录错误次数和自动退出等登录失败处理功能"
+        Case "4.20": GuideTitleOf = "宜使用自主设计开发的网络服务、协议、接口等，增强应用安全"
+        Case "4.21": GuideTitleOf = "应具有基于专用物理部件或生物特征多因素的、与JD密码算法相结合的数字证书用户身份认证功能"
+        Case "4.22": GuideTitleOf = "应更改Web应用系统默认服务发布端口"
+        Case "4.23": GuideTitleOf = "应分开设置管理端口与应用端口"
+        Case "4.24": GuideTitleOf = "应用服务和数据存储应部署在不同的服务器上"
+        Case "4.25": GuideTitleOf = "应具有对所有访问行为和管理行为的日志审计功能，支持多组合查询检索，可读性强，具有解释和展示功能，审计日志应至少保留180天"
+        Case "4.26": GuideTitleOf = "应经过代码级安全漏洞挖掘"
+        Case "4.27": GuideTitleOf = "检查是否具备对人机接口输入、网络通信输入、文件输入的数据进行格式和长度检查的功能"
+        Case "4.28": GuideTitleOf = "检查是否能够有效检测并防御SQL注入、网页篡改、跨站脚本、拒绝服务等应用层攻击"
+        Case "4.29": GuideTitleOf = "检查是否具有用户访问权限统一管理功能"
+        Case "4.30": GuideTitleOf = "检查是否具备统一管理措施，是否对远程管理进行限制"
+        Case "4.31": GuideTitleOf = "检查是否能够设置最大并发会话连接数、会话建立速率、单用户并发会话数"
+        Case "4.32": GuideTitleOf = "检查所有应用是否具备备份与恢复功能"
+        Case "4.33": GuideTitleOf = "检查应用软件是否基于国产自主可控软硬件自主开发"
+        Case "5.1": GuideTitleOf = "JD网络跨网跨域数据交换时应按规定流程进行"
+        Case "5.2": GuideTitleOf = "利用无线网络技术构建高防护等级网络时应按规定流程执行"
+        Case "5.3": GuideTitleOf = "应按最小化原则设计网络架构"
+        Case "5.4": GuideTitleOf = "网络边界物理互联节点、路由协议与路由地址网段应满足最小化原则"
+        Case "5.5": GuideTitleOf = "局域网内部应根据业务性质划分安全区域"
+        Case "5.6": GuideTitleOf = "网络设备应按最小化原则进行远程管理、账户设置、访问控制等安全配置"
+        Case "5.7": GuideTitleOf = "网络设备应开放唯一网络管理服务并限制管理终端访问"
+        Case "5.8": GuideTitleOf = "远程管理网络设备与安全防护设备应采用加密保护的管理服务"
+        Case "5.9": GuideTitleOf = "同链路相同安全功能的防护设备应使用不同架构或不同品牌"
+        Case "5.10": GuideTitleOf = "应对组播源、组播地址、组播成员采取控制措施"
+        Case "5.11": GuideTitleOf = "重要网络设备和网络安全防护设备应有备份"
+        Case "5.12": GuideTitleOf = "远程传输应采取两层加密保护措施"
+        Case "5.13": GuideTitleOf = "应设立网络安全管理中心并指定管理终端"
+        Case "5.14": GuideTitleOf = "与互联网等外部网络应按等级采取物理或逻辑隔离"
+        Case "5.15": GuideTitleOf = "不同用途网络之间应通过防护设备加强逻辑隔离并具备攻击告警审计阻断能力"
+        Case "5.16": GuideTitleOf = "局域网各安全区域之间及主机之间应采取全网细粒度访问控制"
+        Case "5.17": GuideTitleOf = "远程租用线路传输应采取三层加密保护措施"
+        Case "5.18": GuideTitleOf = "应采取不低于802.1x认证强度的接入认证措施"
+        Case "5.19": GuideTitleOf = "用户计算机之间应逻辑隔离"
+        Case "5.20": GuideTitleOf = "应具备全网行为审计记录能力且审计日志至少保留180天"
+        Case "5.21": GuideTitleOf = "应对全网攻击与违规行为采取实时监视报警审计控制阻断定位措施"
+        Case "5.22": GuideTitleOf = "数据存储系统的管理网络与应用网络应逻辑隔离"
+        Case "5.23": GuideTitleOf = "检查网络设备配备的合理性与必要性"
+        Case "6.1": GuideTitleOf = "使用的网络设备、服务器、终端等，应选用进入《全J计算机及网络设备集中采购目录》的产品"
+        Case "6.2": GuideTitleOf = "使用的安全网关、防火墙等信息安全产品，应通过JD信息安全测评认证机构的认证"
+        Case "6.3": GuideTitleOf = "机房应有序、规范、合理走线布线，明确互联网区域和内部区域，粘贴标识，区分不同线路"
+        Case "6.4": GuideTitleOf = "机房应符合GB 2887-2011中4.6.1所规定的温湿度等要求"
+        Case "6.5": GuideTitleOf = "机房应安装安防监控设备，对机房的人员进出、设备操作等进行监管"
+        Case "6.6": GuideTitleOf = "机房应将涉密区域和互联网区域设置于不同场所"
+        Case "6.7": GuideTitleOf = "在涉密网络中使用过的打印机、复印机、刻录机、扫描仪、存储载体等设备严禁在互联网中使用"
+        Case "6.8": GuideTitleOf = "应选用《JY关键软硬件自主可控产品名录》中的芯片类、计算机及外设类、网络设备类、安全防护设备类、存储设备类等产品"
+        Case "6.9": GuideTitleOf = "与安全防护等级低的网络使用不同色系线缆进行严格隔离区分"
+        Case "7.1": GuideTitleOf = "应设置安全管理机构，保证系统安全措施的落实"
+        Case "7.2": GuideTitleOf = "应配备专职系统安全保密管理人员，负责系统安全措施的落实"
+        Case "7.3": GuideTitleOf = "应具有安全管理领导机构，督导系统安全措施的落实"
+        Case "7.4": GuideTitleOf = "应具有系统安全保密技术管理人员，具体负责安全保密技术措施的落实，保证系统安全运行"
+        Case "7.5": GuideTitleOf = "应具有完善的应急响应体系，应对突发事件"
+        Case "8.1": GuideTitleOf = "应具有日常安全管理制度、入网审批制度和系统安全保密检查制度等"
+        Case "8.2": GuideTitleOf = "应具有安全管理操作规程、安全监控操作规程、安全审计操作规程、应急响应操作规程等"
+        Case "8.3": GuideTitleOf = "应具有日常系统备份制度和存储载体使用管理制度"
+        Case "8.4": GuideTitleOf = "应具有脆弱性分析等规程"
+        Case "9.1": GuideTitleOf = "应具有应急响应预案，当发生危及系统安全的事件时应根据操作规程及时采取措施，符合应急预案启动条件时按预案开展应急措施"
+        Case "9.2": GuideTitleOf = "计算机信息系统安全保密管理人员应能对网络中的网络安全防护设备进行统一配置、管理，并能实现安全管理中心与网络安全防护设备之间的响应"
+        Case "9.3": GuideTitleOf = "应具有与实际情况相符且完整的安全保密策略文档和安全保密技术及产品配置的详细记录"
+        Case "9.4": GuideTitleOf = "安全保密技术管理人员应对每日网络和系统运行情况实施安全审计，每月组织本级网络的安全性检测，编写安全审计与评估报告，并形成记录，系统配置发生变化的情况下应及时组织安全检测评估"
+        Case "10.1": GuideTitleOf = "审计协议的机密性、完整性、认可性、不可否认性"
+        Case Else: GuideTitleOf = ""
+    End Select
+End Function
+
 Sub AddResult(id, cat, title, status, detail, chapter, rec)
+    ' 评审整改（2026-09-30 第4/8条）：rMethod=验证过程/方法（指导书逐条）；
+    ' 核查项名对齐指导书（不一致时以指导书为准，脚本项名以〔脚本项名：…〕并入详情前缀）
+    Dim gtitle
+    gtitle = GuideTitleOf(id)
     rID(rCount) = id
     rCat(rCount) = cat
-    rTitle(rCount) = title
+    If gtitle <> "" And gtitle <> title Then
+        rTitle(rCount) = gtitle
+        rDetail(rCount) = "〔脚本项名：" & title & "〕" & detail
+    Else
+        rTitle(rCount) = title
+        rDetail(rCount) = detail
+    End If
     rStatus(rCount) = status
-    rDetail(rCount) = detail
     rChapter(rCount) = chapter
     rRec(rCount) = rec
+    rMethod(rCount) = MethodOf(id)
     rCount = rCount + 1
     Dim sym
     Select Case status
@@ -2798,7 +3099,7 @@ Sub GenerateHTML()
             guidePart = Trim(Mid(chPart, spPos + 1))
             chPart = Left(chPart, spPos - 1)
         End If
-        dataStr = dataStr & "{""ch"":""" & JsonEsc(chPart) & """,""id"":""" & JsonEsc(rID(i)) & """,""cat"":""" & JsonEsc(rCat(i)) & """,""title"":""" & JsonEsc(rTitle(i)) & """,""status"":""" & JsonEsc(rStatus(i)) & """,""detail"":""" & JsonEsc(rDetail(i)) & """,""rec"":""" & JsonEsc(rRec(i)) & """,""guide"":""" & JsonEsc(guidePart) & """}"
+        dataStr = dataStr & "{""ch"":""" & JsonEsc(chPart) & """,""id"":""" & JsonEsc(rID(i)) & """,""cat"":""" & JsonEsc(rCat(i)) & """,""title"":""" & JsonEsc(rTitle(i)) & """,""status"":""" & JsonEsc(rStatus(i)) & """,""method"":""" & JsonEsc(rMethod(i)) & """,""detail"":""" & JsonEsc(rDetail(i)) & """,""rec"":""" & JsonEsc(rRec(i)) & """,""guide"":""" & JsonEsc(guidePart) & """}"
     Next
 
     ts.WriteLine "<!DOCTYPE html>"
@@ -2851,7 +3152,7 @@ Sub GenerateHTML()
     ts.WriteLine ".badge-fail{color:var(--fail);background:var(--fail-bg);border-color:var(--fail-br);}"
     ts.WriteLine ".badge-manual{color:var(--manual);background:var(--manual-bg);border-color:var(--manual-br);}"
     ts.WriteLine ".badge-na{color:var(--na);background:var(--na-bg);border-color:var(--na-br);}"
-    ts.WriteLine "td.detail,td.rec{color:#374151;max-width:320px;}"
+    ts.WriteLine "td.detail,td.rec,td.method,td.req{color:#374151;max-width:320px;}"
     ts.WriteLine ".guide{color:var(--muted);font-size:12px;max-width:260px;}"
     ts.WriteLine ".empty{padding:60px;text-align:center;color:var(--muted);}"
     ts.WriteLine "footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}"
@@ -2886,7 +3187,7 @@ Sub GenerateHTML()
     ts.WriteLine "</div>"
     ts.WriteLine "<div class=""panel"">"
     ts.WriteLine "<table id=""tbl"">"
-    ts.WriteLine "<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr></thead>"
+    ts.WriteLine "<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr></thead>"
     ts.WriteLine "<tbody id=""tb""></tbody>"
     ts.WriteLine "</table>"
     ts.WriteLine "<div class=""empty"" id=""empty"" style=""display:none"">没有匹配的核查项</div>"
@@ -2910,8 +3211,10 @@ Sub GenerateHTML()
     ts.WriteLine "    tr.innerHTML = ""<td>""+esc(x.ch)+""</td><td class='id'>""+esc(x.id)+""</td><td class='cat'>""+esc(x.cat)+""</td>""+"
     ts.WriteLine "      ""<td class='title'>""+esc(x.title)+""</td>""+"
     ts.WriteLine "      ""<td><span class='badge badge-""+x.status+""'>""+ST[x.status]+""</span></td>""+"
+    ts.WriteLine "      ""<td class='method'>""+esc(x.method)+""</td>""+"
     ts.WriteLine "      ""<td class='detail'>""+esc(x.detail)+""</td>""+"
-    ts.WriteLine "      ""<td class='rec'>""+esc(x.rec)+""</td>""+"
+    ts.WriteLine "      ""<td class='rec'>""+(x.status=='fail'?esc(x.rec):"""")+""</td>""+"
+    ts.WriteLine "      ""<td class='req'>""+(x.status=='fail'?"""":esc(x.rec))+""</td>""+"
     ts.WriteLine "      ""<td class='guide'>""+esc(x.guide)+""</td>"";"
     ts.WriteLine "    tb.appendChild(tr);"
     ts.WriteLine "  });"
@@ -2972,9 +3275,9 @@ Sub GenerateExcel()
     oWS.Cells(1,1).Font.Bold = True
 
     Dim row : row = 4
-    Dim headers : headers = Array("编号","类别","检查项","状态","详情","修复建议/核查要求","章节")
+    Dim headers : headers = Array("编号","类别","检查项","状态","验证过程/方法","详情","修改建议","安全要求","章节")
     Dim c
-    For c = 1 To 7
+    For c = 1 To 9
         oWS.Cells(row,c).Value = headers(c-1)
         oWS.Cells(row,c).Font.Bold = True
         oWS.Cells(row,c).Interior.Color = RGB(0,112,192)
@@ -2995,9 +3298,16 @@ Sub GenerateExcel()
             Case Else: statusText = "不适用"
         End Select
         oWS.Cells(row,4).Value = statusText
-        oWS.Cells(row,5).Value = rDetail(i)
-        oWS.Cells(row,6).Value = rRec(i)
-        oWS.Cells(row,7).Value = rChapter(i)
+        oWS.Cells(row,5).Value = rMethod(i)
+        oWS.Cells(row,6).Value = rDetail(i)
+        If rStatus(i) = "fail" Then
+            oWS.Cells(row,7).Value = rRec(i)
+            oWS.Cells(row,8).Value = ""
+        Else
+            oWS.Cells(row,7).Value = ""
+            oWS.Cells(row,8).Value = rRec(i)
+        End If
+        oWS.Cells(row,9).Value = rChapter(i)
         Select Case rStatus(i)
             Case "pass": oWS.Cells(row,4).Font.Color = RGB(40,167,69)
             Case "fail": oWS.Cells(row,4).Font.Color = RGB(220,53,69)
@@ -3009,11 +3319,15 @@ Sub GenerateExcel()
     oWS.Columns(2).ColumnWidth = 12
     oWS.Columns(3).ColumnWidth = 40
     oWS.Columns(4).ColumnWidth = 12
-    oWS.Columns(5).ColumnWidth = 50
+    oWS.Columns(5).ColumnWidth = 40
     oWS.Columns(6).ColumnWidth = 50
-    oWS.Columns(7).ColumnWidth = 14
+    oWS.Columns(7).ColumnWidth = 50
+    oWS.Columns(8).ColumnWidth = 50
+    oWS.Columns(9).ColumnWidth = 14
     oWS.Columns(5).WrapText = True
     oWS.Columns(6).WrapText = True
+    oWS.Columns(7).WrapText = True
+    oWS.Columns(8).WrapText = True
 
     Dim xlsxPath : xlsxPath = outDirAbs & "\配置核查报告_" & stamp & ".xlsx"
     On Error Resume Next
@@ -3046,7 +3360,7 @@ Sub GenerateCSV()
     If Not oFSO.FolderExists(outDirAbs) Then oFSO.CreateFolder(outDirAbs)
     Dim csvPath : csvPath = outDirAbs & "\配置核查报告_" & stamp & ".csv"
     Dim ts : Set ts = oFSO.CreateTextFile(csvPath, True, False)
-    ts.WriteLine "编号,类别,检查项,状态,详情,修复建议/核查要求,章节"
+    ts.WriteLine "编号,类别,检查项,状态,验证过程/方法,详情,修改建议,安全要求,章节"
     Dim i
     For i = 0 To rCount - 1
         Dim statusText
@@ -3056,9 +3370,15 @@ Sub GenerateCSV()
             Case "manual": statusText = "需人工核查"
             Case Else: statusText = "不适用"
         End Select
+        Dim recFix, reqCol
+        If rStatus(i) = "fail" Then
+            recFix = rRec(i) : reqCol = ""
+        Else
+            recFix = "" : reqCol = rRec(i)
+        End If
         ts.WriteLine CsvEsc(rID(i)) & "," & CsvEsc(rCat(i)) & "," & CsvEsc(rTitle(i)) & "," & _
-                    CsvEsc(statusText) & "," & CsvEsc(rDetail(i)) & "," & CsvEsc(rRec(i)) & "," & _
-                    CsvEsc(rChapter(i))
+                    CsvEsc(statusText) & "," & CsvEsc(rMethod(i)) & "," & CsvEsc(rDetail(i)) & "," & _
+                    CsvEsc(recFix) & "," & CsvEsc(reqCol) & "," & CsvEsc(rChapter(i))
     Next
     ts.Close
     WScript.Echo "[OK] CSV报告生成（未检测到Excel，降级生成）：" & csvPath
@@ -3095,10 +3415,10 @@ Sub GenerateXLS()
     ts.WriteLine ".title{font-size:14pt;font-weight:bold}.sub{color:#666}"
     ts.WriteLine "</style></head><body>"
     ts.WriteLine "<table cellspacing=""0"">"
-    ts.WriteLine "<tr><td colspan=""7"" class=""title"">配置核查报告（Windows XP/7版）</td></tr>"
-    ts.WriteLine "<tr><td colspan=""7"" class=""sub"">生成时间：" & HtmlEsc(CStr(dtNow)) & "  系统：" & HtmlEsc(osCaption) & "</td></tr>"
+    ts.WriteLine "<tr><td colspan=""9"" class=""title"">配置核查报告（Windows XP/7版）</td></tr>"
+    ts.WriteLine "<tr><td colspan=""9"" class=""sub"">生成时间：" & HtmlEsc(CStr(dtNow)) & "  系统：" & HtmlEsc(osCaption) & "</td></tr>"
     ts.WriteLine "<tr></tr>"
-    ts.WriteLine "<tr><th class=""hd"">编号</th><th class=""hd"">类别</th><th class=""hd"">检查项</th><th class=""hd"">状态</th><th class=""hd"">详情</th><th class=""hd"">修复建议/核查要求</th><th class=""hd"">章节</th></tr>"
+    ts.WriteLine "<tr><th class=""hd"">编号</th><th class=""hd"">类别</th><th class=""hd"">检查项</th><th class=""hd"">状态</th><th class=""hd"">验证过程/方法</th><th class=""hd"">详情</th><th class=""hd"">修改建议</th><th class=""hd"">安全要求</th><th class=""hd"">章节</th></tr>"
     Dim i
     For i = 0 To rCount - 1
         Dim statusText, statusCls
@@ -3108,11 +3428,19 @@ Sub GenerateXLS()
             Case "manual": statusText = "需人工核查" : statusCls = "manual"
             Case Else:     statusText = "不适用"     : statusCls = "na"
         End Select
+        Dim recFix2, reqCol2
+        If rStatus(i) = "fail" Then
+            recFix2 = rRec(i) : reqCol2 = ""
+        Else
+            recFix2 = "" : reqCol2 = rRec(i)
+        End If
         ts.WriteLine "<tr><td>" & HtmlEsc(rID(i)) & "</td><td>" & HtmlEsc(rCat(i)) & "</td>" & _
                      "<td>" & HtmlEsc(rTitle(i)) & "</td>" & _
                      "<td class=""" & statusCls & """>" & statusText & "</td>" & _
+                     "<td>" & HtmlEsc(rMethod(i)) & "</td>" & _
                      "<td>" & HtmlEsc(rDetail(i)) & "</td>" & _
-                     "<td>" & HtmlEsc(rRec(i)) & "</td>" & _
+                     "<td>" & HtmlEsc(recFix2) & "</td>" & _
+                     "<td>" & HtmlEsc(reqCol2) & "</td>" & _
                      "<td>" & HtmlEsc(rChapter(i)) & "</td></tr>"
     Next
     ts.WriteLine "</table></body></html>"

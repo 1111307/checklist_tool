@@ -27,6 +27,8 @@ NETDEV_DEFAULT = ("采集-解析：按采集清单登录设备执行只读命令
                   "脚本解析回显判定（命令清单见 check_network 采集模板）")
 
 text = open(SRC, encoding="utf-8").read()
+# 规范化：全角不换行空格(U+00A0)按普通空格处理（GBK 落盘兼容，见 _patch_reports_win.py）
+text = text.replace(" ", " ")
 
 # 按 H2 切块
 h2_pat = re.compile(r"^## (\d+\.\d+) (.+)$", re.M)

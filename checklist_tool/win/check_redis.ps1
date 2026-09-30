@@ -14,6 +14,8 @@ $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
 
 # 零依赖 .xlsx 生成器（.NET 自带，无需 Python）
 if (Test-Path "$ScriptDir\lib_xlsx.ps1") { . "$ScriptDir\lib_xlsx.ps1" }
+# 评审整改（2026-09-30 第4/8条）：验证过程/方法 + 核查项名对齐指导书（lib_method.ps1，指导书 v2.0.0 逐条提取）
+if (Test-Path "$ScriptDir\lib_method.ps1") { . "$ScriptDir\lib_method.ps1" }
 
 $script:R = @()
 $script:REDIS_HOST = '127.0.0.1'
@@ -35,7 +37,15 @@ function Get-RedisCfg([string]$key) {
 }
 
 function Add-Result([string]$id, [string]$cat, [string]$title, [string]$status, [string]$detail, [string]$chapter, [string]$rec) {
-    $script:R += [PSCustomObject]@{ Id=$id; Cat=$cat; Title=$title; Status=$status; Detail=$detail; Chapter=$chapter; Rec=$rec }
+    # 评审整改（2026-09-30 第4/5/8条）：Method=验证过程/方法（指导书逐条）；
+    # 核查项名对齐指导书（不一致时以指导书为准，脚本项名以〔脚本项名：…〕并入详情前缀）
+    $mt = ''
+    if (Get-Command Method-Of -ErrorAction SilentlyContinue) {
+        $mt = Method-Of $id
+        $gt = Guide-Title-Of $id
+        if ($gt -and $gt -ne $title) { $detail = "〔脚本项名：$title〕$detail"; $title = $gt }
+    }
+    $script:R += [PSCustomObject]@{ Id=$id; Cat=$cat; Title=$title; Status=$status; Method=$mt; Detail=$detail; Chapter=$chapter; Rec=$rec }
 }
 function Guide-Ref([string]$id) {
     switch -Regex ($id) {
@@ -156,7 +166,11 @@ function Build-Rows([string]$want) {
     $sb = New-Object System.Text.StringBuilder
     foreach ($r in ($script:R | Where-Object { $_.Status -eq $want })) {
         $color = Status-Color $r.Status; $scn = Status-CN $r.Status
-        [void]$sb.AppendLine("<tr><td>$(Html-Esc $r.Chapter)</td><td>$(Html-Esc $r.Id)</td><td>$(Html-Esc $r.Cat)</td><td>$(Html-Esc $r.Title)</td><td style='color:$color;font-weight:bold;'>$scn</td><td>$(Html-Esc $r.Detail)</td><td>$(Html-Esc $r.Rec)</td><td>$(Html-Esc (Guide-Ref $r.Id))</td></tr>")
+        # 评审整改（2026-09-30 第4/5条）：结果之后插验证过程/方法；建议拆修改建议/安全要求两栏
+        $mt = if ($null -ne $r.Method) { $r.Method } else { '' }
+        $recFix = if ($r.Status -eq 'fail') { $r.Rec } else { '' }
+        $reqCol = if ($r.Status -eq 'fail') { '' } else { $r.Rec }
+        [void]$sb.AppendLine("<tr><td>$(Html-Esc $r.Chapter)</td><td>$(Html-Esc $r.Id)</td><td>$(Html-Esc $r.Cat)</td><td>$(Html-Esc $r.Title)</td><td style='color:$color;font-weight:bold;'>$scn</td><td>$(Html-Esc $mt)</td><td>$(Html-Esc $r.Detail)</td><td>$(Html-Esc $recFix)</td><td>$(Html-Esc $reqCol)</td><td>$(Html-Esc (Guide-Ref $r.Id))</td></tr>")
     }
     return $sb.ToString()
 }
@@ -177,10 +191,10 @@ th{background:#1a3c6e;color:#fff;position:sticky;top:0;}tr:nth-child(even){backg
 <h1>Redis 配置核查报告</h1><div class="meta"><div>$meta</div><div>参考标准：配置核查作业指导书正式版2026_4_1 / 配置核查表_v2.0.0.xlsx</div></div>
 <div class="summary"><div class="card pass">合规<br>$pass</div><div class="card fail">不合规<br>$fail</div><div class="card manual">需人工核查<br>$manual</div><div class="card na">不适用<br>$na</div></div>
 "@
-    if ($fail -gt 0) { $html += "<h2>一、未通过（$fail 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>$(Build-Rows 'fail')</table>" }
-    if ($manual -gt 0) { $html += "<h2>二、需人工核查（$manual 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>$(Build-Rows 'manual')</table>" }
-    if ($na -gt 0) { $html += "<h2>三、不适用（$na 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>$(Build-Rows 'na')</table>" }
-    if ($pass -gt 0) { $html += "<h2>四、通过（$pass 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>$(Build-Rows 'pass')</table>" }
+    if ($fail -gt 0) { $html += "<h2>一、未通过（$fail 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>$(Build-Rows 'fail')</table>" }
+    if ($manual -gt 0) { $html += "<h2>二、需人工核查（$manual 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>$(Build-Rows 'manual')</table>" }
+    if ($na -gt 0) { $html += "<h2>三、不适用（$na 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>$(Build-Rows 'na')</table>" }
+    if ($pass -gt 0) { $html += "<h2>四、通过（$pass 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>$(Build-Rows 'pass')</table>" }
     $html += "</body></html>"
     $htmlfile = Join-Path $OutDir "配置核查报告_Redis_$Stamp.html"
     $xlsfile = Join-Path $OutDir "配置核查报告_Redis_$Stamp.xls"
