@@ -1,0 +1,9 @@
+# 本地工作记忆（不入库）
+.workbuddy/
+
+# Office / WPS 临时锁文件
+~$*
+*.tmp
+
+# 预览/转换用的临时副本（WPS 预览会长期占用，释放后可直接删除）
+_deliv_tmp.docx
