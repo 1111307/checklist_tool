@@ -1,6 +1,6 @@
 ﻿# ============================================================
 # 配置核查工具 - Nginx 中间件版（Windows / PowerShell）
-# 参考标准：配置核查作业指导书正式版2026_4_1
+# 参考标准：配置核查作业指导书v2.0.0
 #           配置核查表_v2.0.0.xlsx（中间件列：Nginx 2项 + 补充Web项6项）
 # 运行方式：powershell -ExecutionPolicy Bypass -File check_nginx.ps1
 # 输出文件：output\配置核查报告_Nginx_日期时间.html /.xls
@@ -183,7 +183,7 @@ function Gen-Report {
 .card.pass{background:#2e7d32;}.card.fail{background:#c62828;}.card.manual{background:#ef6c00;}.card.na{background:#757575;}
 table{border-collapse:collapse;width:100%;font-size:13px;}th,td{border:1px solid #ccc;padding:6px 8px;vertical-align:top;}
 th{background:#1a3c6e;color:#fff;position:sticky;top:0;}tr:nth-child(even){background:#f7f9fb;}</style></head><body>
-<h1>Nginx 中间件配置核查报告</h1><div class="meta"><div>$meta</div><div>参考标准：配置核查作业指导书正式版2026_4_1 / 配置核查表_v2.0.0.xlsx</div></div>
+<h1>Nginx 中间件配置核查报告</h1><div class="meta"><div>$meta</div><div>参考标准：配置核查作业指导书v2.0.0 / 配置核查表_v2.0.0.xlsx</div></div>
 <div class="summary"><div class="card pass">合规<br>$pass</div><div class="card fail">不合规<br>$fail</div><div class="card manual">需人工核查<br>$manual</div><div class="card na">不适用<br>$na</div></div>
 "@
     if ($fail -gt 0) { $html += "<h2>一、未通过（$fail 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>$(Build-Rows 'fail')</table>" }
@@ -203,7 +203,7 @@ th{background:#1a3c6e;color:#fff;position:sticky;top:0;}tr:nth-child(even){backg
 # ---------- 主流程 ----------
 Write-Host "================================================================"
 Write-Host "  配置核查工具 - Nginx 中间件版（Windows/PowerShell）"
-Write-Host "  参考标准：配置核查作业指导书正式版2026_4_1"
+Write-Host "  参考标准：配置核查作业指导书v2.0.0"
 Write-Host "================================================================"
 
 if (-not $script:NGINX_BIN) {

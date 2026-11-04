@@ -22,7 +22,7 @@
 
 | 组件 | Windows 脚本 | 麒麟脚本 |
 |------|------|------|
-| 操作系统（137 项） | `win\check_xp7.vbs` | `kylin/check_kylin.sh` |
+| 操作系统（139 项） | `win\check_xp7.vbs` | `kylin/check_kylin.sh` |
 | MySQL / MariaDB | `win\check_mysql.vbs` | `kylin/check_mysql.sh` |
 | Redis | `win\check_redis.vbs` | `kylin/check_redis.sh` |
 | 达梦 DM8 | `win\check_dm.vbs` | `kylin/check_dm.sh` |
@@ -68,7 +68,7 @@ Windows 管理机同理：`win\check_network.bat init` / `check`（PowerShell �
 
 - **HTML 报告**（推荐）：四状态指标卡、实时搜索、状态筛选、彩色徽章表格，点击卡片即可筛选，支持直接打印归档
 - **XLS 报告**：Excel/WPS 直接打开，按"未通过 → 需人工核查 → 不适用 → 通过"四区展示
-- **汇总报告**：`run_all` 一键运行后自动合并所有组件结果，带"组件"列
+- **汇总报告**：`run_all` 一键运行后自动合并所有组件结果，带"组件"列；多台被测机的报告按设备子目录合并时另加"设备"列（`merge_report.vbs <目录>` / `merge_xlsx.ps1 <目录>` / `bash merge_xlsx.sh <目录>`），列结构与组件报告一致，含验证过程、修改建议、安全要求
 
 ## 目录结构
 

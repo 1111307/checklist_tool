@@ -41,7 +41,11 @@ xlsx_status_cn() {
 
 # 列序号 -> Excel 列字母（1->A ... 8->H）
 xlsx_col() {
-    printf '%c' "$((64 + $1))"
+    if [ "$1" -le 26 ]; then
+        printf '%c' "$((64 + $1))"
+    else
+        printf '%c%c' "$((64 + ($1 - 1) / 26))" "$((65 + ($1 - 1) % 26))"
+    fi
 }
 
 # 生成一个单元格（inlineStr 文本）
@@ -76,9 +80,11 @@ build_sheet_xml() {
     printf '%s' "$(xlsx_cell "C4" "类别")"
     printf '%s' "$(xlsx_cell "D4" "核查项")"
     printf '%s' "$(xlsx_cell "E4" "结果")"
-    printf '%s' "$(xlsx_cell "F4" "详情")"
-    printf '%s' "$(xlsx_cell "G4" "建议")"
-    printf '%s' "$(xlsx_cell "H4" "参考指导书")"
+    printf '%s' "$(xlsx_cell "F4" "验证过程/方法")"
+    printf '%s' "$(xlsx_cell "G4" "详情")"
+    printf '%s' "$(xlsx_cell "H4" "修改建议")"
+    printf '%s' "$(xlsx_cell "I4" "安全要求")"
+    printf '%s' "$(xlsx_cell "J4" "参考指导书")"
     printf '%s\n' '</row>'
     # 数据行（从第5行开始）
     for ((i=1; i<=R_COUNT; i++)); do
@@ -89,9 +95,16 @@ build_sheet_xml() {
         printf '%s' "$(xlsx_cell "C$r" "${R_CAT[$i]}")"
         printf '%s' "$(xlsx_cell "D$r" "${R_TITLE[$i]}")"
         printf '%s' "$(xlsx_cell "E$r" "$(xlsx_status_cn "${R_STATUS[$i]}")")"
-        printf '%s' "$(xlsx_cell "F$r" "${R_DETAIL[$i]}")"
-        printf '%s' "$(xlsx_cell "G$r" "${R_REC[$i]}")"
-        printf '%s' "$(xlsx_cell "H$r" "${R_GUIDE[$i]}")"
+        printf '%s' "$(xlsx_cell "F$r" "${R_METHOD[$i]}")"
+        printf '%s' "$(xlsx_cell "G$r" "${R_DETAIL[$i]}")"
+        if [ "${R_STATUS[$i]}" = "fail" ]; then
+            printf '%s' "$(xlsx_cell "H$r" "${R_REC[$i]}")"
+            printf '%s' "$(xlsx_cell "I$r" "")"
+        else
+            printf '%s' "$(xlsx_cell "H$r" "")"
+            printf '%s' "$(xlsx_cell "I$r" "${R_REC[$i]}")"
+        fi
+        printf '%s' "$(xlsx_cell "J$r" "${R_GUIDE[$i]}")"
         printf '%s\n' '</row>'
     done
     printf '%s\n' '</sheetData>'

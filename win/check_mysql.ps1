@@ -1,6 +1,6 @@
 ﻿# ============================================================
 # 配置核查工具 - MySQL/MariaDB 版（Windows / PowerShell）
-# 参考标准：配置核查作业指导书正式版2026_4_1 / 配置核查表_v2.0.0.xlsx（MySQL 19项）
+# 参考标准：配置核查作业指导书v2.0.0 / 配置核查表_v2.0.0.xlsx（MySQL 19项）
 # 运行方式：powershell -ExecutionPolicy Bypass -File check_mysql.ps1
 # 连接：默认 mysql -uroot 连 127.0.0.1:3306；可用 $env:MYSQL_PASS 指定口令
 # 输出文件：output\配置核查报告_MySQL_日期时间.html /.xls
@@ -23,6 +23,7 @@ $script:MYSQL_PORT = '3306'
 $script:MYSQL_USER = 'root'
 $script:MYSQL_PASS = if ($env:MYSQL_PASS) { $env:MYSQL_PASS } else { '' }
 $script:DB_VERSION = ""
+$script:DATA_DIR = '未采集'
 $script:CONN_OK = $false
 
 function Invoke-Mysql([string]$sql) {
@@ -190,7 +191,7 @@ function Gen-Report {
     $fail = ($script:R | Where-Object Status -eq 'fail').Count
     $manual = ($script:R | Where-Object Status -eq 'manual').Count
     $na = ($script:R | Where-Object Status -eq 'na').Count
-    $meta = "连接：$script:MYSQL_USER@$script:MYSQL_HOST`:$script:MYSQL_PORT　版本：$script:DB_VERSION　核查时间：$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    $meta = "连接：$script:MYSQL_USER@$script:MYSQL_HOST`:$script:MYSQL_PORT　数据目录：$($script:DATA_DIR)　版本：$script:DB_VERSION　核查时间：$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
     $html = @"
 <!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>MySQL 配置核查报告</title>
 <style>body{font-family:"Microsoft YaHei",Arial,sans-serif;margin:20px;color:#222;}h1{color:#1a3c6e;}
@@ -199,7 +200,7 @@ function Gen-Report {
 .card.pass{background:#2e7d32;}.card.fail{background:#c62828;}.card.manual{background:#ef6c00;}.card.na{background:#757575;}
 table{border-collapse:collapse;width:100%;font-size:13px;}th,td{border:1px solid #ccc;padding:6px 8px;vertical-align:top;}
 th{background:#1a3c6e;color:#fff;position:sticky;top:0;}tr:nth-child(even){background:#f7f9fb;}</style></head><body>
-<h1>MySQL 数据库配置核查报告</h1><div class="meta"><div>$meta</div><div>参考标准：配置核查作业指导书正式版2026_4_1 / 配置核查表_v2.0.0.xlsx</div></div>
+<h1>MySQL 数据库配置核查报告</h1><div class="meta"><div>$meta</div><div>参考标准：配置核查作业指导书v2.0.0 / 配置核查表_v2.0.0.xlsx</div></div>
 <div class="summary"><div class="card pass">合规<br>$pass</div><div class="card fail">不合规<br>$fail</div><div class="card manual">需人工核查<br>$manual</div><div class="card na">不适用<br>$na</div></div>
 "@
     if ($fail -gt 0) { $html += "<h2>一、未通过（$fail 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>$(Build-Rows 'fail')</table>" }
@@ -217,7 +218,7 @@ th{background:#1a3c6e;color:#fff;position:sticky;top:0;}tr:nth-child(even){backg
 
 Write-Host "================================================================"
 Write-Host "  配置核查工具 - MySQL/MariaDB 版（Windows/PowerShell）"
-Write-Host "  参考标准：配置核查作业指导书正式版2026_4_1"
+Write-Host "  参考标准：配置核查作业指导书v2.0.0"
 Write-Host "================================================================"
 Write-Host "  连接：$script:MYSQL_USER@$script:MYSQL_HOST`:$script:MYSQL_PORT"
 
@@ -225,7 +226,13 @@ if (-not (Get-Command mysql -ErrorAction SilentlyContinue)) {
     Write-Host "  未检测到 mysql 客户端，所有项将标记为不适用。"
 } else {
     $script:DB_VERSION = Invoke-Mysql "SELECT VERSION();"
-    if ($script:DB_VERSION) { $script:CONN_OK = $true; Write-Host "  数据库版本：$script:DB_VERSION" }
+    if ($script:DB_VERSION) {
+        $script:CONN_OK = $true
+        $script:DATA_DIR = (Get-MysqlVar 'datadir')
+        if (-not $script:DATA_DIR) { $script:DATA_DIR = '未采集' }
+        Write-Host "  数据目录：$($script:DATA_DIR)"
+        Write-Host "  数据库版本：$script:DB_VERSION"
+    }
     else { Write-Host "  [!] 无法连接 MySQL，所有项将标记为需人工核查。" }
 }
 

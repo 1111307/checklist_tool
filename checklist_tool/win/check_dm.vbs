@@ -23,6 +23,7 @@ DM_PASS = GetSetting("DM_PASS", "SYSDBA")
 
 Dim DISQL : DISQL = ""
 Dim DB_VERSION : DB_VERSION = ""
+Dim DATA_DIR : DATA_DIR = ""
 Dim CONN_OK : CONN_OK = False
 
 Function ReadConfig(key)
@@ -110,6 +111,30 @@ Function DmQ(sql)
     Dim conn : conn = DM_USER & "/" & DM_PASS & "@" & DM_HOST & ":" & DM_PORT
     Dim cmd : cmd = "echo " & sql & "| """ & DISQL & """ -S " & conn & " 2>nul"
     DmQ = RunCmd(cmd)
+End Function
+
+Function GetDmDataFile()
+    Dim r : r = DmQ("SELECT PATH FROM V$DATAFILE;")
+    Dim lines : lines = Split(Replace(r, Chr(13), ""), Chr(10))
+    Dim i, n, line, parts, first
+    n = 0 : first = ""
+    For i = 0 To UBound(lines)
+        line = Trim(Replace(lines(i), Chr(9), " "))
+        If line <> "" And IsNumeric(Left(line, 1)) Then
+            parts = Split(line, " ", 2)
+            If UBound(parts) >= 1 Then
+                n = n + 1
+                If n = 1 Then first = Trim(parts(1))
+            End If
+        End If
+    Next
+    If n = 0 Then
+        GetDmDataFile = ""
+    ElseIf n > 1 Then
+        GetDmDataFile = first & "（共 " & n & " 个数据文件）"
+    Else
+        GetDmDataFile = first
+    End If
 End Function
 
 Function GetDmIni(key)
@@ -282,6 +307,9 @@ Else
     If InStr(verOut, "DM Database Server") > 0 Then
         DB_VERSION = "DM Database Server"
         CONN_OK = True
+        DATA_DIR = GetDmDataFile()
+        If DATA_DIR = "" Then DATA_DIR = "未采集"
+        WScript.Echo "  数据目录：" & DATA_DIR
         WScript.Echo "  达梦版本：" & DB_VERSION
     Else
         WScript.Echo "  [!] 无法连接达梦数据库，所有项将标记为需人工核查。"
@@ -492,7 +520,7 @@ Sub GenerateHTML()
     ts.WriteLine "  <h1>达梦数据库配置核查报告</h1>"
     ts.WriteLine "  <div class=""sub"">参考标准：配置核查作业指导书v2.0.0</div>"
     ts.WriteLine "  <div class=""meta"">"
-    ts.WriteLine "    <div>连接：" & HtmlEsc(DM_USER & "@" & DM_HOST & ":" & DM_PORT) & "　版本：" & HtmlEsc(DB_VERSION) & "　核查时间：" & CStr(Now()) & "</div>"
+    ts.WriteLine "    <div>连接：" & HtmlEsc(DM_USER & "@" & DM_HOST & ":" & DM_PORT) & "　版本：" & HtmlEsc(DB_VERSION) & "　数据目录：" & HtmlEsc(DATA_DIR) & "　核查时间：" & CStr(Now()) & "</div>"
     ts.WriteLine "  </div>"
     ts.WriteLine "</header>"
     ts.WriteLine "<div class=""dash"">"
@@ -588,7 +616,7 @@ Sub GenerateExcel()
     oExcel.DisplayAlerts = False
 
     oWS.Cells(1,1).Value = "达梦数据库配置核查报告"
-    oWS.Cells(2,1).Value = "连接：" & DM_USER & "@" & DM_HOST & ":" & DM_PORT & "  版本：" & DB_VERSION
+    oWS.Cells(2,1).Value = "连接：" & DM_USER & "@" & DM_HOST & ":" & DM_PORT & "  版本：" & DB_VERSION & "  数据目录：" & DATA_DIR
     oWS.Cells(1,1).Font.Size = 14
     oWS.Cells(1,1).Font.Bold = True
 
@@ -670,7 +698,7 @@ Sub GenerateXLS()
     ts.WriteLine "<style>td,th{border:1px solid #bbb;padding:4px 6px}th.hd{background:#007bff;color:#fff}</style></head><body>"
     ts.WriteLine "<table cellspacing=""0"">"
     ts.WriteLine "<tr><td colspan=""7""><b>达梦数据库配置核查报告</b></td></tr>"
-    ts.WriteLine "<tr><td colspan=""7"">连接：" & HtmlEsc(DM_USER & "@" & DM_HOST & ":" & DM_PORT) & "  版本：" & HtmlEsc(DB_VERSION) & "</td></tr>"
+    ts.WriteLine "<tr><td colspan=""7"">连接：" & HtmlEsc(DM_USER & "@" & DM_HOST & ":" & DM_PORT) & "  版本：" & HtmlEsc(DB_VERSION) & "  数据目录：" & HtmlEsc(DATA_DIR) & "</td></tr>"
     ts.WriteLine "<tr><th class=""hd"">编号</th><th class=""hd"">类别</th><th class=""hd"">检查项</th><th class=""hd"">状态</th><th class=""hd"">详情</th><th class=""hd"">修复建议</th><th class=""hd"">章节</th></tr>"
     Dim i
     For i = 0 To rCount - 1

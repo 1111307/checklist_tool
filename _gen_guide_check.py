@@ -7,7 +7,7 @@
   需人工       = 脚本未执行该项核查（纯方法提示或无覆盖）
 适用对象以核查表 C~M（11 列）勾选矩阵为准。本脚本只读核查脚本源码，不改动任何脚本。
 """
-import re, glob, os, sys, datetime
+import re, glob, os, sys, datetime, json
 from docx import Document
 from openpyxl import load_workbook
 from collections import defaultdict
@@ -475,6 +475,34 @@ _T = [0]
 TNO = {}
 
 
+# 逐项验证方法（与脚本报告「验证过程/方法」列同源：_method_map.json 由 _gen_method_map.py 从指导书提取）
+# 必须按脚本所在目录定位：以前用相对路径 open('_method_map.json')，
+# 从别的 cwd 跑会静默 fallback 到 {}，136 行「验证过程」全变成「—」而没有任何报错。
+_METHOD_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_method_map.json')
+with open(_METHOD_PATH, encoding='utf-8') as _f:
+    _METHOD = json.load(_f)
+
+
+def _cell_safe(s):
+    """md 表格按 | 切列，单元格内容里的半角竖线会让列错位 -> 换全角。"""
+    return (s or '').replace('|', '｜')
+
+
+def _method_cell(code, limit=45):
+    """逐项「验证过程」：取指导书方法摘要（去掉分点编号，超长截断）。"""
+    _d = _METHOD.get(code) or {}
+    _m = (_d.get('method') or '').strip()
+    if not _m:
+        return '—'
+    _m = re.sub(r'\d+\.\d+\.\d+\s*', '', _m)
+    _m = re.sub(r'\s+', ' ', _m).strip('；;、 ')
+    # 数据源里的反斜杠是 json 双重转义留下的（\\root\\），表格里压成单斜杠才像命令
+    _m = re.sub(r'\\{2,}', r'\\', _m)
+    if len(_m) > limit:
+        _m = _m[:limit].rstrip('；;、,， ') + '…'
+    return _cell_safe(_m)
+
+
 def _evidence_cell(code, st, reason):
     """逐项「对应证据」：有抽查图给图号；工具核查项给脚本名；人工项标人工核查。"""
     _ef = ITEM_FIGS.get(code)
@@ -492,10 +520,12 @@ def _evidence_cell(code, st, reason):
     _parts = [p.strip() for p in re.split(r'[；;]', reason or '') if p.strip()]
     if _parts:
         _txt = '；'.join(_parts[:2]).rstrip('；;、,，')
-        _txt = _txt[:(26 if len(_parts) > 2 else 30)].rstrip('；;、,，')
+        # 评审 2026-09-30 第 9 条：原 26/30 字截断会把 "SQL Server" 切成 "SQL Serv"，
+        # 放宽到 60 字，仍保留"等"以示意还有分点
+        _txt = _txt[:(56 if len(_parts) > 2 else 60)].rstrip('；;、,，')
         if _txt.count('（') > _txt.count('）'):        # 截断留下半个括号时，砍到括号前
             _txt = _txt[: _txt.rfind('（')].rstrip('；;、,，')
-        return _txt + ('等' if len(_parts) > 2 else '')
+        return _cell_safe(_txt) + ('等' if len(_parts) > 2 else '')
     return '脚本核查'
 
 
@@ -587,12 +617,15 @@ A('| 可自动化 | 该检查项适用的全部对象，脚本均可自动给出
 A('| 部分可自动化 | 脚本已执行核查，受核查对象或结论性质所限，需结合设备台账或现场情况确认最终结论 |')
 A('| 需人工核查 | 现场查看、文档调阅、实测验证类检查项，由人工按指导书方法完成并留存证据 |')
 A('')
-A('主机防火墙类检查项（第 1.4 项）的判定口径：工具按 firewalld、ufw、iptables 的顺序识别主机防火墙，'
-  '任一种生效即视为具备防火墙功能。其中 firewalld 与 ufw 是 netfilter 的管理前端，iptables 即 netfilter 本体；'
-  '麒麟类系统在等级保护加固中常见「关闭 firewalld、以固化 iptables 规则集」的部署方式，'
-  '因此脚本在 firewalld/ufw 均未运行、但 iptables 已配置规则集时判定为合规，'
-  '判定依据为规则集存在本身；规则集是否随重启持久化、默认策略是否非全放行，属该分支的判定边界，'
-  '需结合现场情况确认（见 2.4）。')
+A('主机防火墙类检查项（第 1.4 项）的判定口径：按评审整改后的要求（2026-09-30），'
+  '防火墙不能只验证「是否具备/是否配置过」，必须验证防火墙服务正在开启运行，未开启的一律判不合规。'
+  '工具按 firewalld、ufw、iptables 的顺序识别主机防火墙：'
+  'firewalld 分支以 systemctl is-active 为 active 且 firewall-cmd --state 返回 running 双重确认'
+  '（服务态与数据面态一致才算运行中）；ufw 分支以 ufw status 输出为 active 判运行、inactive 判不合规；'
+  'firewalld/ufw 均未运行时，无论 iptables 规则集是否非空，一律判不合规（规则条数仅在详情中列作整改参考）。'
+  'Windows 侧以 netsh advfirewall show allprofiles state 逐配置文件统计，'
+  '域、专用、公用三个配置文件全部启用才判合规，任一未启用即判不合规。'
+  '规则集是否随重启持久化、默认策略是否非全放行，仍属人工确认事项（见 2.4）。')
 A('')
 A('## 2.4 验证范围与局限')
 A('')
@@ -621,8 +654,9 @@ A('（3）网络设备 23 项的结论来自运维人员登录设备采集的回
 A('（4）未实测平台（Windows 7 / XP、中标麒麟）的结论为脚本声明兼容，需在对应实机复核后采信。')
 A('（5）操作系统脚本输出 139 项判定，其中 136 项对应指导书编号检查项，另 3 项为脚本在编号体系外补充的核查条目；'
   '汇总报告 227 项为 7 个自动核查组件判定之和，网络设备 23 项在汇总中单列。')
-A('（6）主机防火墙类条目（1.4）在 firewalld/ufw 未运行、依赖 iptables 规则集判合规的场景，'
-  '脚本不校验规则集的持久化与默认策略；此类系统的最终结论建议结合现场确认规则是否随重启生效。')
+A('（6）主机防火墙类条目（1.4）按评审口径「防火墙必须开启且正在运行才判合规」自动判定；'
+  '脚本不校验规则集的持久化与默认策略（如 iptables 规则是否随重启生效、firewalld 默认区域是否全放行），'
+  '该部分建议结合现场确认。')
 A('')
 A('# 3 各章覆盖统计')
 A('')
@@ -681,10 +715,10 @@ for _ci, ch in enumerate(chapters, 1):
     A(f'本章共 {len(detail[ch])} 项检查项，逐项验证结论与对应证据见表 {_tno}。')
     A('')
     _tab(f'{_cname}检查项逐项验证结果')
-    A('| 编号 | 检查项 | 验证结论 | 对应证据 |')
-    A('|---|---|---|---|')
+    A('| 编号 | 检查项 | 验证结论 | 验证过程 | 对应证据 |')
+    A('|---|---|---|---|---|')
     for code, title, appl, st, reason in detail[ch]:
-        A(f'| {code} | {item_name.get(code) or title} | {st} | {_evidence_cell(code, st, reason)} |')
+        A(f'| {code} | {item_name.get(code) or title} | {st} | {_method_cell(code)} | {_evidence_cell(code, st, reason)} |')
     A('')
     _figs = [(FIG_NO[_fn], _fn, _cap) for _g2, _n2, _it in FIG_GROUPS for _fn, _cap in _it
              if FIG_CHAPTER.get(_fn) == _ci]

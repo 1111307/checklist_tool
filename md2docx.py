@@ -242,6 +242,14 @@ def _table(doc, rows):
             for c in t.rows[0].cells:
                 for p in c.paragraphs:
                     p.paragraph_format.keep_with_next = True
+    # 逐项验证表（评审 2026-09-30 第 9 条后为 5 列）：等宽分配会把「检查项」和
+    # 「验证过程」挤成每行 5~6 字的竖条，这里按内容类型给固定列宽（合计≈版心 14.6cm）
+    if len(rows[0]) == 5 and '验证过程' in rows[0]:
+        widths = [1.2, 4.2, 1.9, 4.8, 2.5]
+        t.autofit = False
+        for j, w in enumerate(widths):
+            for r_ in t.rows:
+                r_.cells[j].width = Cm(w)
     return t
 
 def convert(md_path, out_path):

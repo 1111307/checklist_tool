@@ -25,8 +25,17 @@ $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
 
 # ---------- 结果存储 ----------
 $script:R = @()
+# 评审整改（2026-09-30 第4/8条）：method=验证过程/方法（lib_method.ps1，第5章为采集-解析口径）
+if (Test-Path "$ScriptDir\lib_method.ps1") { . "$ScriptDir\lib_method.ps1" }
 function Add-Result([string]$id, [string]$cat, [string]$title, [string]$status, [string]$detail, [string]$chapter, [string]$rec) {
-    $script:R += @{ id = $id; cat = $cat; title = $title; status = $status; detail = $detail; chapter = $chapter; rec = $rec; guide = "《配置核查作业指导书v2.0.0》第5章 网络安全 $id" }
+    # method=验证过程/方法；核查项名对齐指导书（不一致时以指导书为准，脚本项名以〔脚本项名：…〕并入详情前缀）
+    $mt = ''
+    if (Get-Command Method-Of -ErrorAction SilentlyContinue) {
+        $mt = Method-Of $id
+        $gt = Guide-Title-Of $id
+        if ($gt -and $gt -ne $title) { $detail = "〔脚本项名：$title〕$detail"; $title = $gt }
+    }
+    $script:R += @{ id = $id; cat = $cat; title = $title; status = $status; method = $mt; detail = $detail; chapter = $chapter; rec = $rec; guide = "《配置核查作业指导书v2.0.0》第5章 网络安全 $id" }
 }
 function Html-Esc([string]$s) {
     if ($null -eq $s) { return "" }
@@ -495,7 +504,7 @@ function Generate-Html {
     }
     $dataRows = ($script:R | ForEach-Object {
         ('{"ch":"' + (Json-Esc $_.chapter) + '","id":"' + (Json-Esc $_.id) + '","cat":"' + (Json-Esc $_.cat) +
-         '","title":"' + (Json-Esc $_.title) + '","status":"' + $_.status + '","detail":"' + (Json-Esc $_.detail) +
+         '","title":"' + (Json-Esc $_.title) + '","status":"' + $_.status + '","method":"' + (Json-Esc $_.method) + '","detail":"' + (Json-Esc $_.detail) +
          '","rec":"' + (Json-Esc $_.rec) + '","guide":"' + (Json-Esc $_.guide) + '"}')
     }) -join ","
     $dataJson = "[" + $dataRows + "]"
@@ -550,7 +559,7 @@ td.title{min-width:180px;}
 .badge-fail{color:var(--fail);background:var(--fail-bg);border-color:var(--fail-br);}
 .badge-manual{color:var(--manual);background:var(--manual-bg);border-color:var(--manual-br);}
 .badge-na{color:var(--na);background:var(--na-bg);border-color:var(--na-br);}
-td.detail,td.rec{color:#374151;max-width:320px;}
+td.detail,td.rec,td.method,td.req{color:#374151;max-width:320px;}
 .guide{color:var(--muted);font-size:12px;max-width:260px;}
 .empty{padding:60px;text-align:center;color:var(--muted);}
 footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}
@@ -586,7 +595,7 @@ footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}
 </div>
 <div class="panel">
 <table id="tbl">
-<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr></thead>
+<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr></thead>
 <tbody id="tb"></tbody>
 </table>
 <div class="empty" id="empty" style="display:none">没有匹配的核查项</div>
@@ -612,8 +621,10 @@ function render(){
     tr.innerHTML = "<td>"+esc(x.ch)+"</td><td class='id'>"+esc(x.id)+"</td><td class='cat'>"+esc(x.cat)+"</td>"+
       "<td class='title'>"+esc(x.title)+"</td>"+
       "<td><span class='badge badge-"+x.status+"'>"+ST[x.status]+"</span></td>"+
+      "<td class='method'>"+esc(x.method)+"</td>"+
       "<td class='detail'>"+esc(x.detail)+"</td>"+
-      "<td class='rec'>"+esc(x.rec)+"</td>"+
+      "<td class='rec'>"+(x.status=='fail'?esc(x.rec):"")+"</td>"+
+      "<td class='req'>"+(x.status=='fail'?"":esc(x.rec))+"</td>"+
       "<td class='guide'>"+esc(x.guide)+"</td>";
     tb.appendChild(tr);
   });
@@ -661,7 +672,7 @@ function Generate-Xls {
     [void]$sb.AppendLine("<p><b>$REPORT_TITLE</b>　设备：$(Html-Esc $script:DevNames)　核查时间：$now</p>")
     [void]$sb.AppendLine('<p>参考标准：配置核查作业指导书v2.0.0 第5章 网络安全</p>')
     [void]$sb.AppendLine("<p>合规：$pass　不合规：$fail　需人工核查：$manual　不适用：$na</p>")
-    [void]$sb.AppendLine('<table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr>')
+    [void]$sb.AppendLine('<table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>')
     foreach ($r in $script:R) {
         $scn = "不适用"
         switch ($r.status) {
@@ -669,7 +680,11 @@ function Generate-Xls {
             "fail"   { $scn = "不合规" }
             "manual" { $scn = "需人工核查" }
         }
-        [void]$sb.AppendLine("<tr><td>$(Html-Esc $r.chapter)</td><td>$(Html-Esc $r.id)</td><td>$(Html-Esc $r.cat)</td><td>$(Html-Esc $r.title)</td><td>$scn</td><td>$(Html-Esc $r.detail)</td><td>$(Html-Esc $r.rec)</td><td>$(Html-Esc $r.guide)</td></tr>")
+        # 评审整改（2026-09-30 第4/5条）：结果之后插验证过程/方法；建议拆修改建议/安全要求两栏
+        $mt = if ($null -ne $r.method) { $r.method } else { '' }
+        $recFix = if ($r.status -eq 'fail') { $r.rec } else { '' }
+        $reqCol = if ($r.status -eq 'fail') { '' } else { $r.rec }
+        [void]$sb.AppendLine("<tr><td>$(Html-Esc $r.chapter)</td><td>$(Html-Esc $r.id)</td><td>$(Html-Esc $r.cat)</td><td>$(Html-Esc $r.title)</td><td>$scn</td><td>$(Html-Esc $mt)</td><td>$(Html-Esc $r.detail)</td><td>$(Html-Esc $recFix)</td><td>$(Html-Esc $reqCol)</td><td>$(Html-Esc $r.guide)</td></tr>")
     }
     [void]$sb.AppendLine('</table></body></html>')
     $gbk = [System.Text.Encoding]::GetEncoding(936)

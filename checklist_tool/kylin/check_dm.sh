@@ -54,6 +54,7 @@ if [ -n "$DISQL" ]; then
 fi
 
 DB_VERSION=""
+DATA_DIR=""
 CONN_OK=0
 DM_PRESENT=0
 
@@ -473,6 +474,7 @@ REPORT_TAG="达梦"
 REPORT_TITLE="达梦数据库配置核查报告"
 report_meta_html() {
     echo "<div>连接：$(html_esc "$DM_USER@$DM_HOST:$DM_PORT")　版本：$(html_esc "${DB_VERSION:-未连接}")</div>"
+    echo "<div>数据目录：$(html_esc "${DATA_DIR:-未采集}")</div>"
     echo "<div>主机名：$(hostname 2>/dev/null)　核查时间：$(date '+%Y-%m-%d %H:%M:%S')</div>"
     echo "<div>参考标准：配置核查作业指导书v2.0.0 / 配置核查表_v2.0.0.xlsx</div>"
 }
@@ -676,7 +678,7 @@ th{background:#1a3c6e;color:#fff;font-weight:bold;}
 </style>
 </head>
 <body>
-<p>达梦数据库配置核查报告　连接：$(html_esc "$DM_USER@$DM_HOST:$DM_PORT")　版本：$(html_esc "${DB_VERSION:-未连接}")　核查时间：$(date '+%Y-%m-%d %H:%M:%S')</p>
+<p>达梦数据库配置核查报告　连接：$(html_esc "$DM_USER@$DM_HOST:$DM_PORT")　版本：$(html_esc "${DB_VERSION:-未连接}")　数据目录：$(html_esc "${DATA_DIR:-未采集}")　核查时间：$(date '+%Y-%m-%d %H:%M:%S')</p>
 <p>合规：$pass　不合规：$fail　需人工核查：$manual　不适用：$na</p>
 XLSHEAD
         if [ "$fail" -gt 0 ]; then echo "<p><b>一、未通过（$fail 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>"; build_table_rows_by_status fail; echo "</table>"; fi
@@ -873,6 +875,9 @@ if [ -z "$DISQL" ]; then
     echo "  未检测到 disql 客户端，所有项将标记为不适用。"
 elif DB_VERSION="$(dm_q "SELECT * FROM V\$VERSION;" 2>/dev/null | grep -oE 'DM Database Server[^[:space:]]* [0-9]+ V[0-9]+' | head -1)"; [ -n "$DB_VERSION" ]; then
     DM_PRESENT=1; CONN_OK=1
+    DATA_DIR="$(dm_q "SELECT PATH FROM V\$DATAFILE;" 2>/dev/null | awk 'NF>=2 && $1 ~ /^[0-9]+$/ {sub(/^[ \t]*[0-9]+[ \t]+/, ""); print; exit}')"
+    [ -z "$DATA_DIR" ] && DATA_DIR="未采集"
+    echo "  数据目录：$DATA_DIR"
     echo "  达梦版本：$DB_VERSION"
 else
     DM_PRESENT=1; CONN_OK=0

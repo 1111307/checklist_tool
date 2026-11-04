@@ -41,6 +41,7 @@ MSSQL_USER="${MSSQL_USER:-sa}"
 MSSQL_PASS="${MSSQL_PASS:-$(read_config MSSQL_PASS)}"
 
 DB_VERSION=""
+DATA_DIR=""
 CONN_OK=0
 MSSQL_PRESENT=0
 
@@ -455,6 +456,7 @@ REPORT_TAG="SQLServer"
 REPORT_TITLE="SQL Server 数据库配置核查报告"
 report_meta_html() {
     echo "<div>连接：$(html_esc "$MSSQL_USER@$MSSQL_HOST:$MSSQL_PORT")　版本：$(html_esc "${DB_VERSION:-未连接}")</div>"
+    echo "<div>数据目录：$(html_esc "${DATA_DIR:-未采集}")</div>"
     echo "<div>主机名：$(hostname 2>/dev/null)　核查时间：$(date '+%Y-%m-%d %H:%M:%S')</div>"
     echo "<div>参考标准：配置核查作业指导书v2.0.0 / 配置核查表_v2.0.0.xlsx</div>"
 }
@@ -658,7 +660,7 @@ th{background:#1a3c6e;color:#fff;font-weight:bold;}
 </style>
 </head>
 <body>
-<p>SQL Server 数据库配置核查报告　连接：$(html_esc "$MSSQL_USER@$MSSQL_HOST:$MSSQL_PORT")　版本：$(html_esc "${DB_VERSION:-未连接}")　核查时间：$(date '+%Y-%m-%d %H:%M:%S')</p>
+<p>SQL Server 数据库配置核查报告　连接：$(html_esc "$MSSQL_USER@$MSSQL_HOST:$MSSQL_PORT")　版本：$(html_esc "${DB_VERSION:-未连接}")　数据目录：$(html_esc "${DATA_DIR:-未采集}")　核查时间：$(date '+%Y-%m-%d %H:%M:%S')</p>
 <p>合规：$pass　不合规：$fail　需人工核查：$manual　不适用：$na</p>
 XLSHEAD
         if [ "$fail" -gt 0 ]; then echo "<p><b>一、未通过（$fail 项）</b></p><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>"; build_table_rows_by_status fail; echo "</table>"; fi
@@ -859,6 +861,9 @@ if [ -z "$SQLCMD" ]; then
     echo "  未检测到 sqlcmd 客户端，所有项将标记为不适用。"
 elif DB_VERSION="$(sql_q "SELECT SERVERPROPERTY('ProductVersion');" 2>/dev/null | tr -d '[:space:]')"; [ -n "$DB_VERSION" ]; then
     MSSQL_PRESENT=1; CONN_OK=1
+    DATA_DIR="$(sql_q "SELECT TOP 1 physical_name FROM sys.master_files;" 2>/dev/null | awk 'NF' | head -1)"
+    [ -z "$DATA_DIR" ] && DATA_DIR="未采集"
+    echo "  数据目录：$DATA_DIR"
     echo "  SQL Server 版本：$DB_VERSION"
 else
     MSSQL_PRESENT=1; CONN_OK=0
