@@ -11,7 +11,7 @@
 #   7 列（旧组件报告） 编号/类别/检查项/状态/详情/修复建议/章节
 #   8 列（网络设备版） 章节/编号/类别/核查项/结果/详情/建议/参考指导书
 #   10 列（整改后）    章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/核查要求/参考指导书
-# 输出 13 列：设备/组件/章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/核查要求/参考指导书/数据目录
+# 输出 14 列：设备/组件/章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/核查要求/参考指导书/数据目录/报告文件
 # ============================================================
 param([string]$OutDir)
 
@@ -225,7 +225,8 @@ foreach ($k in ($sources.Keys | Sort-Object)) {
             $chVal, $id, (Get-Cell $r $iCat), $title,
             (Get-Cell $r $iStatus), (Get-Cell $r $iMethod), (Get-Cell $r $iDetail),
             (Get-Cell $r $iRec), (Get-Cell $r $iReq), (Get-Cell $r $iRef),
-            $(if ($t.DataDir) { $t.DataDir } else { '-' })
+            $(if ($t.DataDir) { $t.DataDir } else { '-' }),
+            [System.IO.Path]::GetFileName($src.Path)
         )
     }
 }
@@ -234,7 +235,7 @@ if ($allRows.Count -eq 0) { Write-Host "[跳过] 未提取到数据行"; exit 0 
 # ---------- 构建 sheet XML（12 列 A-L） ----------
 function Col([int]$n) { [char](64 + $n) }
 $headers = @('设备', '组件', '章节', '编号', '类别', '核查项', '结果',
-             '验证过程/方法', '详情', '修改建议', '核查要求', '参考指导书', '数据目录')
+             '验证过程/方法', '详情', '修改建议', '核查要求', '参考指导书', '数据目录', '报告文件')
 $nCol = $headers.Count
 $sb = New-Object System.Text.StringBuilder
 $title = "配置核查汇总报告（$($devSet.Count) 台设备 / $($sources.Count) 份组件报告 / $($allRows.Count) 项）"
