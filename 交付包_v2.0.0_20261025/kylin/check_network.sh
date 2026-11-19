@@ -873,7 +873,7 @@ footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}
 </div>
 <div class="panel">
 <table id="tbl">
-<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr></thead>
+<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>核查要求</th><th>参考指导书</th></tr></thead>
 <tbody id="tb"></tbody>
 </table>
 <div class="empty" id="empty" style="display:none">没有匹配的核查项</div>
@@ -963,7 +963,7 @@ th{background:#1a3c6e;color:#fff;font-weight:bold;}
 <p>参考标准：配置核查作业指导书v2.0.0 第5章 网络安全</p>
 <p>合规：$pass　不合规：$fail　需人工核查：$manual　不适用：$na</p>
 XLSHEAD
-        echo "<table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>"
+        echo "<table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>核查要求</th><th>参考指导书</th></tr>"
         for ((i=1; i<=R_COUNT; i++)); do
             local scn
             case "${R_STATUS[$i]}" in pass) scn="合规";; fail) scn="不合规";; manual) scn="需人工核查";; *) scn="不适用";; esac

@@ -166,7 +166,7 @@ function Build-Rows([string]$want) {
     $sb = New-Object System.Text.StringBuilder
     foreach ($r in ($script:R | Where-Object { $_.Status -eq $want })) {
         $color = Status-Color $r.Status; $scn = Status-CN $r.Status
-        # 评审整改（2026-09-30 第4/5条）：结果之后插验证过程/方法；建议拆修改建议/安全要求两栏
+        # 评审整改（2026-09-30 第4/5条）：结果之后插验证过程/方法；建议拆修改建议/核查要求两栏
         $mt = if ($null -ne $r.Method) { $r.Method } else { '' }
         $recFix = if ($r.Status -eq 'fail') { $r.Rec } else { '' }
         $reqCol = if ($r.Status -eq 'fail') { '' } else { $r.Rec }
@@ -191,10 +191,10 @@ th{background:#1a3c6e;color:#fff;position:sticky;top:0;}tr:nth-child(even){backg
 <h1>SQL Server 数据库配置核查报告</h1><div class="meta"><div>$meta</div><div>参考标准：配置核查作业指导书v2.0.0 / 配置核查表_v2.0.0.xlsx</div></div>
 <div class="summary"><div class="card pass">合规<br>$pass</div><div class="card fail">不合规<br>$fail</div><div class="card manual">需人工核查<br>$manual</div><div class="card na">不适用<br>$na</div></div>
 "@
-    if ($fail -gt 0) { $html += "<h2>一、未通过（$fail 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>$(Build-Rows 'fail')</table>" }
-    if ($manual -gt 0) { $html += "<h2>二、需人工核查（$manual 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>$(Build-Rows 'manual')</table>" }
-    if ($na -gt 0) { $html += "<h2>三、不适用（$na 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>$(Build-Rows 'na')</table>" }
-    if ($pass -gt 0) { $html += "<h2>四、通过（$pass 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr>$(Build-Rows 'pass')</table>" }
+    if ($fail -gt 0) { $html += "<h2>一、未通过（$fail 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>核查要求</th><th>参考指导书</th></tr>$(Build-Rows 'fail')</table>" }
+    if ($manual -gt 0) { $html += "<h2>二、需人工核查（$manual 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>核查要求</th><th>参考指导书</th></tr>$(Build-Rows 'manual')</table>" }
+    if ($na -gt 0) { $html += "<h2>三、不适用（$na 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>核查要求</th><th>参考指导书</th></tr>$(Build-Rows 'na')</table>" }
+    if ($pass -gt 0) { $html += "<h2>四、通过（$pass 项）</h2><table><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>核查要求</th><th>参考指导书</th></tr>$(Build-Rows 'pass')</table>" }
     $html += "</body></html>"
     $htmlfile = Join-Path $OutDir "配置核查报告_SQLServer_$Stamp.html"
     $xlsfile = Join-Path $OutDir "配置核查报告_SQLServer_$Stamp.xls"
@@ -246,7 +246,7 @@ Write-Host "核查完成，共 $($script:R.Count) 项："
 Write-Host "  合规(pass)：$pass    不合规(fail)：$fail    需人工核查(manual)：$manual    不适用(na)：$na"
 Gen-Report
 if (Get-Command New-Xlsx -ErrorAction SilentlyContinue) {
-    New-Xlsx -OutFile "$OutDir\配置核查报告_SQLServer_$Stamp.xlsx" -Title "SQL Server 数据库配置核查报告" -Rows $script:R -GuideScript { param($id) Guide-Ref $id }
+    New-Xlsx -OutFile "$OutDir\配置核查报告_SQLServer_$Stamp.xlsx" -Title "SQL Server 数据库配置核查报告" -Rows $script:R -Meta "数据目录：$($script:DATA_DIR)" -GuideScript { param($id) Guide-Ref $id }
 }
 Write-Host ""
 Write-Host "核查完成，请到 output\ 目录查看 HTML/XLS/XLSX 报告。"

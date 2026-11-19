@@ -56,7 +56,7 @@ xlsx_cell() {
 
 # 生成 sheet1.xml（标题/汇总/表头/数据）
 build_sheet_xml() {
-    local title="$1" i r
+    local title="$1" meta="${2-}" i r
     local pass=0 fail=0 manual=0 na=0
     for ((i=1; i<=R_COUNT; i++)); do
         case "${R_STATUS[$i]}" in
@@ -73,6 +73,10 @@ build_sheet_xml() {
     # 汇总行
     local summary="合规：${pass}　不合规：${fail}　需人工核查：${manual}　不适用：${na}　共 ${R_COUNT} 项"
     printf '<row r="2"><c r="A2" t="inlineStr"><is><t>%s</t></is></c></row>\n' "$(xml_esc "$summary")"
+    # 元信息行（第3行）：承载「数据目录」等实例信息，供汇总表取数
+    if [ -n "$meta" ]; then
+        printf '<row r="3"><c r="A3" t="inlineStr"><is><t>%s</t></is></c></row>\n' "$(xml_esc "$meta")"
+    fi
     # 表头行（第4行）
     printf '<row r="4">'
     printf '%s' "$(xlsx_cell "A4" "章节")"
@@ -83,7 +87,7 @@ build_sheet_xml() {
     printf '%s' "$(xlsx_cell "F4" "验证过程/方法")"
     printf '%s' "$(xlsx_cell "G4" "详情")"
     printf '%s' "$(xlsx_cell "H4" "修改建议")"
-    printf '%s' "$(xlsx_cell "I4" "安全要求")"
+    printf '%s' "$(xlsx_cell "I4" "核查要求")"
     printf '%s' "$(xlsx_cell "J4" "参考指导书")"
     printf '%s\n' '</row>'
     # 数据行（从第5行开始）
@@ -112,9 +116,9 @@ build_sheet_xml() {
 }
 
 # 生成真 .xlsx
-# 用法：generate_xlsx <outfile> <title>
+# 用法：generate_xlsx <outfile> <title> [meta]
 generate_xlsx() {
-    local outfile="$1" title="${2:-配置核查报告}"
+    local outfile="$1" title="${2:-配置核查报告}" meta="${3-}"
     local tmpdir i
 
     if ! command -v zip >/dev/null 2>&1; then
@@ -161,7 +165,7 @@ EOF
 EOF
 
     # xl/worksheets/sheet1.xml
-    build_sheet_xml "$title" > "$tmpdir/xl/worksheets/sheet1.xml"
+    build_sheet_xml "$title" "$meta" > "$tmpdir/xl/worksheets/sheet1.xml"
 
     # 打包：[Content_Types].xml 必须作为第一个条目
     rm -f "$outfile"

@@ -10,8 +10,8 @@
 # 列结构自适应：按表头文字识别，兼容
 #   7 列（旧组件报告） 编号/类别/检查项/状态/详情/修复建议/章节
 #   8 列（网络设备版） 章节/编号/类别/核查项/结果/详情/建议/参考指导书
-#   10 列（整改后）    章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/安全要求/参考指导书
-# 输出 12 列：设备/组件/章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/安全要求/参考指导书
+#   10 列（整改后）    章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/核查要求/参考指导书
+# 输出 13 列：设备/组件/章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/核查要求/参考指导书/数据目录
 # ============================================================
 param([string]$OutDir)
 
@@ -70,6 +70,11 @@ function Read-SheetTable([string]$xlsxFile) {
         $ss = Read-SharedStrings $zip
         $zip.Dispose(); $fs.Close()
     } catch { return $null }
+
+    # 元信息：源报告第 3 行的「数据目录：…」（数据库类报告才有）
+    $dataDir = ''
+    $dm = [regex]::Match($xml, '数据目录：([^<　\r\n]*)')
+    if ($dm.Success) { $dataDir = $dm.Groups[1].Value.Trim() }
 
     $rows = @()
     foreach ($m in [regex]::Matches($xml, '<row[^>]*>(.*?)</row>', 'Singleline')) {
@@ -134,7 +139,7 @@ function Read-SheetTable([string]$xlsxFile) {
 
     $data = @()
     if ($hdr + 1 -le $rows.Count - 1) { $data = @($rows[($hdr + 1)..($rows.Count - 1)]) }
-    return @{ Header = $rows[$hdr]; Rows = $data }
+    return @{ Header = $rows[$hdr]; Rows = $data; DataDir = $dataDir }
 }
 
 # 按候选列名取索引
@@ -205,7 +210,7 @@ foreach ($k in ($sources.Keys | Sort-Object)) {
     $iMethod = Get-ColIdx $h @('验证过程/方法', '验证过程', '方法')
     $iDetail = Get-ColIdx $h @('详情')
     $iRec    = Get-ColIdx $h @('修改建议', '建议', '修复建议')
-    $iReq    = Get-ColIdx $h @('安全要求')
+    $iReq    = Get-ColIdx $h @('核查要求')
     if ($iId -lt 0 -or $iStatus -lt 0) { Write-Host "  [跳过] 表头不含编号/结果：$($src.Path)"; continue }
 
     foreach ($r in $t.Rows) {
@@ -219,7 +224,8 @@ foreach ($k in ($sources.Keys | Sort-Object)) {
             $src.Device, $src.Component,
             $chVal, $id, (Get-Cell $r $iCat), $title,
             (Get-Cell $r $iStatus), (Get-Cell $r $iMethod), (Get-Cell $r $iDetail),
-            (Get-Cell $r $iRec), (Get-Cell $r $iReq), (Get-Cell $r $iRef)
+            (Get-Cell $r $iRec), (Get-Cell $r $iReq), (Get-Cell $r $iRef),
+            $(if ($t.DataDir) { $t.DataDir } else { '-' })
         )
     }
 }
@@ -228,7 +234,7 @@ if ($allRows.Count -eq 0) { Write-Host "[跳过] 未提取到数据行"; exit 0 
 # ---------- 构建 sheet XML（12 列 A-L） ----------
 function Col([int]$n) { [char](64 + $n) }
 $headers = @('设备', '组件', '章节', '编号', '类别', '核查项', '结果',
-             '验证过程/方法', '详情', '修改建议', '安全要求', '参考指导书')
+             '验证过程/方法', '详情', '修改建议', '核查要求', '参考指导书', '数据目录')
 $nCol = $headers.Count
 $sb = New-Object System.Text.StringBuilder
 $title = "配置核查汇总报告（$($devSet.Count) 台设备 / $($sources.Count) 份组件报告 / $($allRows.Count) 项）"

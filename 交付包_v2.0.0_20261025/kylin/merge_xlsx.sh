@@ -10,7 +10,7 @@
 #   2) 多设备：output/服务器A/、output/服务器B/  -> 设备列填子目录名
 #
 # 列结构自适应：按表头文字识别，兼容 7 / 8 / 10 列三种报告
-# 输出 12 列：设备/组件/章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/安全要求/参考指导书
+# 输出 13 列：设备/组件/章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/核查要求/参考指导书/数据目录
 # 单元格支持 inlineStr（本工具生成）与 sharedStrings（WPS/LibreOffice 重存）
 # ============================================================
 set -u
@@ -65,6 +65,7 @@ BEGIN {
     comp   = ENVIRON["COMP"]
     dev    = ENVIRON["DEV"]
     hasnet = ENVIRON["HASNET"]
+    dataDir = ENVIRON["DATADIR"]
     ssn = 0
     if (ssfile != "") {
         while ((getline line < ssfile) > 0) { ssn++; SS[ssn] = line }
@@ -130,7 +131,7 @@ BEGIN {
     iMethod = ("验证过程/方法" in H) ? H["验证过程/方法"] : (("验证过程" in H) ? H["验证过程"] : (("方法" in H) ? H["方法"] : -1))
     iDetail = ("详情" in H) ? H["详情"] : -1
     iRec = ("修改建议" in H) ? H["修改建议"] : (("建议" in H) ? H["建议"] : (("修复建议" in H) ? H["修复建议"] : -1))
-    iReq = ("安全要求" in H) ? H["安全要求"] : -1
+    iReq = ("核查要求" in H) ? H["核查要求"] : -1
 
     id = (iId >= 0) ? cells[iId] : ""
     title = (iTitle >= 0) ? cells[iTitle] : ""
@@ -152,11 +153,12 @@ BEGIN {
     out[10] = (iRec >= 0) ? cells[iRec] : ""
     out[11] = (iReq >= 0) ? cells[iReq] : ""
     out[12] = ref
+    out[13] = (dataDir != "") ? dataDir : "-"
     # 直接输出完整 <row> XML。旧版输出 tab 分隔文本再交给 bash 的 read -a，
     # 但 tab 属 IFS 空白字符，连续分隔符会被合并，空单元格会让后面所有列左移。
     rn = ++outn + 4
     rowxml = "<row r=\"" rn "\">"
-    for (i = 1; i <= 12; i++) {
+    for (i = 1; i <= 13; i++) {
         rowxml = rowxml "<c r=\"" cltr(i) rn "\" t=\"inlineStr\"><is><t xml:space=\"preserve\">" \
                  xesc(out[i]) "</t></is></c>"
     }
@@ -229,6 +231,11 @@ merge_xlsx() {
         base="$(basename "$f" .xlsx)"; base="${base#配置核查报告_}"
         comp="${base%%_*}"
         [[ "$comp" =~ ^[0-9]+$ ]] && comp="操作系统"
+        # 元信息：源报告第 3 行的「数据目录：…」（数据库类报告才有）
+        local data_dir
+        data_dir="$(unzip -p "$f" xl/worksheets/sheet1.xml 2>/dev/null | tr -d '\r' | tr -d '\n' \
+                    | grep -o '数据目录：[^<]*' | head -1 | sed 's/^数据目录：//')"
+        [ -z "$data_dir" ] && data_dir="-"
         # 共享字符串（WPS/LibreOffice 重存的 xlsx 用这个）
         local ssfile="$tmp/ss.txt"; : > "$ssfile"
         # 每个 <si> 必须输出且只输出一行（含空 <si>），否则后面所有索引都会错位；
@@ -250,14 +257,14 @@ merge_xlsx() {
           | tr -d '\r' | tr -d '\n' \
           | sed 's#</row>#</row>\n#g' \
           | grep -E '<row' \
-          | SSFILE="$ssfile" COMP="$comp" DEV="$dev" HASNET="$HAS_NETDEV" awk "$AWK_PARSE" \
+          | SSFILE="$ssfile" COMP="$comp" DEV="$dev" HASNET="$HAS_NETDEV" DATADIR="$data_dir" awk "$AWK_PARSE" \
           >> "$rowsfile"
     done
 
     total="$(wc -l < "$rowsfile")"
     if [ "$total" -eq 0 ]; then echo "[跳过] 未提取到数据行"; rm -rf "$tmp"; return 0; fi
 
-    # ---- 生成汇总 sheet1.xml（12 列 A-L）----
+    # ---- 生成汇总 sheet1.xml（13 列 A-M）----
     local sheet="$tmp/sheet.xml"
     local devcount
     devcount="$(printf '%s\n' "${devs[@]}" | sort -u | wc -l)"
@@ -267,8 +274,8 @@ merge_xlsx() {
         printf '<row r="1"><c r="A1" t="inlineStr"><is><t xml:space="preserve">%s</t></is></c></row>\n' "$(xml_esc "配置核查汇总报告（$devcount 台设备 / $compcount 份组件报告 / $total 项）")"
         printf '<row r="4">'
         local hd hdi
-        hd=("设备" "组件" "章节" "编号" "类别" "核查项" "结果" "验证过程/方法" "详情" "修改建议" "安全要求" "参考指导书")
-        for hdi in $(seq 0 11); do
+        hd=("设备" "组件" "章节" "编号" "类别" "核查项" "结果" "验证过程/方法" "详情" "修改建议" "核查要求" "参考指导书" "数据目录")
+        for hdi in $(seq 0 12); do
             printf '<c r="%s4" t="inlineStr"><is><t xml:space="preserve">%s</t></is></c>' "$(col_letter $((hdi+1)))" "${hd[$hdi]}"
         done
         printf '%s\n' '</row>'

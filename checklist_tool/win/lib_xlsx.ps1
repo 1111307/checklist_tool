@@ -24,6 +24,7 @@ function New-Xlsx {
         [string]$OutFile,
         [string]$Title = '配置核查报告',
         [object[]]$Rows,
+        [string]$Meta = '',
         [scriptblock]$GuideScript = $null
     )
 
@@ -39,7 +40,11 @@ function New-Xlsx {
     [void]$sb.Append('<row r="1"><c r="A1" t="inlineStr"><is><t>' + (Xml-Esc $Title) + '</t></is></c></row>')
     $summary = "合规：$pass　不合规：$fail　需人工核查：$manual　不适用：$na　共 $($Rows.Count) 项"
     [void]$sb.Append('<row r="2"><c r="A2" t="inlineStr"><is><t>' + (Xml-Esc $summary) + '</t></is></c></row>')
-    $hd = @('章节','编号','类别','核查项','结果','验证过程/方法','详情','修改建议','安全要求','参考指导书')
+    # 元信息行（第3行）：承载「数据目录」等实例信息，供汇总表取数
+    if ($Meta) {
+        [void]$sb.Append('<row r="3"><c r="A3" t="inlineStr"><is><t>' + (Xml-Esc $Meta) + '</t></is></c></row>')
+    }
+    $hd = @('章节','编号','类别','核查项','结果','验证过程/方法','详情','修改建议','核查要求','参考指导书')
     [void]$sb.Append('<row r="4">')
     for ($c = 0; $c -lt 10; $c++) {
         $ref = [char](65 + $c) + '4'
@@ -51,7 +56,7 @@ function New-Xlsx {
         $ri++
         $rn = $ri + 4
         $guide = if ($GuideScript) { & $GuideScript $r.Id } else { '' }
-        # 评审整改（2026-09-30 第4/5条）：验证过程/方法列 + 修改建议/安全要求按状态分栏
+        # 评审整改（2026-09-30 第4/5条）：验证过程/方法列 + 修改建议/核查要求按状态分栏
         $mt = if ($null -ne $r.Method) { $r.Method } else { '' }
         $recFix = if ($r.Status -eq 'fail') { $r.Rec } else { '' }
         $reqCol = if ($r.Status -eq 'fail') { '' } else { $r.Rec }

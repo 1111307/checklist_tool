@@ -13,8 +13,8 @@
 ' 列结构自适应：按报告表头文字识别列，兼容
 '   7 列（2026-09 前组件报告） 编号/类别/检查项/状态/详情/修复建议/章节
 '   8 列（网络设备版）         章节/编号/类别/核查项/结果/详情/建议/参考指导书
-'   10 列（2026-09-30 整改后） 章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/安全要求/参考指导书
-' 汇总输出 12 列：设备/组件/章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/安全要求/参考指导书
+'   10 列（2026-09-30 整改后） 章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/核查要求/参考指导书
+' 汇总输出 13 列：设备/组件/章节/编号/类别/核查项/结果/验证过程·方法/详情/修改建议/核查要求/参考指导书/数据目录
 ' ============================================================
 Option Explicit
 
@@ -120,6 +120,15 @@ Function AppendRows(ts, xlsPath, comp, dev)
     Dim content : content = f.ReadAll
     f.Close
 
+    ' 汇总表「数据目录」列（评审第7条）：从源报告 meta 行取「数据目录：…」
+    Dim sData : sData = "-"
+    Dim reDD : Set reDD = New RegExp
+    reDD.Global = False
+    reDD.Pattern = "数据目录：([^<" & Chr(10) & Chr(13) & "　]*)"
+    Dim mDD : Set mDD = reDD.Execute(content)
+    If mDD.Count > 0 Then sData = Trim(mDD(0).SubMatches(0))
+    If sData = "" Then sData = "-"
+
     Dim cm : Set cm = BuildColMap(content)
     Dim iId     : iId     = ColIdx(cm, "编号")
     Dim iCat    : iCat    = ColIdx(cm, "类别|分类")
@@ -128,7 +137,7 @@ Function AppendRows(ts, xlsPath, comp, dev)
     Dim iMethod : iMethod = ColIdx(cm, "验证过程/方法|验证过程|方法")
     Dim iDetail : iDetail = ColIdx(cm, "详情")
     Dim iRec    : iRec    = ColIdx(cm, "修改建议|建议|修复建议")
-    Dim iReq    : iReq    = ColIdx(cm, "安全要求")
+    Dim iReq    : iReq    = ColIdx(cm, "核查要求")
     Dim iCh     : iCh     = ColIdx(cm, "章节")
     Dim iRef    : iRef    = ColIdx(cm, "参考指导书|章节")
 
@@ -176,6 +185,7 @@ Function AppendRows(ts, xlsPath, comp, dev)
                     ts.WriteLine "<td>" & HtmlEsc(StripTags(CellVal(mtd, iRec, ntd))) & "</td>"
                     ts.WriteLine "<td>" & HtmlEsc(StripTags(CellVal(mtd, iReq, ntd))) & "</td>"
                     ts.WriteLine "<td>" & HtmlEsc(sRef) & "</td>"
+                    ts.WriteLine "<td>" & HtmlEsc(sData) & "</td>"
                     ts.WriteLine "</tr>"
                     n = n + 1
                 End If
@@ -243,8 +253,8 @@ Sub GenerateMerge(rootDir)
     ts.WriteLine "<head><meta http-equiv=""Content-Type"" content=""text/html; charset=GBK"">"
     ts.WriteLine "<style>td,th{border:1px solid #bbb;padding:4px 6px}th.hd{background:#007bff;color:#fff;font-weight:bold}</style></head><body>"
     ts.WriteLine "<table cellspacing=""0"">"
-    ts.WriteLine "<tr><td colspan=""12""><b>配置核查汇总报告（" & devCount & " 台设备 / " & fileMap.Count & " 份组件报告）</b></td></tr>"
-    ts.WriteLine "<tr><th class=""hd"">设备</th><th class=""hd"">组件</th><th class=""hd"">章节</th><th class=""hd"">编号</th><th class=""hd"">类别</th><th class=""hd"">核查项</th><th class=""hd"">结果</th><th class=""hd"">验证过程/方法</th><th class=""hd"">详情</th><th class=""hd"">修改建议</th><th class=""hd"">安全要求</th><th class=""hd"">参考指导书</th></tr>"
+    ts.WriteLine "<tr><td colspan=""13""><b>配置核查汇总报告（" & devCount & " 台设备 / " & fileMap.Count & " 份组件报告）</b></td></tr>"
+    ts.WriteLine "<tr><th class=""hd"">设备</th><th class=""hd"">组件</th><th class=""hd"">章节</th><th class=""hd"">编号</th><th class=""hd"">类别</th><th class=""hd"">核查项</th><th class=""hd"">结果</th><th class=""hd"">验证过程/方法</th><th class=""hd"">详情</th><th class=""hd"">修改建议</th><th class=""hd"">核查要求</th><th class=""hd"">参考指导书</th><th class=""hd"">数据目录</th></tr>"
 
     Dim total : total = 0
     For Each k In fileMap.Keys

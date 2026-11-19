@@ -3187,7 +3187,7 @@ Sub GenerateHTML()
     ts.WriteLine "</div>"
     ts.WriteLine "<div class=""panel"">"
     ts.WriteLine "<table id=""tbl"">"
-    ts.WriteLine "<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>安全要求</th><th>参考指导书</th></tr></thead>"
+    ts.WriteLine "<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>核查要求</th><th>参考指导书</th></tr></thead>"
     ts.WriteLine "<tbody id=""tb""></tbody>"
     ts.WriteLine "</table>"
     ts.WriteLine "<div class=""empty"" id=""empty"" style=""display:none"">没有匹配的核查项</div>"
@@ -3275,7 +3275,7 @@ Sub GenerateExcel()
     oWS.Cells(1,1).Font.Bold = True
 
     Dim row : row = 4
-    Dim headers : headers = Array("编号","类别","检查项","状态","验证过程/方法","详情","修改建议","安全要求","章节")
+    Dim headers : headers = Array("编号","类别","检查项","状态","验证过程/方法","详情","修改建议","核查要求","章节")
     Dim c
     For c = 1 To 9
         oWS.Cells(row,c).Value = headers(c-1)
@@ -3360,7 +3360,7 @@ Sub GenerateCSV()
     If Not oFSO.FolderExists(outDirAbs) Then oFSO.CreateFolder(outDirAbs)
     Dim csvPath : csvPath = outDirAbs & "\配置核查报告_" & stamp & ".csv"
     Dim ts : Set ts = oFSO.CreateTextFile(csvPath, True, False)
-    ts.WriteLine "编号,类别,检查项,状态,验证过程/方法,详情,修改建议,安全要求,章节"
+    ts.WriteLine "编号,类别,检查项,状态,验证过程/方法,详情,修改建议,核查要求,章节"
     Dim i
     For i = 0 To rCount - 1
         Dim statusText
@@ -3418,7 +3418,7 @@ Sub GenerateXLS()
     ts.WriteLine "<tr><td colspan=""9"" class=""title"">配置核查报告（Windows XP/7版）</td></tr>"
     ts.WriteLine "<tr><td colspan=""9"" class=""sub"">生成时间：" & HtmlEsc(CStr(dtNow)) & "  系统：" & HtmlEsc(osCaption) & "</td></tr>"
     ts.WriteLine "<tr></tr>"
-    ts.WriteLine "<tr><th class=""hd"">编号</th><th class=""hd"">类别</th><th class=""hd"">检查项</th><th class=""hd"">状态</th><th class=""hd"">验证过程/方法</th><th class=""hd"">详情</th><th class=""hd"">修改建议</th><th class=""hd"">安全要求</th><th class=""hd"">章节</th></tr>"
+    ts.WriteLine "<tr><th class=""hd"">编号</th><th class=""hd"">类别</th><th class=""hd"">检查项</th><th class=""hd"">状态</th><th class=""hd"">验证过程/方法</th><th class=""hd"">详情</th><th class=""hd"">修改建议</th><th class=""hd"">核查要求</th><th class=""hd"">章节</th></tr>"
     Dim i
     For i = 0 To rCount - 1
         Dim statusText, statusCls
