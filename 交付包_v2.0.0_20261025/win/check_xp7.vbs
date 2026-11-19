@@ -361,7 +361,7 @@ Sub Check_1_17_Redis()
                        "在 redis.conf 中设置：bind 127.0.0.1，重启Redis服务")
     Else
         Call AddResult("1.17", "系统安全", "限制Redis等远程管理服务端口", _
-                       "pass", "Redis端口已绑定本地地址，未对外放开。" & Chr(10) & netOut, "第1章 第1.17节", "")
+                       "pass", "Redis端口已绑定本地地址，未对外放开。" & Chr(10) & Snippet(netOut, 200), "第1章 第1.17节", "")
     End If
 End Sub
 
