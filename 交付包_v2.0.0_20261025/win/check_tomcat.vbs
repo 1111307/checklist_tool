@@ -70,7 +70,76 @@ Function ReqOf(i)
     If rStatus(i) = "fail" Then ReqOf = "" Else ReqOf = rRec(i)
 End Function
 
+Function CleanText(s)
+    ' 报告以 GBK 落盘；命令输出里可能混入 UTF-8 字节被逐字节读入的字符（U+0080-U+00FF）
+    ' 或控制符/代理对，这些写进 GBK 会产生非法字节并破坏整个 HTML 的编码，统一在此丢弃。
+    Dim t : t = s
+    If IsNull(t) Then t = ""
+    Dim i, ch, code, out
+    out = ""
+    For i = 1 To Len(t)
+        ch = Mid(t, i, 1)
+        code = AscW(ch)
+        If code < 0 Then code = code + 65536
+        If code = 9 Or code = 10 Or code = 13 Then
+            out = out & ch
+        ElseIf code < 32 Then
+            ' 其他控制符：丢弃
+        ElseIf code >= 128 And code <= 255 Then
+            ' UTF-8 多字节被当成单字节读入的残留：丢弃
+        ElseIf code >= 55296 And code <= 57343 Then
+            ' 代理对：丢弃
+        Else
+            out = out & ch
+        End If
+    Next
+    CleanText = out
+End Function
+
+Function Snippet(s, n)
+    ' 命令输出只保留可打印 ASCII：中文系统的 netsh/auditpol 输出经管道读入后，
+    ' 可能变成 GBK 落盘时不合法的字符，写进报告会破坏整份 HTML 的编码。
+    Dim t : t = s
+    If IsNull(t) Then t = ""
+    Dim i, ch, code, out
+    out = ""
+    For i = 1 To Len(t)
+        ch = Mid(t, i, 1)
+        code = AscW(ch)
+        If code < 0 Then code = code + 65536
+        If code = 10 Or code = 13 Or code = 9 Then
+            out = out & " "
+        ElseIf code >= 32 And code <= 126 Then
+            out = out & ch
+        End If
+    Next
+    Do While InStr(out, "  ") > 0
+        out = Replace(out, "  ", " ")
+    Loop
+    out = Trim(out)
+    ' 只剩标点/横线这类无信息内容时，也给统一说明，避免详情里出现一串破折号
+    Dim hasText : hasText = False
+    Dim k, c2
+    For k = 1 To Len(out)
+        c2 = Mid(out, k, 1)
+        If (c2 >= "A" And c2 <= "Z") Or (c2 >= "a" And c2 <= "z") Or (c2 >= "0" And c2 <= "9") Then
+            hasText = True
+            Exit For
+        End If
+    Next
+    If out = "" Or Not hasText Then
+        Snippet = "（原始命令输出已省略：含非 ASCII 字符，可能因编码不一致产生乱码）"
+    ElseIf Len(out) > n Then
+        Snippet = Left(out, n) & "…"
+    Else
+        Snippet = out
+    End If
+End Function
+
 Sub AddResult(id, cat, title, status, detail, chapter, rec)
+    title = CleanText(title)
+    detail = CleanText(detail)
+    rec = CleanText(rec)
     ' 评审整改（2026-09-30 第4/8条）：rMethod=验证过程/方法（指导书逐条）；
     ' 核查项名对齐指导书（不一致时以指导书为准，脚本项名以〔脚本项名：…〕并入详情前缀）
     Dim gtitle : gtitle = GuideTitleOf(id)

@@ -294,23 +294,23 @@ Sub Check_1_4_Firewall()
         Next
         If nProfiles = 0 Then
             Call AddResult("1.4", "系统安全", "防火墙策略", _
-                           "manual", "无法解析防火墙状态输出（未读到 State/状态 行），请人工核实防火墙是否开启并在运行。" & Chr(10) & Left(advOut, 200), "第1章 第1.4节", _
+                           "manual", "无法解析防火墙状态输出（未读到 State/状态 行），请人工核实防火墙是否开启并在运行。" & Chr(10) & Snippet(advOut, 200), "第1章 第1.4节", _
                            "开启防火墙并在【高级安全 Windows 防火墙】确认域/专用/公用配置文件均为启用")
             Exit Sub
         End If
         ' 评审口径不允许"没开全却判合规"：必须确认取到域/专用/公用三个配置文件
         If nProfiles < 3 Then
             Call AddResult("1.4", "系统安全", "防火墙策略", _
-                           "manual", "仅解析到 " & nProfiles & " 个防火墙配置文件的状态（应为域/专用/公用 3 个），无法确认是否全部开启，不判定合规。" & Chr(10) & Left(advOut, 200), "第1章 第1.4节", _
+                           "manual", "仅解析到 " & nProfiles & " 个防火墙配置文件的状态（应为域/专用/公用 3 个），无法确认是否全部开启，不判定合规。" & Chr(10) & Snippet(advOut, 200), "第1章 第1.4节", _
                            "以管理员身份重跑，或在【高级安全 Windows 防火墙】确认域/专用/公用三个配置文件均为启用")
             Exit Sub
         End If
         fwOn = (nOn = nProfiles)
-        detail = "三个配置文件（域/专用/公用）中已开启 " & nOn & "/" & nProfiles & " 个。" & Chr(10) & Left(advOut, 200)
+        detail = "三个配置文件（域/专用/公用）中已开启 " & nOn & "/" & nProfiles & " 个。" & Chr(10) & Snippet(advOut, 200)
     Else
         Dim xpOut : xpOut = RunCmd("netsh firewall show opmode 2>nul")
         fwOn = (InStr(UCase(xpOut), "ENABLE") > 0 Or InStr(xpOut, "启用") > 0)
-        detail = Left(xpOut, 200)
+        detail = Snippet(xpOut, 200)
     End If
     If fwOn Then
         Call AddResult("1.4", "系统安全", "防火墙策略", _
@@ -1056,7 +1056,7 @@ Sub Check_2_4_UniqueAccounts()
         End If
     Next
     Call AddResult("2.4", "用户安全", "账户唯一性", _
-                   "pass", "已列出所有账户，请核查是否存在重复或共享账户。" & Chr(10) & Left(out, 300), _
+                   "pass", "已列出所有账户，请核查是否存在重复或共享账户。" & Chr(10) & Snippet(out, 300), _
                    "第2章 第2.4节", "")
 End Sub
 
@@ -3042,7 +3042,76 @@ Function GuideTitleOf(id)
     End Select
 End Function
 
+Function CleanText(s)
+    ' 报告以 GBK 落盘；命令输出里可能混入 UTF-8 字节被逐字节读入的字符（U+0080-U+00FF）
+    ' 或控制符/代理对，这些写进 GBK 会产生非法字节并破坏整个 HTML 的编码，统一在此丢弃。
+    Dim t : t = s
+    If IsNull(t) Then t = ""
+    Dim i, ch, code, out
+    out = ""
+    For i = 1 To Len(t)
+        ch = Mid(t, i, 1)
+        code = AscW(ch)
+        If code < 0 Then code = code + 65536
+        If code = 9 Or code = 10 Or code = 13 Then
+            out = out & ch
+        ElseIf code < 32 Then
+            ' 其他控制符：丢弃
+        ElseIf code >= 128 And code <= 255 Then
+            ' UTF-8 多字节被当成单字节读入的残留：丢弃
+        ElseIf code >= 55296 And code <= 57343 Then
+            ' 代理对：丢弃
+        Else
+            out = out & ch
+        End If
+    Next
+    CleanText = out
+End Function
+
+Function Snippet(s, n)
+    ' 命令输出只保留可打印 ASCII：中文系统的 netsh/auditpol 输出经管道读入后，
+    ' 可能变成 GBK 落盘时不合法的字符，写进报告会破坏整份 HTML 的编码。
+    Dim t : t = s
+    If IsNull(t) Then t = ""
+    Dim i, ch, code, out
+    out = ""
+    For i = 1 To Len(t)
+        ch = Mid(t, i, 1)
+        code = AscW(ch)
+        If code < 0 Then code = code + 65536
+        If code = 10 Or code = 13 Or code = 9 Then
+            out = out & " "
+        ElseIf code >= 32 And code <= 126 Then
+            out = out & ch
+        End If
+    Next
+    Do While InStr(out, "  ") > 0
+        out = Replace(out, "  ", " ")
+    Loop
+    out = Trim(out)
+    ' 只剩标点/横线这类无信息内容时，也给统一说明，避免详情里出现一串破折号
+    Dim hasText : hasText = False
+    Dim k, c2
+    For k = 1 To Len(out)
+        c2 = Mid(out, k, 1)
+        If (c2 >= "A" And c2 <= "Z") Or (c2 >= "a" And c2 <= "z") Or (c2 >= "0" And c2 <= "9") Then
+            hasText = True
+            Exit For
+        End If
+    Next
+    If out = "" Or Not hasText Then
+        Snippet = "（原始命令输出已省略：含非 ASCII 字符，可能因编码不一致产生乱码）"
+    ElseIf Len(out) > n Then
+        Snippet = Left(out, n) & "…"
+    Else
+        Snippet = out
+    End If
+End Function
+
 Sub AddResult(id, cat, title, status, detail, chapter, rec)
+    title = CleanText(title)
+    detail = CleanText(detail)
+    rec = CleanText(rec)
     ' 评审整改（2026-09-30 第4/8条）：rMethod=验证过程/方法（指导书逐条）；
     ' 核查项名对齐指导书（不一致时以指导书为准，脚本项名以〔脚本项名：…〕并入详情前缀）
     Dim gtitle
