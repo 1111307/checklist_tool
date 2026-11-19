@@ -617,14 +617,19 @@ check_1_1_patch() {
 }
 
 check_1_2_antivirus() {
-    local found=""
+    # 评审整改第1条口径：不能只看装没装，要看防护是否在运行。
+    local running="" installed=""
     for p in clamav clamd 360wangzhan huorong-eds sangfor-eds; do
-        if pkg_installed "$p" 2>/dev/null || svc_active "$p" 2>/dev/null; then
-            found="$found $p"
+        if svc_active "$p" 2>/dev/null; then
+            running="$running $p"
+        elif pkg_installed "$p" 2>/dev/null; then
+            installed="$installed $p"
         fi
     done
-    if [ -n "$found" ]; then
-        add_result "1.2" "系统安全" "防病毒软件" "pass" "检测到已安装/运行的安全防护软件：$found" "第1章" "保持防病毒/终端安全软件病毒库及策略为最新。"
+    if [ -n "$running" ]; then
+        add_result "1.2" "系统安全" "防病毒软件" "pass" "安全防护软件正在运行：$running" "第1章" "保持防病毒/终端安全软件病毒库及策略为最新。"
+    elif [ -n "$installed" ]; then
+        add_result "1.2" "系统安全" "防病毒软件" "manual" "检测到已安装但服务未在运行的防护组件：$installed。按评审口径，仅安装不判定合规，请确认服务已启动或人工核实终端防护实际运行状态。" "第1章" "启动防护软件服务（systemctl start/enable），确认病毒库与策略为最新。"
     else
         add_result "1.2" "系统安全" "防病毒软件" "manual" "未检测到常见国产终端安全软件特征，请人工确认是否安装了防病毒/EDR软件（如天融信、奇安信、深信服终端等）。" "第1章" "根据单位要求安装终端安全防护软件。"
     fi
@@ -782,8 +787,17 @@ check_1_26_securitylogs() {
     local logdir="/var/log"
     local total
     total="$(run_cmd "du -sh $logdir 2>/dev/null | awk '{print \$1}'")"
-    if svc_active rsyslog || svc_active syslog-ng || [ -f /etc/logrotate.conf ]; then
-        add_result "1.26" "系统安全" "安全日志容量与留存" "pass" "日志服务（rsyslog/syslog-ng）与 logrotate 轮转机制存在，/var/log 当前占用 ${total:-未知}。" "第1章" "确保日志留存时长满足合规要求（通常不少于6个月）。"
+    # 评审整改第1条口径：日志留存必须日志服务在跑，只有 logrotate.conf 不算
+    local logsvc=""
+    if svc_active rsyslog; then logsvc="rsyslog"
+    elif svc_active syslog-ng; then logsvc="syslog-ng"
+    fi
+    if [ -n "$logsvc" ] && [ -f /etc/logrotate.conf ]; then
+        add_result "1.26" "系统安全" "安全日志容量与留存" "pass" "日志服务 $logsvc 正在运行，logrotate 轮转配置存在，/var/log 当前占用 ${total:-未知}。" "第1章" "确保日志留存时长满足合规要求（通常不少于6个月）。"
+    elif [ -n "$logsvc" ]; then
+        add_result "1.26" "系统安全" "安全日志容量与留存" "manual" "日志服务 $logsvc 正在运行，但未找到 /etc/logrotate.conf，轮转与留存策略无法确认，/var/log 当前占用 ${total:-未知}。" "第1章" "配置 logrotate 或等效机制，确保日志不因容量不足被覆盖。"
+    elif [ -f /etc/logrotate.conf ]; then
+        add_result "1.26" "系统安全" "安全日志容量与留存" "manual" "存在 logrotate 轮转配置，但 rsyslog/syslog-ng 均未运行，日志不会持续落盘。按评审口径不判定合规，请人工确认。" "第1章" "启动日志服务（systemctl start/enable rsyslog）并确认留存策略。"
     else
         add_result "1.26" "系统安全" "安全日志容量与留存" "manual" "未检测到标准日志轮转机制，/var/log 当前占用 ${total:-未知}，请人工确认日志留存策略。" "第1章" "配置 logrotate 或等效机制，确保日志不因容量不足被覆盖。"
     fi

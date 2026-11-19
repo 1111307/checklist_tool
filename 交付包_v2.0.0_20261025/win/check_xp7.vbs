@@ -185,23 +185,63 @@ Sub Check_1_1_Patch()
 End Sub
 
 Sub Check_1_2_Antivirus()
+    ' 评审整改第1条口径：不能只看装没装，要看实时防护是否启用。
+    ' productState：高字节为扫描器状态（0x10/0x11=启用，0x00=停用），低字节为病毒库状态（0x00=最新）。
     Dim ns : ns = "SecurityCenter2"
     If isXP Then ns = "SecurityCenter"
     Dim avNames : avNames = ""
+    Dim avOn : avOn = 0
+    Dim avOff : avOff = ""
+    Dim avOld : avOld = ""
+    Dim avUnknown : avUnknown = ""
     On Error Resume Next
     Dim wmiAV : Set wmiAV = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\" & ns)
     If Not IsNull(wmiAV) Then
-        Dim avSet : Set avSet = wmiAV.ExecQuery("SELECT displayName FROM AntiVirusProduct")
+        Dim avSet : Set avSet = wmiAV.ExecQuery("SELECT displayName, productState FROM AntiVirusProduct")
         Dim avObj
         For Each avObj In avSet
+            Dim nm : nm = avObj.displayName
+            Dim st : st = -1
+            st = CLng(avObj.productState)
+            Dim scanner : scanner = -1
+            Dim sig : sig = -1
+            If st >= 0 Then
+                scanner = (st \ 256) Mod 256
+                sig = st Mod 256
+            End If
             If avNames <> "" Then avNames = avNames & ", "
-            avNames = avNames & avObj.displayName
+            avNames = avNames & nm
+            If st < 0 Then
+                If avUnknown <> "" Then avUnknown = avUnknown & ", "
+                avUnknown = avUnknown & nm
+            ElseIf scanner = 16 Or scanner = 17 Then
+                avOn = avOn + 1
+                If sig <> 0 Then
+                    If avOld <> "" Then avOld = avOld & ", "
+                    avOld = avOld & nm
+                End If
+            Else
+                If avOff <> "" Then avOff = avOff & ", "
+                avOff = avOff & nm
+            End If
         Next
     End If
     On Error GoTo 0
-    If avNames <> "" Then
+
+    Dim detail
+    If avOn > 0 Then
+        detail = "防病毒软件实时防护已启用：" & avNames
+        If avOld <> "" Then detail = detail & Chr(10) & "以下产品病毒库可能不是最新：" & avOld
         Call AddResult("1.2", "系统安全", "防病毒软件", _
-                       "pass", "检测到防病毒软件：" & avNames, "第1章 第1.2节", "")
+                       "pass", detail, "第1章 第1.2节", "")
+    ElseIf avOff <> "" Then
+        Call AddResult("1.2", "系统安全", "防病毒软件", _
+                       "fail", "检测到防病毒软件但实时防护未启用：" & avOff & "。按评审口径，仅安装不判定合规。", "第1章 第1.2节", _
+                       "启用防病毒软件实时防护，并确认病毒库为最新。")
+    ElseIf avUnknown <> "" Then
+        Call AddResult("1.2", "系统安全", "防病毒软件", _
+                       "manual", "检测到防病毒软件：" & avUnknown & "，但无法解析运行状态（productState 不可读），请人工确认实时防护是否开启。", "第1章 第1.2节", _
+                       "人工确认终端防护实时状态与病毒库版本。")
     Else
         Call AddResult("1.2", "系统安全", "防病毒软件", _
                        "fail", "未检测到防病毒软件", "第1章 第1.2节", _
@@ -1949,11 +1989,20 @@ End Sub
 ' 辅助：检测系统审计策略是否开启（XP/7 通用）
 ' ============================================================
 Function HasAuditEnabled()
-    ' 返回 "on"（审计已开启）/ "off"（明确关闭）/ "unknown"（权限不足或无法确认）
+    ' 返回 "on"（策略开启且日志服务在运行）/ "off"（明确关闭）/
+    '      "stopped"（策略开启但事件日志服务未运行，审计无法落盘）/ "unknown"
+    ' 评审整改第1条口径：审计是否真正生效，还需事件日志服务处于运行状态。
     HasAuditEnabled = "unknown"
+    Dim evq : evq = LCase(RunCmdCached("sc query EventLog 2>nul"))
+    Dim evRunning : evRunning = True
+    If evq <> "" Then evRunning = (InStr(evq, "running") > 0)
     Dim ap : ap = RunCmdCached("auditpol /get /category:* 2>nul")
     If InStr(ap, "成功") > 0 Or InStr(ap, "Success") > 0 Then
-        HasAuditEnabled = "on"
+        If evRunning Then
+            HasAuditEnabled = "on"
+        Else
+            HasAuditEnabled = "stopped"
+        End If
         Exit Function
     End If
     ' 权限不足/参数错误时，auditpol 会输出"特权"或"错误"或"参数"
@@ -1977,7 +2026,11 @@ Function HasAuditEnabled()
                 Dim pos : pos = InStr(content, k & " = ")
                 Dim v : v = Mid(content, pos + Len(k) + 3, 1)
                 If v <> "0" Then
-                    HasAuditEnabled = "on"
+                    If evRunning Then
+                        HasAuditEnabled = "on"
+                    Else
+                        HasAuditEnabled = "stopped"
+                    End If
                     Exit Function
                 End If
             End If
@@ -2009,6 +2062,9 @@ Sub Check_3_2_DataTransfer()
     ElseIf auditState = "off" Then
         Call AddResult("3.2", "数据安全", "数据交互/文件传输统一管控审计", _
                        "fail", "检测到文件共享/文件传输服务（SMB 445 或 FTP 21），但系统审计策略已明确关闭，传输行为存在未审计风险。", "第3章 第3.2节", "开启安全审计策略（登录/账户管理/对象访问），并对文件传输行为进行统一管控与审计。")
+    ElseIf auditState = "stopped" Then
+        Call AddResult("3.2", "数据安全", "数据交互/文件传输统一管控审计", _
+                       "fail", "检测到文件共享/文件传输服务（SMB 445 或 FTP 21），审计策略已开启，但事件日志服务（EventLog）未运行，审计记录无法落盘。", "第3章 第3.2节", "启动事件日志服务（sc config EventLog start= auto 并 net start EventLog）。")
     ElseIf auditState = "unknown" Then
         Call AddResult("3.2", "数据安全", "数据交互/文件传输统一管控审计", _
                        "manual", "检测到文件共享/文件传输服务，但无法确认审计策略状态（auditpol 需管理员权限查询，当前权限不足），请以管理员身份运行脚本或人工核查审计配置。", "第3章 第3.2节", "以管理员权限运行脚本，或人工核查审计策略是否已开启。")
@@ -2091,6 +2147,8 @@ Sub Check_3_7_StorageLogin()
     Dim auditNote : auditNote = ""
     If auditState3 = "off" Then
         issues = issues & "  · 系统审计策略已明确关闭，登录行为无审计留存" & Chr(10)
+    ElseIf auditState3 = "stopped" Then
+        issues = issues & "  · 审计策略已开启，但事件日志服务（EventLog）未运行，登录行为无法留存" & Chr(10)
     ElseIf auditState3 = "unknown" Then
         auditNote = "审计策略状态无法确认（auditpol 需管理员权限，当前未以管理员运行）。"
     End If
