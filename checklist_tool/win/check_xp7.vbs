@@ -2889,6 +2889,10 @@ Function MethodOf(id)
         Case "9.3": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
         Case "9.4": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
         Case "10.1": MethodOf = "人工核查（现场查看 / 文档调阅，按指导书该条方法留存证据）"
+        Case "1.26_m": MethodOf = "1.26.1 现场查看防病毒软件日志与 Windows Update 更新记录；1.26.2 核对日志留存时长与记录完整性（人工确认）"
+        Case "2.11_m": MethodOf = "2.11.1 核查是否采用 USB Key / 密码卡 / 指纹等专用硬件或软件实现身份认证（超出脚本自动核查范围，人工确认）"
+        Case "10.1_m": MethodOf = "10.1.1 核查涉密协议的认证方式、通信口令与密钥分发管理记录（人工确认）"
+        Case "1.16_17": MethodOf = MethodOf("1.16") & "；" & MethodOf("1.17")
         Case Else: MethodOf = ""
     End Select
 End Function
