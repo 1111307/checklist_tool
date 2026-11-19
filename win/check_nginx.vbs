@@ -11,7 +11,7 @@ Set oShell = CreateObject("WScript.Shell")
 Set oFSO   = CreateObject("Scripting.FileSystemObject")
 
 Dim rID(60), rCat(60), rTitle(60), rStatus(60)
-Dim rDetail(60), rChapter(60), rRec(60)
+Dim rDetail(60), rChapter(60), rRec(60), rMethod(60)
 Dim rCount : rCount = 0
 
 Dim NGINX_BIN : NGINX_BIN = ""
@@ -30,14 +30,62 @@ Function RunCmd(cmd)
     On Error GoTo 0
 End Function
 
+' 验证过程/方法 查询表（评审整改 2026-09-30 第4条；数据源：指导书 v2.0.0 逐条提取）
+Function MethodOf(id)
+    Select Case id
+        Case "1.1": MethodOf = "1.1.1 核查操作系统安装补丁情况：图形界面/文档核查；1.1.2 核查数据库补丁情况：图形界面/文档核查；1.1.3 核查中间件补丁情况：图形界面/文档核查"
+        Case "1.14": MethodOf = "1.14.1 Nginx：图形界面/文档核查；1.14.2 Tomcat：<Server port=""8527"" shutdown=""DangerousShutdownCommand"">"
+        Case "4.5": MethodOf = "4.5.1 Windows操作系统 (Win7, WinXP)：netsh advfirewall show allprofiles、netsh advfirewall firewall show rule name=all；4.5.2 中标麒麟、银河麒麟：sudo sysctl -a 2>/dev/null|grep-E""tcp_syncookies|tcp_max_syn_backlog|nf_conntrack、sudo iptables -L -n | grep -E ""syn\|flood\|limit""；4.5.3 补充核查方法（网络边界设备与应用层限流）：图形界面/文档核查"
+        Case "4.6": MethodOf = "4.6.1 通用核查方法：图形界面/文档核查；4.6.2 主要判定标准：图形界面/文档核查；4.6.3 通用核查方法（数据库连接最小权限补充）：图形界面/文档核查"
+        Case "4.8": MethodOf = "4.8.1 Win7、WinXP：图形界面/文档核查；4.8.2 中标麒麟、银河麒麟：sudo grep -E ""/var/www|html"" /etc/aide/aide.conf、sudo ls -la /var/www/html/index.*；4.8.3 补充核查方法（专业防篡改系统与文件完整性）：图形界面/文档核查"
+        Case "4.9": MethodOf = "4.9.1 Win7、WinXP：图形界面/文档核查；4.9.2 中标麒麟、银河麒麟：curl -I http://目标URL | grep -iE ""(X-Content-Type|X-Frame|CSP)""、curl -s ""$URL' OR '1'='1"" | grep -i ""error\|sql\|mysql""；4.9.3 通用核查方法（应用层SQL注入与XSS防护）：图形界面/文档核查"
+        Case "4.22": MethodOf = "4.22.2 中标麒麟、银河麒麟：sudo netstat +-tunlp；4.22.3 通用核查方法（更改Web应用系统默认服务发布端口）：图形界面/文档核查"
+        Case "4.23": MethodOf = "4.23.1 Win7、WinXP：图形界面/文档核查；4.23.2 中标麒麟、银河麒麟：图形界面/文档核查；4.23.3 通用核查方法（Web服务器层与数据库层管理端口分离）：图形界面/文档核查"
+        Case Else: MethodOf = ""
+    End Select
+End Function
+
+' 核查项名 查询表（评审整改 2026-09-30 第8条；指导书 H2 标题）
+Function GuideTitleOf(id)
+    Select Case id
+        Case "1.1": GuideTitleOf = "操作系统、数据库管理系统、中间件等平台软件应及时安装补丁程序"
+        Case "1.14": GuideTitleOf = "中间件应采取限制运行权限和使用安全管理通道等安全加固措施"
+        Case "4.5": GuideTitleOf = "提供公共信息服务的服务器应具备防DDoS攻击能力"
+        Case "4.6": GuideTitleOf = "Web应用系统应采取Web安全防护措施"
+        Case "4.8": GuideTitleOf = "网站应采取网页防篡改措施，防止对信息内容的非法修改"
+        Case "4.9": GuideTitleOf = "Web应用系统应具备防范SQL注入、跨站脚本等攻击能力"
+        Case "4.22": GuideTitleOf = "应更改Web应用系统默认服务发布端口"
+        Case "4.23": GuideTitleOf = "应分开设置管理端口与应用端口"
+        Case Else: GuideTitleOf = ""
+    End Select
+End Function
+
+Function FixOf(i)
+    ' 不合规填修改建议，其余填核查要求（评审 2026-09-30 第5条）
+    If rStatus(i) = "fail" Then FixOf = rRec(i) Else FixOf = ""
+End Function
+
+Function ReqOf(i)
+    If rStatus(i) = "fail" Then ReqOf = "" Else ReqOf = rRec(i)
+End Function
+
 Sub AddResult(id, cat, title, status, detail, chapter, rec)
+    ' 评审整改（2026-09-30 第4/8条）：rMethod=验证过程/方法（指导书逐条）；
+    ' 核查项名对齐指导书（不一致时以指导书为准，脚本项名以〔脚本项名：…〕并入详情前缀）
+    Dim gtitle : gtitle = GuideTitleOf(id)
     rID(rCount) = id
     rCat(rCount) = cat
-    rTitle(rCount) = title
+    If gtitle <> "" And gtitle <> title Then
+        rTitle(rCount) = gtitle
+        rDetail(rCount) = "〔脚本项名：" & title & "〕" & detail
+    Else
+        rTitle(rCount) = title
+        rDetail(rCount) = detail
+    End If
     rStatus(rCount) = status
-    rDetail(rCount) = detail
     rChapter(rCount) = chapter
     rRec(rCount) = rec
+    rMethod(rCount) = MethodOf(id)
     rCount = rCount + 1
     Dim sym
     Select Case status
@@ -319,7 +367,7 @@ Sub GenerateHTML()
             guidePart = Trim(Mid(chPart, spPos + 1))
             chPart = Left(chPart, spPos - 1)
         End If
-        dataStr = dataStr & "{""ch"":""" & JsonEsc(chPart) & """,""id"":""" & JsonEsc(rID(i)) & """,""cat"":""" & JsonEsc(rCat(i)) & """,""title"":""" & JsonEsc(rTitle(i)) & """,""status"":""" & JsonEsc(rStatus(i)) & """,""detail"":""" & JsonEsc(rDetail(i)) & """,""rec"":""" & JsonEsc(rRec(i)) & """,""guide"":""" & JsonEsc(guidePart) & """}"
+        dataStr = dataStr & "{""ch"":""" & JsonEsc(chPart) & """,""id"":""" & JsonEsc(rID(i)) & """,""cat"":""" & JsonEsc(rCat(i)) & """,""title"":""" & JsonEsc(rTitle(i)) & """,""status"":""" & JsonEsc(rStatus(i)) & """,""detail"":""" & JsonEsc(rDetail(i)) & """,""method"":""" & JsonEsc(rMethod(i)) & """,""detail"":""" & JsonEsc(rDetail(i)) & """,""fix"":""" & JsonEsc(FixOf(i)) & """,""req"":""" & JsonEsc(ReqOf(i)) & """,""guide"":""" & JsonEsc(guidePart) & """}"
     Next
 
     ts.WriteLine "<!DOCTYPE html>"
@@ -372,7 +420,7 @@ Sub GenerateHTML()
     ts.WriteLine ".badge-fail{color:var(--fail);background:var(--fail-bg);border-color:var(--fail-br);}"
     ts.WriteLine ".badge-manual{color:var(--manual);background:var(--manual-bg);border-color:var(--manual-br);}"
     ts.WriteLine ".badge-na{color:var(--na);background:var(--na-bg);border-color:var(--na-br);}"
-    ts.WriteLine "td.detail,td.rec{color:#374151;max-width:320px;}"
+    ts.WriteLine "td.method,td.detail,td.fix,td.req{color:#374151;max-width:320px;}"
     ts.WriteLine ".guide{color:var(--muted);font-size:12px;max-width:260px;}"
     ts.WriteLine ".empty{padding:60px;text-align:center;color:var(--muted);}"
     ts.WriteLine "footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}"
@@ -407,7 +455,7 @@ Sub GenerateHTML()
     ts.WriteLine "</div>"
     ts.WriteLine "<div class=""panel"">"
     ts.WriteLine "<table id=""tbl"">"
-    ts.WriteLine "<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr></thead>"
+    ts.WriteLine "<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>核查要求</th><th>参考指导书</th></tr></thead>"
     ts.WriteLine "<tbody id=""tb""></tbody>"
     ts.WriteLine "</table>"
     ts.WriteLine "<div class=""empty"" id=""empty"" style=""display:none"">没有匹配的核查项</div>"
@@ -431,8 +479,10 @@ Sub GenerateHTML()
     ts.WriteLine "    tr.innerHTML = ""<td>""+esc(x.ch)+""</td><td class='id'>""+esc(x.id)+""</td><td class='cat'>""+esc(x.cat)+""</td>""+"
     ts.WriteLine "      ""<td class='title'>""+esc(x.title)+""</td>""+"
     ts.WriteLine "      ""<td><span class='badge badge-""+x.status+""'>""+ST[x.status]+""</span></td>""+"
+    ts.WriteLine "      ""<td class='method'>""+esc(x.method)+""</td>""+"
     ts.WriteLine "      ""<td class='detail'>""+esc(x.detail)+""</td>""+"
-    ts.WriteLine "      ""<td class='rec'>""+esc(x.rec)+""</td>""+"
+    ts.WriteLine "      ""<td class='fix'>""+esc(x.fix)+""</td>""+"
+    ts.WriteLine "      ""<td class='req'>""+esc(x.req)+""</td>""+"
     ts.WriteLine "      ""<td class='guide'>""+esc(x.guide)+""</td>"";"
     ts.WriteLine "    tb.appendChild(tr);"
     ts.WriteLine "  });"
@@ -486,9 +536,9 @@ Sub GenerateExcel()
     oWS.Cells(1,1).Font.Size = 14
     oWS.Cells(1,1).Font.Bold = True
 
-    Dim headers : headers = Array("编号","类别","检查项","状态","详情","修复建议","章节")
+    Dim headers : headers = Array("编号","类别","检查项","状态","验证过程/方法","详情","修改建议","核查要求","章节")
     Dim c
-    For c = 1 To 7
+    For c = 1 To 9
         oWS.Cells(4,c).Value = headers(c-1)
         oWS.Cells(4,c).Font.Bold = True
         oWS.Cells(4,c).Interior.Color = RGB(0,112,192)
@@ -509,9 +559,11 @@ Sub GenerateExcel()
             Case Else:     statusText = "不适用"
         End Select
         oWS.Cells(row,4).Value = statusText
-        oWS.Cells(row,5).Value = rDetail(i)
-        oWS.Cells(row,6).Value = rRec(i)
-        oWS.Cells(row,7).Value = rChapter(i)
+        oWS.Cells(row,5).Value = rMethod(i)
+        oWS.Cells(row,6).Value = rDetail(i)
+        oWS.Cells(row,7).Value = FixOf(i)
+        oWS.Cells(row,8).Value = ReqOf(i)
+        oWS.Cells(row,9).Value = rChapter(i)
         Select Case rStatus(i)
             Case "pass":   oWS.Cells(row,4).Font.Color = RGB(40,167,69)
             Case "fail":   oWS.Cells(row,4).Font.Color = RGB(220,53,69)
@@ -524,8 +576,10 @@ Sub GenerateExcel()
     oWS.Columns(3).ColumnWidth = 30
     oWS.Columns(4).ColumnWidth = 12
     oWS.Columns(5).ColumnWidth = 50
-    oWS.Columns(6).ColumnWidth = 40
-    oWS.Columns(7).ColumnWidth = 14
+    oWS.Columns(6).ColumnWidth = 50
+    oWS.Columns(7).ColumnWidth = 30
+    oWS.Columns(8).ColumnWidth = 30
+    oWS.Columns(9).ColumnWidth = 14
     oWS.Columns(5).WrapText = True
     oWS.Columns(6).WrapText = True
 
@@ -563,9 +617,9 @@ Sub GenerateXLS()
     ts.WriteLine "<head><meta http-equiv=""Content-Type"" content=""text/html; charset=GBK"">"
     ts.WriteLine "<style>td,th{border:1px solid #bbb;padding:4px 6px}th.hd{background:#007bff;color:#fff}</style></head><body>"
     ts.WriteLine "<table cellspacing=""0"">"
-    ts.WriteLine "<tr><td colspan=""7""><b>Nginx 中间件配置核查报告</b></td></tr>"
-    ts.WriteLine "<tr><td colspan=""7"">版本：" & HtmlEsc(NGINX_VERSION) & "</td></tr>"
-    ts.WriteLine "<tr><th class=""hd"">编号</th><th class=""hd"">类别</th><th class=""hd"">检查项</th><th class=""hd"">状态</th><th class=""hd"">详情</th><th class=""hd"">修复建议</th><th class=""hd"">章节</th></tr>"
+    ts.WriteLine "<tr><td colspan=""9""><b>Nginx 中间件配置核查报告</b></td></tr>"
+    ts.WriteLine "<tr><td colspan=""9"">版本：" & HtmlEsc(NGINX_VERSION) & "</td></tr>"
+    ts.WriteLine "<tr><th class=""hd"">编号</th><th class=""hd"">类别</th><th class=""hd"">检查项</th><th class=""hd"">状态</th><th class=""hd"">验证过程/方法</th><th class=""hd"">详情</th><th class=""hd"">修改建议</th><th class=""hd"">核查要求</th><th class=""hd"">章节</th></tr>"
     Dim i
     For i = 0 To rCount - 1
         Dim statusText
@@ -576,7 +630,7 @@ Sub GenerateXLS()
             Case Else:     statusText = "不适用"
         End Select
         ts.WriteLine "<tr><td>" & HtmlEsc(rID(i)) & "</td><td>" & HtmlEsc(rCat(i)) & "</td><td>" & HtmlEsc(rTitle(i)) & "</td>"
-        ts.WriteLine "<td>" & statusText & "</td><td>" & HtmlEsc(rDetail(i)) & "</td><td>" & HtmlEsc(rRec(i)) & "</td><td>" & HtmlEsc(rChapter(i)) & "</td></tr>"
+        ts.WriteLine "<td>" & statusText & "</td><td>" & HtmlEsc(rMethod(i)) & "</td><td>" & HtmlEsc(rDetail(i)) & "</td><td>" & HtmlEsc(FixOf(i)) & "</td><td>" & HtmlEsc(ReqOf(i)) & "</td><td>" & HtmlEsc(rChapter(i)) & "</td></tr>"
     Next
     ts.WriteLine "</table></body></html>"
     ts.Close

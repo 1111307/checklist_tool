@@ -5,10 +5,10 @@ cd /d "%~dp0"
 
 rem ============================================================
 rem  运行模式选择（评审 2026-09-30 第4/5/9条：报告需含验证过程列）
-rem    PS  ：PS 脚本版，报告 10 列（含验证过程/方法、修改建议、安全要求），
+rem    PS  ：PS 脚本版，报告 10 列（含验证过程/方法、修改建议、核查要求），
 rem          需要 PowerShell 3.0 及以上（[PSCustomObject] 是 3.0 才有的类型加速器）
 rem    VBS ：VBScript 版，兼容 Windows XP SP3 / 未升级 WMF 的 Win7
-rem          组件报告为 HTML 8 列 / XLS 7 列，合并后仍统一为 12 列
+rem          组件报告为 HTML 10 列 / XLS 9 列，合并后统一为 14 列
 rem  强制指定：run_all.bat /ps   或   run_all.bat /vbs
 rem ============================================================
 set "PSEXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -26,7 +26,7 @@ if /i "%MODE%"=="PS" (
   echo #        含「验证过程/方法」「修改建议」「安全要求」，数据库报告含「数据目录」
 ) else (
   echo #  模式：VBScript 版（检测到的 PS 主版本：%PSMAJ%，低于 3.0 或不可用）
-  echo #        组件报告 8/7 列，合并后为 12 列；如需 10 列请在 Win7+ 升级 WMF 后重跑
+  echo #        组件报告同为 10 列，合并后为 14 列
 )
 echo ############################################################
 

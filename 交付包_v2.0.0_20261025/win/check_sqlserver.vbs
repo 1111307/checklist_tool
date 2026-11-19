@@ -12,7 +12,7 @@ Set oShell = CreateObject("WScript.Shell")
 Set oFSO   = CreateObject("Scripting.FileSystemObject")
 
 Dim rID(60), rCat(60), rTitle(60), rStatus(60)
-Dim rDetail(60), rChapter(60), rRec(60)
+Dim rDetail(60), rChapter(60), rRec(60), rMethod(60)
 Dim rCount : rCount = 0
 
 Dim MSSQL_HOST, MSSQL_PORT, MSSQL_USER, MSSQL_PASS
@@ -64,14 +64,82 @@ Function RunCmd(cmd)
     On Error GoTo 0
 End Function
 
+' 验证过程/方法 查询表（评审整改 2026-09-30 第4条；数据源：指导书 v2.0.0 逐条提取）
+Function MethodOf(id)
+    Select Case id
+        Case "1.1": MethodOf = "1.1.1 核查操作系统安装补丁情况：图形界面/文档核查；1.1.2 核查数据库补丁情况：图形界面/文档核查；1.1.3 核查中间件补丁情况：图形界面/文档核查"
+        Case "1.7": MethodOf = "1.7.1 Mysql：mysql -uroot -p、SELECT User, Host FROM mysql.user;、INSTALL PLUGIN validate_password SONAME 'validate_password.so';、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc；1.7.2 SQLServer：DROP LOGIN [login_name];、DROP LOGIN [redundant_user];、sqlcmd -S localhost -U SA -P 'SA账户密码'；1.7.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236、ALTER PROFILE DEFAULT LIMIT PASSWORD_LIFE_TIME 90;、ALTER PROFILE DEFAULT LIMIT PASSWORD_GRACE_TIME 7;；1.7.4 Redis：ACL DELUSER redundant_user、redis-cli CONFIG GET requirepass、redis-cli ACL LIST、ps aux | grep redis、systemctl status redis、redis-cli"
+        Case "1.8": MethodOf = "1.8.1 Mysql：mysql -uroot -p、DROP PROCEDURE IF EXISTS ‘old_backup_procedure’;、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc、. ~/.bash_profile；1.8.2 SQLServer：USE YourDatabaseName;、sqlcmd -S localhost -U SA -P 'SA账户密码'；1.8.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236、DROP PROCEDURE IF EXISTS 模式名.存储过程名;、DROP PROCEDURE IF EXISTS 存储过程名;；1.8.4 Redis：图形界面/文档核查"
+        Case "1.9": MethodOf = "1.9.1 Mysql：mysql -uroot -p、SHOW GRANTS FOR 'username'@'localhost';、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc、. ~/.bash_profile；1.9.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.9.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236、GRANT SELECT, INSERT, UPDATE, DELETE ON 模式名.表名 TO 用户名;、WITH GRANT OPTION；1.9.4 Redis：CONFIG GET requirepass、ACL LIST、ACL GETUSER default、ACL SETUSER app_user on >AppPass123! ~业务键前缀* +@read +@write -@dangerous、ACL DELUSER 用户名、redis-cli -a 密码"
+        Case "1.10": MethodOf = "1.10.1 Mysql：mysql -uroot -p、SELECT user, host FROM mysql.user;、SHOW GRANTS FOR 'user'@'host';、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc；1.10.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.10.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.10.4 Redis：CONFIG GET requirepass、CONFIG GET port、CONFIG GET rename-command、redis-cli、CONFIG GET bind、CONFIG GET protected-mode"
+        Case "1.11": MethodOf = "1.11.1 Mysql：mysql -uroot -p、mysqladmin -uroot -p create restore_verify、mysql restore_verify < 备份文件路径\dump.sql、mysql < 备份文件路径\dump.sql、USE restore_verify; SHOW TABLES;、vi ~/.bashrc；1.11.2 SQLServer：RESTORE VERIFYONLY FROM DISK = N'备份文件完整路径';、RESTORE FILELISTONLY FROM DISK = N'备份文件完整路径';、sqlcmd -S localhost -U SA -P 'SA账户密码'；1.11.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236、!ls -la /home/dmdba/dmdbms/bin | grep -i backup、./dmrman；1.11.4 Redis：CONFIG GET save、CONFIG GET dir、CONFIG GET *save*、CONFIG GET appendonly、CONFIG GET appendfsync、CONFIG GET *apend*"
+        Case "1.12": MethodOf = "1.12.1 Mysql：mysql -uroot -p、SET SESSION sql_safe_updates = 1;、SELECT @@sql_safe_updates;、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc；1.12.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.12.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.12.4 Redis：CONFIG GET rename-command、redis-cli"
+        Case "1.13": MethodOf = "1.13.1 MySQL：mysql -uroot -p、SHOW VARIABLES LIKE  ‘port’;、SHOW VARIABLES LIKE ‘datadir’;、SHOW VARIABLES LIKE ‘config_file’检查配置文件路径;、SHOW DATABASES、SHOW VARIABLES LIKE ‘innodb_file_per_table’;；1.13.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.13.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236、exit；1.13.4 Redis：CONFIG GET port、CONFIG GET dir、CONFIG GET dbfilename、ps -ef | grep redis-server | grep -v grep、redis-server /etc/redis/6379.conf --port 6379、redis-server /etc/redis/6380.conf --port 6380"
+        Case "1.15": MethodOf = "1.15.1 MySQL：SELECT user, host FROM mysql.user WHERE user = 'root';、DROP USER 'root'@'%';、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc、. ~/.bash_profile；1.15.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.15.3 达梦：su  -用户名、cd /home/dmdba/dmdbms/data/DAMENG、cat dm.ini | grep -i ""listen""、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.15.4 Redis：redis-cli"
+        Case "1.16": MethodOf = "1.16.1 MySQL：mysql -uroot -p、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc、. ~/.bash_profile、env | grep MYSQL；1.16.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.16.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.16.4 Redis：services.msc、ps -ef | grep redis-server | grep -v grep"
+        Case "1.19": MethodOf = "1.19.1 MySQL：mysql -uroot -p、SHOW VARIABLES LIKE 'port';、RENAME USER 'root'@'localhost' TO 'new_admin'@'localhost';FLUSH PRIVILEGES;、ALTER USER '你的管理员用户名'@'主机名' IDENTIFIED BY '你的新复杂密码';FLUSH PRIVILEGES;、vi ~/.bashrc、vi ~/.bash_profile；1.19.2 SQLServer：ALTER LOGIN sa WITH PASSWORD = 'YourNewPassword';、sqlcmd -S localhost -U SA -P 'SA账户密码'；1.19.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.19.4 Redis：图形界面/文档核查"
+        Case "1.21": MethodOf = "1.21.1 MySQL：mysql -uroot -p、SET GLOBAL general_log = 'ON'、SHOW VARIABLES LIKE '%general_log%';、vi ~/.bashrc、vi ~/.bash_profile、source ~/.bashrc；1.21.2 SQLServer：sqlcmd -S localhost -U SA -P 'SA账户密码'；1.21.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.21.4 Redis：图形界面/文档核查"
+        Case "1.22": MethodOf = "1.22.1 MySQL：mysql -uroot -p、SHOW VARIABLES LIKE '%general_log%';、SET GLOBAL general_log = 'ON';、SET GLOBAL audit_logging = OFF;、SET GLOBAL general_log = OFF;、vi ~/.bashrc；1.22.2 SQLServer：图形界面/文档核查；1.22.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.22.4 Redis：图形界面/文档核查"
+        Case "1.23": MethodOf = "1.23.1 MySQL：mysql -uroot -p、SHOW VARIABLES LIKE 'bind_address';、SHOW GRANTS FOR 'app_user'@'应用服务器IP';、DROP USER '用户名'@'%';、vi ~/.bashrc、vi ~/.bash_profile；1.23.2 SQLServer：图形界面/文档核查；1.23.3 达梦：disql SYSDBA/SYSDBA@localhost:5236、su  -用户名、cd  /达梦数据库安装目录下的 bin 目录、./disql SYSDBA/SYSDBA@localhost:5236；1.23.4 Redis：图形界面/文档核查"
+        Case "1.24": MethodOf = "1.24.1 操作系统日志审计核查：图形界面/文档核查；1.24.2 数据库日志审计核查：图形界面/文档核查"
+        Case "1.25": MethodOf = "1.25.1 操作系统抗攻击与防篡改核查：图形界面/文档核查；1.25.2 数据库抗攻击与防篡改核查：图形界面/文档核查"
+        Case "1.26": MethodOf = "1.26.1 操作系统安全日志核查：图形界面/文档核查；1.26.2 数据库安全日志核查：图形界面/文档核查"
+        Case "2.16": MethodOf = "2.16.1 核查操作系统安装补丁情况：图形界面/文档核查；2.16.2 核查数据库补丁修复和升级到最新版本：图形界面/文档核查；2.16.3 应用软件补丁修复和升级到最新版本：图形界面/文档核查"
+        Case Else: MethodOf = ""
+    End Select
+End Function
+
+' 核查项名 查询表（评审整改 2026-09-30 第8条；指导书 H2 标题）
+Function GuideTitleOf(id)
+    Select Case id
+        Case "1.1": GuideTitleOf = "操作系统、数据库管理系统、中间件等平台软件应及时安装补丁程序"
+        Case "1.7": GuideTitleOf = "数据库管理系统应删除冗余帐户,应设置不少于8个字符且字符采用字母大小写，数字及特殊字符混合编制的账户口令"
+        Case "1.8": GuideTitleOf = "数据库管理系统应删除冗余存储过程"
+        Case "1.9": GuideTitleOf = "数据库管理系统应具有基于表级增删改查等细粒度访问和管理授权功能"
+        Case "1.10": GuideTitleOf = "数据库管理系统应具有自主访问控制功能"
+        Case "1.11": GuideTitleOf = "数据库管理系统应具有备份和恢复功能"
+        Case "1.12": GuideTitleOf = "数据库管理系统应具有表级审计、告警和阻断功能"
+        Case "1.13": GuideTitleOf = "数据库管理系统的数据应和其他应用的数据分类独立存储"
+        Case "1.15": GuideTitleOf = "应具备数据库管理系统超级管理员远程登录限制远程登陆限制能力"
+        Case "1.16": GuideTitleOf = "应具备数据库管理系统输入（参数）检查能力"
+        Case "1.19": GuideTitleOf = "应更换数据库管理系统的默认服务端口、管理员用户名和口令"
+        Case "1.21": GuideTitleOf = "数据库管理系统应具有行级或列级审计功能"
+        Case "1.22": GuideTitleOf = "数据库管理系统应采取单独、安全监控、审计措施"
+        Case "1.23": GuideTitleOf = "数据库管理系统仅为应用服务器提供访问服务"
+        Case "1.24": GuideTitleOf = "应具备日志审计能力，审计日志至少保留180天"
+        Case "1.25": GuideTitleOf = "检查是否具备边界保护能力,是否可以抗攻击，防纂改"
+        Case "1.26": GuideTitleOf = "检查是否有防病毒日志、补丁日志、记录相关信息的完整，有效"
+        Case "2.16": GuideTitleOf = "检查被试装备中操作系统、数据库以及应用软件等是否完成补丁修复和升级到最新版本"
+        Case Else: GuideTitleOf = ""
+    End Select
+End Function
+
+Function FixOf(i)
+    ' 不合规填修改建议，其余填核查要求（评审 2026-09-30 第5条）
+    If rStatus(i) = "fail" Then FixOf = rRec(i) Else FixOf = ""
+End Function
+
+Function ReqOf(i)
+    If rStatus(i) = "fail" Then ReqOf = "" Else ReqOf = rRec(i)
+End Function
+
 Sub AddResult(id, cat, title, status, detail, chapter, rec)
+    ' 评审整改（2026-09-30 第4/8条）：rMethod=验证过程/方法（指导书逐条）；
+    ' 核查项名对齐指导书（不一致时以指导书为准，脚本项名以〔脚本项名：…〕并入详情前缀）
+    Dim gtitle : gtitle = GuideTitleOf(id)
     rID(rCount) = id
     rCat(rCount) = cat
-    rTitle(rCount) = title
+    If gtitle <> "" And gtitle <> title Then
+        rTitle(rCount) = gtitle
+        rDetail(rCount) = "〔脚本项名：" & title & "〕" & detail
+    Else
+        rTitle(rCount) = title
+        rDetail(rCount) = detail
+    End If
     rStatus(rCount) = status
-    rDetail(rCount) = detail
     rChapter(rCount) = chapter
     rRec(rCount) = rec
+    rMethod(rCount) = MethodOf(id)
     rCount = rCount + 1
     Dim sym
     Select Case status
@@ -444,7 +512,7 @@ Sub GenerateHTML()
             guidePart = Trim(Mid(chPart, spPos + 1))
             chPart = Left(chPart, spPos - 1)
         End If
-        dataStr = dataStr & "{""ch"":""" & JsonEsc(chPart) & """,""id"":""" & JsonEsc(rID(i)) & """,""cat"":""" & JsonEsc(rCat(i)) & """,""title"":""" & JsonEsc(rTitle(i)) & """,""status"":""" & JsonEsc(rStatus(i)) & """,""detail"":""" & JsonEsc(rDetail(i)) & """,""rec"":""" & JsonEsc(rRec(i)) & """,""guide"":""" & JsonEsc(guidePart) & """}"
+        dataStr = dataStr & "{""ch"":""" & JsonEsc(chPart) & """,""id"":""" & JsonEsc(rID(i)) & """,""cat"":""" & JsonEsc(rCat(i)) & """,""title"":""" & JsonEsc(rTitle(i)) & """,""status"":""" & JsonEsc(rStatus(i)) & """,""detail"":""" & JsonEsc(rDetail(i)) & """,""method"":""" & JsonEsc(rMethod(i)) & """,""detail"":""" & JsonEsc(rDetail(i)) & """,""fix"":""" & JsonEsc(FixOf(i)) & """,""req"":""" & JsonEsc(ReqOf(i)) & """,""guide"":""" & JsonEsc(guidePart) & """}"
     Next
 
     ts.WriteLine "<!DOCTYPE html>"
@@ -497,7 +565,7 @@ Sub GenerateHTML()
     ts.WriteLine ".badge-fail{color:var(--fail);background:var(--fail-bg);border-color:var(--fail-br);}"
     ts.WriteLine ".badge-manual{color:var(--manual);background:var(--manual-bg);border-color:var(--manual-br);}"
     ts.WriteLine ".badge-na{color:var(--na);background:var(--na-bg);border-color:var(--na-br);}"
-    ts.WriteLine "td.detail,td.rec{color:#374151;max-width:320px;}"
+    ts.WriteLine "td.method,td.detail,td.fix,td.req{color:#374151;max-width:320px;}"
     ts.WriteLine ".guide{color:var(--muted);font-size:12px;max-width:260px;}"
     ts.WriteLine ".empty{padding:60px;text-align:center;color:var(--muted);}"
     ts.WriteLine "footer{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}"
@@ -532,7 +600,7 @@ Sub GenerateHTML()
     ts.WriteLine "</div>"
     ts.WriteLine "<div class=""panel"">"
     ts.WriteLine "<table id=""tbl"">"
-    ts.WriteLine "<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>详情</th><th>建议</th><th>参考指导书</th></tr></thead>"
+    ts.WriteLine "<thead><tr><th>章节</th><th>编号</th><th>类别</th><th>核查项</th><th>结果</th><th>验证过程/方法</th><th>详情</th><th>修改建议</th><th>核查要求</th><th>参考指导书</th></tr></thead>"
     ts.WriteLine "<tbody id=""tb""></tbody>"
     ts.WriteLine "</table>"
     ts.WriteLine "<div class=""empty"" id=""empty"" style=""display:none"">没有匹配的核查项</div>"
@@ -556,8 +624,10 @@ Sub GenerateHTML()
     ts.WriteLine "    tr.innerHTML = ""<td>""+esc(x.ch)+""</td><td class='id'>""+esc(x.id)+""</td><td class='cat'>""+esc(x.cat)+""</td>""+"
     ts.WriteLine "      ""<td class='title'>""+esc(x.title)+""</td>""+"
     ts.WriteLine "      ""<td><span class='badge badge-""+x.status+""'>""+ST[x.status]+""</span></td>""+"
+    ts.WriteLine "      ""<td class='method'>""+esc(x.method)+""</td>""+"
     ts.WriteLine "      ""<td class='detail'>""+esc(x.detail)+""</td>""+"
-    ts.WriteLine "      ""<td class='rec'>""+esc(x.rec)+""</td>""+"
+    ts.WriteLine "      ""<td class='fix'>""+esc(x.fix)+""</td>""+"
+    ts.WriteLine "      ""<td class='req'>""+esc(x.req)+""</td>""+"
     ts.WriteLine "      ""<td class='guide'>""+esc(x.guide)+""</td>"";"
     ts.WriteLine "    tb.appendChild(tr);"
     ts.WriteLine "  });"
@@ -611,9 +681,9 @@ Sub GenerateExcel()
     oWS.Cells(1,1).Font.Size = 14
     oWS.Cells(1,1).Font.Bold = True
 
-    Dim headers : headers = Array("编号","类别","检查项","状态","详情","修复建议","章节")
+    Dim headers : headers = Array("编号","类别","检查项","状态","验证过程/方法","详情","修改建议","核查要求","章节")
     Dim c
-    For c = 1 To 7
+    For c = 1 To 9
         oWS.Cells(4,c).Value = headers(c-1)
         oWS.Cells(4,c).Font.Bold = True
         oWS.Cells(4,c).Interior.Color = RGB(0,112,192)
@@ -634,9 +704,11 @@ Sub GenerateExcel()
             Case Else:     statusText = "不适用"
         End Select
         oWS.Cells(row,4).Value = statusText
-        oWS.Cells(row,5).Value = rDetail(i)
-        oWS.Cells(row,6).Value = rRec(i)
-        oWS.Cells(row,7).Value = rChapter(i)
+        oWS.Cells(row,5).Value = rMethod(i)
+        oWS.Cells(row,6).Value = rDetail(i)
+        oWS.Cells(row,7).Value = FixOf(i)
+        oWS.Cells(row,8).Value = ReqOf(i)
+        oWS.Cells(row,9).Value = rChapter(i)
         Select Case rStatus(i)
             Case "pass":   oWS.Cells(row,4).Font.Color = RGB(40,167,69)
             Case "fail":   oWS.Cells(row,4).Font.Color = RGB(220,53,69)
@@ -649,8 +721,10 @@ Sub GenerateExcel()
     oWS.Columns(3).ColumnWidth = 30
     oWS.Columns(4).ColumnWidth = 12
     oWS.Columns(5).ColumnWidth = 50
-    oWS.Columns(6).ColumnWidth = 40
-    oWS.Columns(7).ColumnWidth = 14
+    oWS.Columns(6).ColumnWidth = 50
+    oWS.Columns(7).ColumnWidth = 30
+    oWS.Columns(8).ColumnWidth = 30
+    oWS.Columns(9).ColumnWidth = 14
     oWS.Columns(5).WrapText = True
     oWS.Columns(6).WrapText = True
 
@@ -688,9 +762,9 @@ Sub GenerateXLS()
     ts.WriteLine "<head><meta http-equiv=""Content-Type"" content=""text/html; charset=GBK"">"
     ts.WriteLine "<style>td,th{border:1px solid #bbb;padding:4px 6px}th.hd{background:#007bff;color:#fff}</style></head><body>"
     ts.WriteLine "<table cellspacing=""0"">"
-    ts.WriteLine "<tr><td colspan=""7""><b>SQL Server 数据库配置核查报告</b></td></tr>"
-    ts.WriteLine "<tr><td colspan=""7"">连接：" & HtmlEsc(MSSQL_USER & "@" & MSSQL_HOST & ":" & MSSQL_PORT) & "  版本：" & HtmlEsc(DB_VERSION) & "  数据目录：" & HtmlEsc(DATA_DIR) & "</td></tr>"
-    ts.WriteLine "<tr><th class=""hd"">编号</th><th class=""hd"">类别</th><th class=""hd"">检查项</th><th class=""hd"">状态</th><th class=""hd"">详情</th><th class=""hd"">修复建议</th><th class=""hd"">章节</th></tr>"
+    ts.WriteLine "<tr><td colspan=""9""><b>SQL Server 数据库配置核查报告</b></td></tr>"
+    ts.WriteLine "<tr><td colspan=""9"">连接：" & HtmlEsc(MSSQL_USER & "@" & MSSQL_HOST & ":" & MSSQL_PORT) & "  版本：" & HtmlEsc(DB_VERSION) & "  数据目录：" & HtmlEsc(DATA_DIR) & "</td></tr>"
+    ts.WriteLine "<tr><th class=""hd"">编号</th><th class=""hd"">类别</th><th class=""hd"">检查项</th><th class=""hd"">状态</th><th class=""hd"">验证过程/方法</th><th class=""hd"">详情</th><th class=""hd"">修改建议</th><th class=""hd"">核查要求</th><th class=""hd"">章节</th></tr>"
     Dim i
     For i = 0 To rCount - 1
         Dim statusText
@@ -701,7 +775,7 @@ Sub GenerateXLS()
             Case Else:     statusText = "不适用"
         End Select
         ts.WriteLine "<tr><td>" & HtmlEsc(rID(i)) & "</td><td>" & HtmlEsc(rCat(i)) & "</td><td>" & HtmlEsc(rTitle(i)) & "</td>"
-        ts.WriteLine "<td>" & statusText & "</td><td>" & HtmlEsc(rDetail(i)) & "</td><td>" & HtmlEsc(rRec(i)) & "</td><td>" & HtmlEsc(rChapter(i)) & "</td></tr>"
+        ts.WriteLine "<td>" & statusText & "</td><td>" & HtmlEsc(rMethod(i)) & "</td><td>" & HtmlEsc(rDetail(i)) & "</td><td>" & HtmlEsc(FixOf(i)) & "</td><td>" & HtmlEsc(ReqOf(i)) & "</td><td>" & HtmlEsc(rChapter(i)) & "</td></tr>"
     Next
     ts.WriteLine "</table></body></html>"
     ts.Close
