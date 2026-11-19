@@ -298,6 +298,13 @@ Sub Check_1_4_Firewall()
                            "开启防火墙并在【高级安全 Windows 防火墙】确认域/专用/公用配置文件均为启用")
             Exit Sub
         End If
+        ' 评审口径不允许"没开全却判合规"：必须确认取到域/专用/公用三个配置文件
+        If nProfiles < 3 Then
+            Call AddResult("1.4", "系统安全", "防火墙策略", _
+                           "manual", "仅解析到 " & nProfiles & " 个防火墙配置文件的状态（应为域/专用/公用 3 个），无法确认是否全部开启，不判定合规。" & Chr(10) & Left(advOut, 200), "第1章 第1.4节", _
+                           "以管理员身份重跑，或在【高级安全 Windows 防火墙】确认域/专用/公用三个配置文件均为启用")
+            Exit Sub
+        End If
         fwOn = (nOn = nProfiles)
         detail = "三个配置文件（域/专用/公用）中已开启 " & nOn & "/" & nProfiles & " 个。" & Chr(10) & Left(advOut, 200)
     Else

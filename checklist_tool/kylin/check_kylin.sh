@@ -674,6 +674,17 @@ check_1_4_firewall() {
             *)
                 add_result "1.4" "系统安全" "防火墙状态" "manual" "ufw status 无有效输出（${st:-空}），请人工核实防火墙是否开启并在运行。" "第1章" "配置主机防火墙，限制非必要的入站/出站访问。" ;;
         esac
+    elif command -v kylin-firewall >/dev/null 2>&1; then
+        # 中标麒麟常用 kylin-firewall 管理防火墙（指导书 2.6：-s on 开启、-g 验证状态）
+        local kf
+        kf="$(run_cmd 'kylin-firewall -g 2>/dev/null' | head -20)"
+        if printf '%s' "$kf" | grep -Eqi '(^|[^a-z])(on|enable|enabled|started)([^a-z]|$)|开启|启用'; then
+            add_result "1.4" "系统安全" "防火墙状态" "pass" "kylin-firewall 显示防火墙已开启：${kf:-无输出}" "第1章" "保持防火墙开启，按最小化原则配置放行规则。"
+        elif printf '%s' "$kf" | grep -Eqi '(^|[^a-z])(off|disable|disabled|stopped)([^a-z]|$)|关闭|禁用|未开启'; then
+            add_result "1.4" "系统安全" "防火墙状态" "fail" "kylin-firewall 显示防火墙未开启：${kf:-无输出}。按评审口径，防火墙必须开启且正在运行才判合规。" "第1章" "执行 kylin-firewall -s on 开启防火墙，并按最小化原则配置放行规则。"
+        else
+            add_result "1.4" "系统安全" "防火墙状态" "manual" "检测到 kylin-firewall，但状态输出无法解析（${kf:-空}），请人工执行 kylin-firewall -g 确认防火墙已开启。" "第1章" "确认防火墙已开启（kylin-firewall -s on），并配置最小化放行规则。"
+        fi
     elif command -v iptables >/dev/null 2>&1; then
         local rules
         rules="$(run_cmd 'iptables -S | wc -l')"
